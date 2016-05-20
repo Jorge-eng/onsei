@@ -37,7 +37,7 @@ modelInfo = 'models/cnn_spec_try.mat'
 (feaTrain, labelTrain), (feaTest, labelTest) = data.load_training(
 	inFiles, 'features', 'convnet', 
 	negRatioTrain=10, negRatioTest=10, 
-	permuteBeforeSplit=(False,False), testSplit=0.2, normalize=True)
+	permuteBeforeSplit=(False,False), testSplit=0.2, normalize=False)
 
 print('feaTrain shape:', feaTrain.shape)
 print(feaTrain.shape[0], 'train samples')

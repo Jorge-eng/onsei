@@ -109,9 +109,10 @@ def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, 
         feaTest -= feaMean
         feaTest = np.float32(feaTest)
         feaTest /= feaMax
+	pdb.set_trace()
     else:
-        feaTrain = np.float32(feaTrain) / 255
-        feaTest = np.float32(feaTest) / 255
+        feaTrain = (np.float32(feaTrain)+6)/10# / 255
+        feaTest = (np.float32(feaTest)+5)/10# / 255
 
     return (feaTrain, labelTrain), (feaTest, labelTest)
 
