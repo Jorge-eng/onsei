@@ -11,12 +11,12 @@ def predict(wavFile, model, winShift=20):
 
     winLen = model.input_shape[3]
 
-    feaStream = fbank_stream(wavFile, winLen, winShift)
+    feaStream, starts = fbank_stream(wavFile, winLen, winShift)
     feaStream = (feaStream-7) / 12
 
     prob = model.predict_proba(feaStream, batch_size=128, verbose=1)
 
-    return prob
+    return prob, starts
 
 def fbank_stream(wavFile, winLen, winShift):
 
