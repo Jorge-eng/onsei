@@ -31,7 +31,7 @@ def fbank_stream(wavFile, winLen, winShift):
     for n, stIdx in enumerate(starts):
         stream[n,0,:,:] = logM[:,stIdx+np.arange(0,winLen)]
 
-    return stream
+    return stream, starts
 
 
 wavFile = sys.argv[1]
@@ -43,7 +43,7 @@ modelWeights = info['modelWeights'][0]
 
 model = data.load_model(modelDef, modelWeights)
 
-prob = predict(wavFile, model)
+prob, startTimes = predict(wavFile, model)
 
-savemat('prob.mat',{'prob':prob})
+savemat('prob.mat',{'prob':prob,'startTimes':startTimes})
 
