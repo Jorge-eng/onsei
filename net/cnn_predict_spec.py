@@ -1,14 +1,19 @@
+import sys, os
+sys.path.append(os.path.abspath('../dataprep'))
+
 import data
 from scipy.io import loadmat, savemat
-import audiproc
+import audioproc
 import numpy as np
-import sys
 import pdb
 
-def predict(wavFile, model):
+def predict(wavFile, model, winShift=20):
 
-    pdb.set_trace()
-    feaStream = fbank_stream(wavFile, 199, 20)
+    winLen = model.input_shape[3]
+
+    feaStream = fbank_stream(wavFile, winLen, winShift)
+    feaStream = (feaStream-7) / 12
+
     prob = model.predict_proba(feaStream, batch_size=128, verbose=1)
 
     return prob
