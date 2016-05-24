@@ -31,7 +31,7 @@ inFiles = ('spec_pos.mat',
            'spec_neg.mat')
 
 modelDef = 'models/cnn_spec_try.json'
-modelWeights = 'cnn_spec_try.h5'
+modelWeights = 'models/cnn_spec_try.h5'
 modelInfo = 'models/cnn_spec_try.mat'
 
 (feaTrain, labelTrain), (feaTest, labelTest) = data.load_training(
@@ -100,7 +100,7 @@ def build_model(inputShape, numClasses, optimizer):
 model = build_model(inputShape, numClasses, optimizer)
 
 cbks = [ModelCheckpoint(modelWeights,
-        monitor='val_acc', save_best_only=True, mode='auto')]
+        monitor='val_loss', save_best_only=True, mode='auto')]
 
 model.fit(feaTrain, labelTrain, batch_size=batchSize,
           nb_epoch=numEpoch, show_accuracy=True,
@@ -108,7 +108,6 @@ model.fit(feaTrain, labelTrain, batch_size=batchSize,
 
 print('Saving to '+modelInfo)
 savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights})
-
 
 # Write model definition to file
 open(modelDef, 'w').write(model.to_json())
