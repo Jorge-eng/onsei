@@ -1,6 +1,6 @@
 from keras.models import model_from_json
 from scipy.io import loadmat, savemat
-import data
+import audiproc
 import numpy as np
 import pdb
 
@@ -14,7 +14,7 @@ def predict(x, model):
 
 def fbank_stack(wavFile, winLen, winShift):
 
-    logM = data.wav2fbank(wavFile)
+    logM = audioproc.wav2fbank(wavFile)
     nBands = logM.shape[0]
     nFrames = logM.shape[1]
 
