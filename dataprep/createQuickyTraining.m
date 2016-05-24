@@ -16,7 +16,7 @@ for j = 1:nKw
     kwClip{j} = resample(kwClip{j},16,48);
     kwSpec{j} = logMelSpec(kwClip{j}, Fs, nMel, windowLen_s, frameShift_s);
 end
-for j = 1:nKwRef
+for j = 1:nKwRev
     kwRevClip{j} = resample(kwRevClip{j},16,48);
     kwRevSpec{j} = logMelSpec(kwRevClip{j}, Fs, nMel, windowLen_s, frameShift_s);
 end
