@@ -52,8 +52,11 @@ def fbank_stack(wavFile, winLen, winShift):
 
 def wav2fbank(wavFile):
 
-    (fs, wav) = wavfile.read(wavFile)
-    assert fs == 16000 # requirement for now
+    if isinstance(wavFile, str):
+        (fs, wav) = wavfile.read(wavFile)
+        assert fs == 16000 # requirement for now
+    elif isinstance(wavFile, np.ndarray):
+        wav = wavFile
 
     winlen = 0.025
     winstep = 0.010
