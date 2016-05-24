@@ -6,21 +6,14 @@ GPU run command:
 '''
 
 from __future__ import print_function
-from keras.optimizers import SGD
 from keras.callbacks import ModelCheckpoint
 import data
 import modeldefs
 from scipy.io import savemat
 import pdb
 
-
 batchSize = 8
 numEpoch = 20
-# Best so far: rmsprop
-#optimizer = 'adadelta'
-#optimizer = 'adagrad'
-optimizer = 'rmsprop'
-#optimizer = SGD(lr=0.01, decay=0.0, momentum=0.9, nesterov=True)
 
 # the data, shuffled and split between train and test sets
 inFiles = ('spec_pos.mat',
@@ -44,14 +37,16 @@ inputShape = feaTrain.shape[1:]
 numClasses = labelTrain.shape[1]
 
 #pdb.set_trace()
-def build_model(inputShape, numClasses, optimizer):
+def build_model(inputShape, numClasses):
 
-    model = modeldefs.model_may24(inputShape, numClasses)
+    #model, optimizer = modeldefs.model_may24_large(inputShape, numClasses)
+    model, optimizer = modeldefs.model_may24_small(inputShape, numClasses)
+
     model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 
     return model
 
-model = build_model(inputShape, numClasses, optimizer)
+model = build_model(inputShape, numClasses)
 
 cbks = [ModelCheckpoint(modelWeights,
         monitor='val_loss', save_best_only=True, mode='auto')]
