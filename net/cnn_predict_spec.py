@@ -1,18 +1,19 @@
-from keras.models import model_from_json
+import data
 from scipy.io import loadmat, savemat
 import audiproc
 import numpy as np
+import sys
 import pdb
 
-def predict(x, model):
+def predict(wavFile, model):
 
-    y = fbank_stack(x)
-
-    prob = model.predict_proba(y, batch_size=128, verbose=1)
+    pdb.set_trace()
+    feaStream = fbank_stream(wavFile, 199, 20)
+    prob = model.predict_proba(feaStream, batch_size=128, verbose=1)
 
     return prob
 
-def fbank_stack(wavFile, winLen, winShift):
+def fbank_stream(wavFile, winLen, winShift):
 
     logM = audioproc.wav2fbank(wavFile)
     nBands = logM.shape[0]
@@ -21,14 +22,23 @@ def fbank_stack(wavFile, winLen, winShift):
     starts = np.arange(0, nFrames-winLen, winShift)
     nWindows = len(starts)
 
-    stack = np.zeros((nWindows,1,nBands,winLen),dtype='float32')
+    stream = np.zeros((nWindows,1,nBands,winLen),dtype='float32')
     for n, stIdx in enumerate(starts):
-        stack[n,0,:,:] = logM[:,stIdx+np.arange(0,winLen)]
+        stream[n,0,:,:] = logM[:,stIdx+np.arange(0,winLen)]
 
-    return stack
+    return stream
 
-#wavFile = '160517_04-2_16k.WAV'
-#stack = fbank_stack(wavFile, 199, 20)
-#savemat('stackpy.mat',{'stack':stack})
 
+wavFile = sys.argv[1]
+infoFile = sys.argv[2]
+
+info = loadmat(infoFile)
+modelDef = info['modelDef'][0]
+modelWeights = info['modelWeights'][0]
+
+model = data.load_model(modelDef, modelWeights)
+
+prob = predict(wavFile, model)
+
+savemat('prob.mat',{'prob':prob})
 
