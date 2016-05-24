@@ -45,7 +45,6 @@ def fbank_stack(wavFile, winLen, winShift):
     nWindows = len(starts)
 
     stack = np.zeros((nWindows,1,nBands,winLen),dtype='float32')
-    pdb.set_trace()
     for n, stIdx in enumerate(starts):
         stack[n,0,:,:] = logM[:,stIdx+np.arange(0,winLen)]
 
