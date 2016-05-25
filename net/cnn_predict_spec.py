@@ -33,6 +33,28 @@ def fbank_stream(wavFile, winLen, winShift):
 
     return stream, starts
 
+def detect_events(prob, detWinLen=2, detWait=10, detTh=0.5):
+
+    detect = np.zeros((prob.shape[0],), dtype='float32')
+
+    waiting = False
+    waitCount = 0
+    for t in range(prob.shape[0]):
+        if t < detWinLen-1:
+            continue
+        if waitCount >= detWait:
+            waiting = False
+            waitCount = 0
+        if waiting:
+            waitCount += 1
+            continue
+        signal = np.sum(prob[t-(detWinLen-1):t,1])
+        if signal >= detTh:
+            detect[t] = 1
+            waiting = True
+
+    return detect
+
 
 wavFile = sys.argv[1]
 infoFile = sys.argv[2]
@@ -45,5 +67,7 @@ model = data.load_model(modelDef, modelWeights)
 
 prob, startTimes = predict(wavFile, model)
 
-savemat('prob.mat',{'prob':prob,'startTimes':startTimes})
+detect = detect_events(prob, detWinLen=2, detWait=10, detTh=0.5)
+
+savemat('prob.mat',{'prob':prob,'startTimes':startTimes,'detect':detect})
 
