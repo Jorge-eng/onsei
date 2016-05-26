@@ -6,11 +6,15 @@ GPU run command:
 '''
 
 from __future__ import print_function
+import sys
 from keras.callbacks import ModelCheckpoint
 import data
 import modeldefs
 from scipy.io import savemat
 import pdb
+
+modelName = sys.argv[1]
+modelType = sys.argv[2]
 
 batchSize = 8
 numEpoch = 20
@@ -19,12 +23,12 @@ numEpoch = 20
 inFiles = ('spec_pos.mat',
            'spec_neg.mat')
 
-modelDef = 'models/cnn_spec_try.json'
-modelWeights = 'models/cnn_spec_try.h5'
-modelInfo = 'models/cnn_spec_try.mat'
+modelDef = 'models/'+modelName+'.json'
+modelWeights = 'models/'+modelName+'.h5'
+modelInfo = 'models/'+modelName+'.mat'
 
 (feaTrain, labelTrain), (feaTest, labelTest) = data.load_training(
-	inFiles, 'features', 'cnn',
+	inFiles, 'features', modelType,
 	negRatioTrain=10, negRatioTest=10,
 	permuteBeforeSplit=(False,False), testSplit=0.2, normalize=False)
 
@@ -36,11 +40,10 @@ print(feaTest.shape[0], 'test samples')
 inputShape = feaTrain.shape[1:]
 numClasses = labelTrain.shape[1]
 
-#pdb.set_trace()
 def build_model(inputShape, numClasses):
 
-    #model, optimizer = modeldefs.model_may24_large(inputShape, numClasses)
-    model, optimizer = modeldefs.model_may24_small(inputShape, numClasses)
+    modeldef = getattr(modeldefs, modelName)
+    model, optimizer = modeldef(inputShape, numClasses)
 
     model.compile(loss='categorical_crossentropy', optimizer=optimizer)
 
@@ -55,8 +58,14 @@ model.fit(feaTrain, labelTrain, batch_size=batchSize,
           nb_epoch=numEpoch, show_accuracy=True,
           validation_data=(feaTest, labelTest), callbacks=cbks, shuffle=True)
 
+if modelType == 'cnn':
+    winLen = inputShape[2]
+elif modelType == 'rnn':
+    winLen = inputShape[1]
+
 print('Saving to '+modelInfo)
-savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights})
+savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights,
+                    'modelType': modelType,'winLen': winLen})
 
 # Write model definition to file
 open(modelDef, 'w').write(model.to_json())

@@ -7,18 +7,19 @@ import audioproc
 import numpy as np
 import pdb
 
-def predict(wavFile, model, winShift=20):
+def predict(wavFile, model, modelType, winLen=None, winShift=20):
 
-    winLen = model.input_shape[3]
+    if winLen is None:
+        winLen = model.input_shape[3]
 
-    feaStream, starts = fbank_stream(wavFile, winLen, winShift)
+    feaStream, starts = fbank_stream(wavFile, winLen, winShift, modelType)
     feaStream = (feaStream-7) / 12
 
     prob = model.predict_proba(feaStream, batch_size=128, verbose=1)
 
     return prob, starts
 
-def fbank_stream(wavFile, winLen, winShift):
+def fbank_stream(wavFile, winLen, winShift, modelType):
 
     logM = audioproc.wav2fbank(wavFile)
     nBands = logM.shape[0]
@@ -27,11 +28,20 @@ def fbank_stream(wavFile, winLen, winShift):
     starts = np.arange(0, nFrames-winLen, winShift)
     nWindows = len(starts)
 
-    stream = np.zeros((nWindows,1,nBands,winLen),dtype='float32')
-    for n, stIdx in enumerate(starts):
-        stream[n,0,:,:] = logM[:,stIdx+np.arange(0,winLen)]
+    if modelType == 'cnn':
+        stream = np.zeros((nWindows,1,nBands,winLen),dtype='float32')
+        for n, stIdx in enumerate(starts):
+            stream[n,0,:,:] = logM[:,stIdx+np.arange(0,winLen)]
 
-    return stream, starts
+        return stream, starts
+    elif modelType == 'rnn':
+        logM = np.swapaxes(logM, 0, 1)
+        stream = np.zeros((nWindows,winLen,nBands),dtype='float32')
+        for n, stIdx in enumerate(starts):
+            stream[n,:,:] = logM[stIdx+np.arange(0,winLen)]
+
+        return stream, starts
+
 
 def detect_events(prob, detWinLen=2, detWait=10, detTh=0.5):
 
@@ -62,10 +72,12 @@ infoFile = sys.argv[2]
 info = loadmat(infoFile)
 modelDef = info['modelDef'][0]
 modelWeights = info['modelWeights'][0]
+modelType = info['modelType'][0]
+winLen = info['winLen'][0]
 
 model = data.load_model(modelDef, modelWeights)
 
-prob, startTimes = predict(wavFile, model)
+prob, startTimes = predict(wavFile, model, modelType, winLen=winLen)
 
 detect = detect_events(prob, detWinLen=2, detWait=10, detTh=0.5)
 
