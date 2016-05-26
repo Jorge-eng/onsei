@@ -20,7 +20,7 @@ def melfilter(N, freq):
 
     return filt
 
-def wav2fbank(wavFile):
+def wav2fbank(wavFile, fs=16000):
 
     if isinstance(wavFile, str):
         (fs, wav) = wavfile.read(wavFile)
