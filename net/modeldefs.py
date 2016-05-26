@@ -11,7 +11,10 @@ def model_may25_lstm_small(inputShape, numClasses):
 
     model = Sequential()
 
-    model.add(LSTM(32, return_sequences=False, input_shape=inputShape))
+    model.add(LSTM(32, return_sequences=True, input_shape=inputShape))
+    #model.add(Dropout(0.2))
+    model.add(LSTM(16, return_sequences=False))
+    #model.add(Dropout(0.2))
     model.add(Dense(numClasses))
     model.add(Activation('softmax'))
 
@@ -23,9 +26,9 @@ def model_may25_lstm_large(inputShape, numClasses):
 
     model = Sequential()
 
-    model.add(LSTM(128, return_sequences=True, input_shape=inputShape))
+    model.add(LSTM(64, return_sequences=True, input_shape=inputShape))
     model.add(Dropout(0.2))
-    model.add(LSTM(128, return_sequences=False))
+    model.add(LSTM(64, return_sequences=False))
     model.add(Dropout(0.2))
     model.add(Dense(numClasses))
     model.add(Activation('softmax'))
