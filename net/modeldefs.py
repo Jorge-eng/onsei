@@ -1,7 +1,36 @@
 from keras.models import Sequential
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
+from keras.layers.recurrent import LSTM
 from keras.optimizers import SGD
+
+def model_may25_lstm_small(inputShape, numClasses):
+
+    optimizer = 'rmsprop'
+    #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
+
+    model = Sequential()
+
+    model.add(LSTM(32, return_sequences=False, input_shape=inputShape))
+    model.add(Dense(numClasses))
+    model.add(Activation('softmax'))
+
+    return model, optimizer
+
+def model_may25_lstm_large(inputShape, numClasses):
+
+    optimizer = 'rmsprop'
+
+    model = Sequential()
+
+    model.add(LSTM(128, return_sequences=True, input_shape=inputShape))
+    model.add(Dropout(0.2))
+    model.add(LSTM(128, return_sequences=False))
+    model.add(Dropout(0.2))
+    model.add(Dense(numClasses))
+    model.add(Activation('softmax'))
+
+    return model, optimizer
 
 def model_may24_large(inputShape, numClasses):
 
