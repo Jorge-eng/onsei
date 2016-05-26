@@ -24,7 +24,7 @@ modelWeights = 'models/cnn_spec_try.h5'
 modelInfo = 'models/cnn_spec_try.mat'
 
 (feaTrain, labelTrain), (feaTest, labelTest) = data.load_training(
-	inFiles, 'features', 'convnet',
+	inFiles, 'features', 'cnn',
 	negRatioTrain=10, negRatioTest=10,
 	permuteBeforeSplit=(False,False), testSplit=0.2, normalize=False)
 

@@ -47,9 +47,9 @@ def split_pair(X, y, testSplit):
 
 def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=False, permuteBeforeSplit=(True,True)):
 
-    if modelType=='convnet':
+    if modelType=='cnn':
         data_loader = load_batch
-    elif modelType=='sequence':
+    elif modelType=='rnn':
         data_loader = load_sequence_batch
 
     # pos
