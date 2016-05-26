@@ -25,7 +25,8 @@ def load_batch(filePath, var='mfc'):
 def load_sequence_batch(filePath, var='features'):
     data = loadmat(filePath)
     data = data[var]
-    data = data.swapaxes(1,2)
+    data = np.rollaxis(data, 2)
+    data = np.swapaxes(data, 1, 2)
 
     return data
 
