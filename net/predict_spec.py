@@ -3,6 +3,7 @@ sys.path.append(os.path.abspath('../dataprep'))
 
 import data
 from scipy.io import loadmat, savemat
+from scipy.io import wavfile
 import audioproc
 import numpy as np
 import pdb
@@ -25,7 +26,7 @@ def fbank_stream(wavFile, winLen, winShift, modelType):
     nBands = logM.shape[0]
     nFrames = logM.shape[1]
 
-    starts = np.arange(0, nFrames-winLen, winShift)
+    starts = np.arange(0, nFrames-winLen+1, winShift)
     nWindows = len(starts)
 
     if modelType == 'cnn':
@@ -42,8 +43,7 @@ def fbank_stream(wavFile, winLen, winShift, modelType):
 
         return stream, starts
 
-
-def detect_events(prob, detWinLen=2, detWait=10, detTh=0.5):
+def detect_events(prob, detWinLen=2, detWait=10, detTh=1.5):
 
     detect = np.zeros((prob.shape[0],), dtype='float32')
 
@@ -58,10 +58,55 @@ def detect_events(prob, detWinLen=2, detWait=10, detTh=0.5):
         if waiting:
             waitCount += 1
             continue
-        signal = np.sum(prob[t-(detWinLen-1):t,1])
+        signal = np.sum(prob[t-(detWinLen-1):t+1,1])
         if signal >= detTh:
             detect[t] = 1
             waiting = True
+
+    return detect
+
+def detect_online(wav, prob_prev, model, modelType, winLen, detWait=10, detTh=1.5, waitCount=0, waiting=False):
+
+    prob, starts = predict(wav, model, modelType, winLen)
+    prob = prob[0, 1]
+
+    detect = np.float32(0)
+    if waitCount >= detWait:
+        waiting = False
+        waitCount = 0
+    if waiting:
+        waitCount += 1
+    else:
+        signal = prob + prob_prev
+        if signal >= detTh:
+            detect = np.float32(1)
+            waiting = True
+
+    return detect, prob, waitCount, waiting
+
+def wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, detWait_s=2.0, detTh=1.5):
+
+    (fs, wav) = wavfile.read(wavFile)
+    assert fs == 16000
+
+    winSamples = int(winLen_s * fs)
+    shiftSamples = int(winShift_s * fs)
+    detWait = int(detWait_s / winShift_s)
+    waitCount = 0
+    waiting = False
+    prob_prev = 0
+
+    startIdx = 0
+    detect = np.array([],dtype='float32')
+    while startIdx <= wav.shape[0]-winSamples:
+        wav_buffer = wav[range(startIdx,startIdx+winSamples),:]
+
+        ans, prob_prev, waitCount, waiting = detect_online(
+                wav_buffer, prob_prev, model, modelType, winLen, detWait, detTh, waitCount, waiting)
+
+        detect = np.append(detect, ans)
+        startIdx += shiftSamples
+
 
     return detect
 
@@ -79,7 +124,8 @@ model = data.load_model(modelDef, modelWeights)
 
 prob, startTimes = predict(wavFile, model, modelType, winLen=winLen)
 
-detect = detect_events(prob, detWinLen=2, detWait=10, detTh=0.5)
+detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
+#detect = wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, detTh=1.5)
 
 savemat('prob.mat',{'prob':prob,'startTimes':startTimes,'detect':detect})
 
