@@ -42,6 +42,20 @@ Weight_t tinytensor_sigmoid(WeightLong_t x) {
     return (Weight_t) tanh;
 }
 
+Weight_t tinytensor_linear(WeightLong_t x) {
+    x >>= QFIXEDPOINT;
+    
+    if (x > MAX_WEIGHT) {
+        x = MAX_WEIGHT;
+    }
+    
+    if (x < -MAX_WEIGHT) {
+        x = -MAX_WEIGHT;
+    }
+    
+    return x;
+}
+
 void tinytensor_vec_tanh(Weight_t * out, const WeightLong_t * in, const uint32_t num_elements) {
     uint32_t i;
     

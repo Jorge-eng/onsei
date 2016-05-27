@@ -11,9 +11,13 @@ extern "C" {
     
 #define TOFIX(x)\
         (Weight_t)(x * (1 << QFIXEDPOINT))
+    
+#define TOFLT(x)\
+        ( ((float)x) / (float)(1 << QFIXEDPOINT))
 
 Weight_t tinytensor_tanh(WeightLong_t x);
 Weight_t tinytensor_sigmoid(WeightLong_t x);
+Weight_t tinytensor_linear(WeightLong_t x);
 
 void tinytensor_vec_tanh(Weight_t * out, const WeightLong_t * in, const uint32_t num_elements);
 void tinytensor_vec_sigmoid(Weight_t * out, const WeightLong_t * in, const uint32_t num_elements);

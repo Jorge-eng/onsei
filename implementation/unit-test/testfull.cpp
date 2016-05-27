@@ -9,7 +9,7 @@
 #include "data/small_model_ref.c"
 
 static const uint32_t output_ref_dims[] = {1,1,1,1};
-const static FullyConnectedLayer_t small_layer = {&fullweights,&fullbiases,output_ref_dims,small_model_ref_dims,tinytensor_sigmoid};
+const static FullyConnectedLayer_t small_layer = {&fullweights,&fullbiases,output_ref_dims,small_model_ref_dims,tinytensor_linear};
 
 
 class TestFull : public ::testing::Test {
