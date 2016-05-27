@@ -28,6 +28,10 @@ tinytensor_fullyconnected_layer.c
 tinytensor_lstm_layer.c
 )
 
+add_library(hellomath STATIC 
+hellomath/fft.c 
+hellomath/hellomath.c)
+
 add_library(gtest STATIC gtest/gtest-all.cc)
 add_executable(unit-test 
 unit-test/main.cpp 
@@ -36,12 +40,12 @@ unit-test/testfull.cpp
 unit-test/testlstm.cpp
 unit-test/testmaxpool.cpp)
 
-target_link_libraries(unit-test gtest tensor)
+target_link_libraries(unit-test gtest tensor hellomath)
 
 
 add_executable(tinytensor
 tinytensor.cpp)
 
 
-target_link_libraries(tinytensor tensor ${SNDFILE_LIBRARIES})
+target_link_libraries(tinytensor tensor hellomath ${SNDFILE_LIBRARIES})
 
