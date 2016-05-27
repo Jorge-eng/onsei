@@ -61,7 +61,7 @@ model.fit(feaTrain, labelTrain, batch_size=batchSize,
 if modelType == 'cnn':
     winLen = inputShape[2]
 elif modelType == 'rnn':
-    winLen = inputShape[1]
+    winLen = inputShape[0]
 
 print('Saving to '+modelInfo)
 savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights,
