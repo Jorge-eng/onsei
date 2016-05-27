@@ -1,14 +1,15 @@
 import sys, os
-sys.path.append(os.path.abspath('../dataprep'))
+sys.path.append('/Users/hello/work/onsei/dataprep')
 
 import data
 from scipy.io import loadmat, savemat
 from scipy.io import wavfile
 import audioproc
 import numpy as np
+import matplotlib.pyplot as plt
 import pdb
 
-def predict(wavFile, model, modelType, winLen=None, winShift=20):
+def predict(wavFile, model, modelType, winLen=None, winShift=20, verbose=0):
 
     if winLen is None:
         winLen = model.input_shape[3]
@@ -16,7 +17,7 @@ def predict(wavFile, model, modelType, winLen=None, winShift=20):
     feaStream, starts = fbank_stream(wavFile, winLen, winShift, modelType)
     feaStream = (feaStream-7) / 12
 
-    prob = model.predict_proba(feaStream, batch_size=128, verbose=1)
+    prob = model.predict_proba(feaStream, batch_size=128, verbose=verbose)
 
     return prob, starts
 
@@ -65,9 +66,9 @@ def detect_events(prob, detWinLen=2, detWait=10, detTh=1.5):
 
     return detect
 
-def detect_online(wav, prob_prev, model, modelType, winLen, detWait=10, detTh=1.5, waitCount=0, waiting=False):
+def detect_online(wav, prob_prev, model, modelType, winLen=None, detWait=10, detTh=1.5, waitCount=0, waiting=False):
 
-    prob, starts = predict(wav, model, modelType, winLen)
+    prob, starts = predict(wav, model, modelType, winLen, verbose=0)
     prob = prob[0, 1]
 
     detect = np.float32(0)
@@ -110,22 +111,23 @@ def wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, 
 
     return detect
 
+if __name__ == '__main__':
 
-wavFile = sys.argv[1]
-infoFile = sys.argv[2]
+    wavFile = sys.argv[1]
+    infoFile = sys.argv[2]
 
-info = loadmat(infoFile)
-modelDef = info['modelDef'][0]
-modelWeights = info['modelWeights'][0]
-modelType = info['modelType'][0]
-winLen = info['winLen'][0]
+    info = loadmat(infoFile)
+    modelDef = info['modelDef'][0]
+    modelWeights = info['modelWeights'][0]
+    modelType = info['modelType'][0]
+    winLen = info['winLen'][0]
 
-model = data.load_model(modelDef, modelWeights)
+    model = data.load_model(modelDef, modelWeights)
 
-prob, startTimes = predict(wavFile, model, modelType, winLen=winLen)
+    prob, startTimes = predict(wavFile, model, modelType, winLen=winLen)
 
-detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
-#detect = wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, detTh=1.5)
+    detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
+    #detect = wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, detTh=1.5)
 
-savemat('prob.mat',{'prob':prob,'startTimes':startTimes,'detect':detect})
+    savemat('prob.mat',{'prob':prob,'startTimes':startTimes,'detect':detect})
 
