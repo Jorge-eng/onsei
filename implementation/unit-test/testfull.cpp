@@ -8,8 +8,9 @@
 #include "data/fullbiases.c"
 #include "data/small_model_ref.c"
 
+#define NO_DROPOUT (0)
 static const uint32_t output_ref_dims[] = {1,1,1,1};
-const static FullyConnectedLayer_t small_layer = {&fullweights,&fullbiases,output_ref_dims,small_model_ref_dims,tinytensor_sigmoid};
+const static FullyConnectedLayer_t small_layer = {&fullweights,&fullbiases,output_ref_dims,small_model_ref_dims,NO_DROPOUT,tinytensor_linear};
 
 
 class TestFull : public ::testing::Test {

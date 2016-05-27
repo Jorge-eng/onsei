@@ -63,7 +63,17 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
     
     for (iout = 0; iout < num_out_images; iout++) {
         
-        tinytensor_convolve3d_direct(out_start, weight_start, image_start, *bias,num_weights_rows, num_weights_cols,num_image_rows , num_image_cols, num_images);
+        tinytensor_convolve3d_direct(out_start,
+                                     weight_start,
+                                     image_start,
+                                     *bias,
+                                     num_weights_rows,
+                                     num_weights_cols,
+                                     num_image_rows ,
+                                     num_image_cols,
+                                     num_images,
+                                     layer->incoming_dropout,
+                                     layer->activation);
         
         //printf("\n\n");
 

@@ -14,8 +14,10 @@
 #include "data/image2.c"
 #include "data/ref2.c"
 
-const static ConvLayer2D_t conv_layer_def2 = {&weights2,&biases2,ref2_dims,image2_dims};
-const static ConvLayer2D_t conv_layer_def1 = {&weights1,&biases1,ref1_dims,image_dims};
+#define NO_DROPOUT (0)
+
+const static ConvLayer2D_t conv_layer_def2 = {&weights2,&biases2,ref2_dims,image2_dims,NO_DROPOUT,tinytensor_linear};
+const static ConvLayer2D_t conv_layer_def1 = {&weights1,&biases1,ref1_dims,image_dims,NO_DROPOUT,tinytensor_linear};
 
 class TestConv : public ::testing::Test {
 protected:

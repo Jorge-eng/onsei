@@ -1,9 +1,9 @@
-#include "tinytensor_maxpoolrelu_layer.h"
+#include "tinytensor_maxpool_layer.h"
 #include <assert.h>
 
 
-static void get_maxpoolrelu_output_size(const void * context,uint32_t * dims) {
-    const MaxPoolReluLayer_t * layer = (const MaxPoolReluLayer_t *)context;
+static void get_maxpool_output_size(const void * context,uint32_t * dims) {
+    const MaxPoolLayer_t * layer = (const MaxPoolLayer_t *)context;
     
     uint32_t i;
     for (i = 0; i < TENSOR_DIM; i++) {
@@ -12,9 +12,7 @@ static void get_maxpoolrelu_output_size(const void * context,uint32_t * dims) {
     
 }
 
-inline static Weight_t relu(Weight_t x) {
-    return x < 0 ? 0 : x;
-}
+
 
 
 /*   General idea is this: Given image of 4x4, a 2x4 max pool will produce a 2x1 image
@@ -26,8 +24,8 @@ inline static Weight_t relu(Weight_t x) {
  *
  *   where L = P / maxpool_cols, M = Q / max_pool_rows
  */
-static void eval_maxpoolrelu(const void * context,Tensor_t * out,const Tensor_t * in) {
-    const MaxPoolReluLayer_t * layer = context;
+static void eval_maxpool(const void * context,Tensor_t * out,const Tensor_t * in) {
+    const MaxPoolLayer_t * layer = context;
     
     const Weight_t * input_image_start = in->x;
     const uint32_t input_image_size = in->dims[3] * in->dims[2];
@@ -63,21 +61,22 @@ static void eval_maxpoolrelu(const void * context,Tensor_t * out,const Tensor_t 
 
         for (iregionrow = 0; iregionrow < num_row_regions; iregionrow++) {
             for (iregioncol = 0; iregioncol < num_col_regions; iregioncol++) {
-                
+                const Weight_t * input_image_region_row = &input_image_row[iregioncol*layer->pool_dims[1]];
                 Weight_t maxValue = -MAX_WEIGHT;
                 
                 for (j = 0; j < layer->pool_dims[0]; j++) {
                     for (i = 0; i < layer->pool_dims[1]; i++) {
-                        maxValue = input_image_row[i] > maxValue ? input_image_row[i] : maxValue;
+                        maxValue = input_image_region_row[i] > maxValue ? input_image_region_row[i] : maxValue;
                     }
                     
-                    input_image_row += num_input_image_cols;
+                    input_image_region_row += num_input_image_cols;
                 }
                 
-                output_image_row[iregioncol] = relu(maxValue);
+                output_image_row[iregioncol] = maxValue;
             
             }
             
+            input_image_row += layer->pool_dims[0] * num_input_image_cols;
             output_image_row += num_output_image_cols;
         }
         
@@ -87,8 +86,8 @@ static void eval_maxpoolrelu(const void * context,Tensor_t * out,const Tensor_t 
     
 }
 
-ConstLayer_t tinytensor_create_maxpoolrelu_layer(const MaxPoolReluLayer_t * static_def) {
-    ConstLayer_t layer = {eval_maxpoolrelu,get_maxpoolrelu_output_size,static_def};
+ConstLayer_t tinytensor_create_maxpool_layer(const MaxPoolLayer_t * static_def) {
+    ConstLayer_t layer = {eval_maxpool,get_maxpool_output_size,static_def};
     return layer;
 }
 

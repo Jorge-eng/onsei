@@ -12,7 +12,8 @@ typedef struct {
     const ConstTensor_t * biases;
     const uint32_t * output_dims;
     const uint32_t * input_dims;
-    SquashFunc_t squash;
+    const Weight_t incoming_dropout;
+    SquashFunc_t activation;
 } FullyConnectedLayer_t;
 
 ConstLayer_t tinytensor_create_fullyconnected_layer(const FullyConnectedLayer_t * static_def);

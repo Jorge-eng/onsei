@@ -14,6 +14,8 @@ typedef struct {
     const ConstTensor_t * biases;
     const uint32_t * output_dims;
     const uint32_t * input_dims;
+    Weight_t incoming_dropout;
+    SquashFunc_t activation;
 
 } ConvLayer2D_t;
 

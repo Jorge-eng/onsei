@@ -22,27 +22,31 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     const Weight_t * bias = layer->biases->x;
     const Weight_t * input = in->x;
     Weight_t * output = out->x;
+    
+    const int16_t dropout_weight = (1 << QFIXEDPOINT) - layer->incoming_dropout;
 
     uint32_t iweightrow,iweightcol;
     int32_t accumulator;
-    for (iweightrow = 0; iweightrow < n_out; iweightrow++) {
+    
+    assert(layer->activation);
 
+    
+    for (iweightrow = 0; iweightrow < n_out; iweightrow++) {
+        
+        accumulator = 0;
+    
         for (iweightcol = 0; iweightcol < n_in; iweightcol++) {
             //TODO OPTIMIZE THIS
             accumulator += weights[iweightcol] * input[iweightcol];
         }
         
-        accumulator += bias[iweightrow] << QFIXEDPOINT;
         
-        if (accumulator > MAX_LONG_WEIGHT) {
-            accumulator = MAX_LONG_WEIGHT;
-        }
+        accumulator >>= QFIXEDPOINT;
+        accumulator *= dropout_weight;
+        accumulator >>= QFIXEDPOINT;
+        accumulator += bias[iweightrow];
         
-        if (accumulator < -MAX_LONG_WEIGHT) {
-            accumulator = -MAX_LONG_WEIGHT;
-        }
-        
-        output[iweightrow] = layer->squash(accumulator);
+        output[iweightrow] = layer->activation(accumulator);
         
         weights += n_in;
     }
