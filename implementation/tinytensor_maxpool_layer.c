@@ -1,9 +1,9 @@
-#include "tinytensor_maxpoolrelu_layer.h"
+#include "tinytensor_maxpool_layer.h"
 #include <assert.h>
 
 
-static void get_maxpoolrelu_output_size(const void * context,uint32_t * dims) {
-    const MaxPoolReluLayer_t * layer = (const MaxPoolReluLayer_t *)context;
+static void get_maxpool_output_size(const void * context,uint32_t * dims) {
+    const MaxPoolLayer_t * layer = (const MaxPoolLayer_t *)context;
     
     uint32_t i;
     for (i = 0; i < TENSOR_DIM; i++) {
@@ -26,8 +26,8 @@ inline static Weight_t relu(Weight_t x) {
  *
  *   where L = P / maxpool_cols, M = Q / max_pool_rows
  */
-static void eval_maxpoolrelu(const void * context,Tensor_t * out,const Tensor_t * in) {
-    const MaxPoolReluLayer_t * layer = context;
+static void eval_maxpool(const void * context,Tensor_t * out,const Tensor_t * in) {
+    const MaxPoolLayer_t * layer = context;
     
     const Weight_t * input_image_start = in->x;
     const uint32_t input_image_size = in->dims[3] * in->dims[2];
@@ -74,7 +74,7 @@ static void eval_maxpoolrelu(const void * context,Tensor_t * out,const Tensor_t 
                     input_image_region_row += num_input_image_cols;
                 }
                 
-                output_image_row[iregioncol] = relu(maxValue);
+                output_image_row[iregioncol] = maxValue;
             
             }
             
@@ -88,8 +88,8 @@ static void eval_maxpoolrelu(const void * context,Tensor_t * out,const Tensor_t 
     
 }
 
-ConstLayer_t tinytensor_create_maxpoolrelu_layer(const MaxPoolReluLayer_t * static_def) {
-    ConstLayer_t layer = {eval_maxpoolrelu,get_maxpoolrelu_output_size,static_def};
+ConstLayer_t tinytensor_create_maxpool_layer(const MaxPoolLayer_t * static_def) {
+    ConstLayer_t layer = {eval_maxpool,get_maxpool_output_size,static_def};
     return layer;
 }
 

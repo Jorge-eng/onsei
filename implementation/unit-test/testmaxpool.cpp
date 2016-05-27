@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "../tinytensor_types.h"
 #include "../tinytensor_math.h"
-#include "../tinytensor_maxpoolrelu_layer.h"
+#include "../tinytensor_maxpool_layer.h"
 #include "../tinytensor_tensor.h"
 
 
@@ -54,9 +54,9 @@ TEST_F(TestMaxPool, OneImageSquare) {
         tensor_in->x[i] = i;
     }
     
-    const MaxPoolReluLayer_t max_pool_layer_def = {pool_dims,output_dims,input_dims};
+    const MaxPoolLayer_t max_pool_layer_def = {pool_dims,output_dims,input_dims};
     
-    ConstLayer_t layer = tinytensor_create_maxpoolrelu_layer(&max_pool_layer_def);
+    ConstLayer_t layer = tinytensor_create_maxpool_layer(&max_pool_layer_def);
     
     tensor_out = tinytensor_create_new_tensor(output_dims);
     
@@ -96,9 +96,9 @@ TEST_F(TestMaxPool, TwoImageSquare) {
         tensor_in->x[i] = i;
     }
     
-    const MaxPoolReluLayer_t max_pool_layer_def = {pool_dims,output_dims,input_dims};
+    const MaxPoolLayer_t max_pool_layer_def = {pool_dims,output_dims,input_dims};
     
-    ConstLayer_t layer = tinytensor_create_maxpoolrelu_layer(&max_pool_layer_def);
+    ConstLayer_t layer = tinytensor_create_maxpool_layer(&max_pool_layer_def);
     
     tensor_out = tinytensor_create_new_tensor(output_dims);
     

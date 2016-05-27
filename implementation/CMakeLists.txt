@@ -23,7 +23,7 @@ tinytensor_math.c
 tinytensor_net.c
 tinytensor_tensor.c
 tinytensor_conv_layer.c
-tinytensor_maxpoolrelu_layer.c
+tinytensor_maxpool_layer.c
 tinytensor_fullyconnected_layer.c
 tinytensor_lstm_layer.c
 )
@@ -38,7 +38,8 @@ unit-test/main.cpp
 unit-test/testconv.cpp
 unit-test/testfull.cpp
 unit-test/testlstm.cpp
-unit-test/testmaxpool.cpp)
+unit-test/testmaxpool.cpp
+unit-test/testnet.cpp)
 
 target_link_libraries(unit-test gtest tensor hellomath)
 
