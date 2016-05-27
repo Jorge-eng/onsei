@@ -34,7 +34,10 @@ def wav2fbank(wavFile, fs=16000):
     winfunc = lambda x: np.hanning(x)
     nfilt = 40
 
-    M, E = fbank(wav[:,0], fs, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, winfunc=winfunc)
+    if np.ndim(wav) == 2: # Multiple channels; just take left one
+        wav = wav[:,0]
+
+    M, E = fbank(wav, fs, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, winfunc=winfunc)
 
     logM = np.log(M)
     logM = np.swapaxes(logM, 0, 1)
