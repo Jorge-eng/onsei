@@ -14,7 +14,7 @@ typedef struct {
     const uint32_t * input_dims;
 } MaxPoolReluLayer_t;
     
-ConstLayer_t tinytensor_create_conv_layer(const MaxPoolReluLayer_t * static_def);
+ConstLayer_t tinytensor_create_maxpoolrelu_layer(const MaxPoolReluLayer_t * static_def);
     
     
 #ifdef __cplusplus

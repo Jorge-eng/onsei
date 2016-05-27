@@ -29,7 +29,6 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         accumulator = 0;
         for (iweightcol = 0; iweightcol < n_in; iweightcol++) {
             //TODO OPTIMIZE THIS
-            printf("%f * %f\n",TOFLT(weights[iweightcol]),TOFLT(input[iweightcol]));
             accumulator += weights[iweightcol] * input[iweightcol];
         }
         

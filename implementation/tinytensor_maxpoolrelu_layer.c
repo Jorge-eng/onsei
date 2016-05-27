@@ -63,21 +63,22 @@ static void eval_maxpoolrelu(const void * context,Tensor_t * out,const Tensor_t 
 
         for (iregionrow = 0; iregionrow < num_row_regions; iregionrow++) {
             for (iregioncol = 0; iregioncol < num_col_regions; iregioncol++) {
-                
+                const Weight_t * input_image_region_row = &input_image_row[iregioncol*layer->pool_dims[1]];
                 Weight_t maxValue = -MAX_WEIGHT;
                 
                 for (j = 0; j < layer->pool_dims[0]; j++) {
                     for (i = 0; i < layer->pool_dims[1]; i++) {
-                        maxValue = input_image_row[i] > maxValue ? input_image_row[i] : maxValue;
+                        maxValue = input_image_region_row[i] > maxValue ? input_image_region_row[i] : maxValue;
                     }
                     
-                    input_image_row += num_input_image_cols;
+                    input_image_region_row += num_input_image_cols;
                 }
                 
                 output_image_row[iregioncol] = relu(maxValue);
             
             }
             
+            input_image_row += layer->pool_dims[0] * num_input_image_cols;
             output_image_row += num_output_image_cols;
         }
         
