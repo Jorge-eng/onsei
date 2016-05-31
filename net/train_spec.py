@@ -42,10 +42,10 @@ numClasses = labelTrain.shape[1]
 
 def build_model(inputShape, numClasses):
 
-    modeldef = getattr(modeldefs, modelName)
-    model, optimizer = modeldef(inputShape, numClasses)
+    modeldef_fcn = getattr(modeldefs, modelName)
+    model, optimizer, loss = modeldef_fcn(inputShape, numClasses)
 
-    model.compile(loss='categorical_crossentropy', optimizer=optimizer)
+    model.compile(loss=loss, optimizer=optimizer)
 
     return model
 
