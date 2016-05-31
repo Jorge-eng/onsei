@@ -12,12 +12,10 @@ extern "C" {
 
     
 typedef struct {
-    ConstLayer_t * layers;
+    const ConstLayer_t * layers;
     const uint32_t num_layers;
 } ConstSequentialNetwork_t;
     
-uint32_t get_network_output_size(const ConstSequentialNetwork_t * net);
-
 Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input);
     
 

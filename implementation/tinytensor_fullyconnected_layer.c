@@ -27,9 +27,11 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
 
     uint32_t iweightrow,iweightcol;
     int32_t accumulator;
-    
+    uint32_t imax = 0;
+    int32_t max = 0x80000000; //assumes two complement
     assert(layer->activation);
 
+    
     
     for (iweightrow = 0; iweightrow < n_out; iweightrow++) {
         
@@ -42,14 +44,29 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         
         
         accumulator >>= QFIXEDPOINT;
-        accumulator *= dropout_weight;
+        accumulator *= dropout_weight; //assuming dropout weight <= 1.0, we shouldn't have scaling problems here
         accumulator >>= QFIXEDPOINT;
-        accumulator += bias[iweightrow];
+        accumulator += bias[iweightrow]; //add bias
         
+        if (accumulator > max) {
+            max = accumulator;
+            imax = iweightrow;
+        }
+        
+        //squash
         output[iweightrow] = layer->activation(accumulator);
         
         weights += n_in;
     }
+    
+    if (layer->force_max) {
+        memset(output,0,n_out*sizeof(Weight_t));
+        for (iweightrow = 0; iweightrow < n_out; iweightrow++) {
+            output[imax] = MAX_WEIGHT;
+        }
+    }
+    
+    
 
 }
 

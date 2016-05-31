@@ -34,6 +34,8 @@ Tensor_t * tinytensor_create_new_tensor(const uint32_t dims[TENSOR_DIM]);
 
 Tensor_t * tinytensor_clone_new_tensor(const ConstTensor_t * in);
 
+void tinytensor_zero_out_tensor(Tensor_t * tensor);
+
 
 
 #ifdef __cplusplus

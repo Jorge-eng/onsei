@@ -8,6 +8,17 @@ void delete_tensor(void * context) {
     FREE(p);
 }
 
+void tinytensor_zero_out_tensor(Tensor_t * tensor) {
+    uint32_t i;
+    uint32_t num_elements= tensor->dims[0];
+    for (i = 1; i < TENSOR_DIM; i++) {
+        num_elements *= tensor->dims[i];
+    }
+    
+    memset(tensor->x,0,num_elements*sizeof(Weight_t));
+}
+
+
 Tensor_t * tinytensor_create_new_tensor(const uint32_t dims[TENSOR_DIM]) {
     uint32_t i;
     uint32_t num_elements= dims[0];

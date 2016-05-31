@@ -14,8 +14,6 @@ typedef Weight_t Data_t; //data and weight are the same for now
     
 //callback defs
 typedef Weight_t (*SquashFunc_t)(int32_t x);
-typedef void (*ActionCallback_t)(void *);
-    
 
 #define TENSOR_DIM (4)
 
