@@ -137,7 +137,7 @@ def model_may31_small_sigm(inputShape, numClasses):
 
     #optimizer = SGD(lr=0.003, decay=0.0, momentum=0.9, nesterov=True)
     optimizer = 'rmsprop'
-    loss = 'mse'
+    loss = 'binary_crossentropy'
 
     model = Sequential()
 
