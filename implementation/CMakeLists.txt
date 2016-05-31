@@ -26,6 +26,7 @@ tinytensor_conv_layer.c
 tinytensor_maxpool_layer.c
 tinytensor_fullyconnected_layer.c
 tinytensor_lstm_layer.c
+tinytensor_features.c
 )
 
 add_library(hellomath STATIC 
