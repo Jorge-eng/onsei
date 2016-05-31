@@ -24,7 +24,7 @@ Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input) {
         layer->eval(layer->context,current_output,current_input);
         
         //output becomes new input --- so delete input if we can
-        if (current_input->delete_me) {
+        if (current_input->delete_me && current_input != input) {
             current_input->delete_me(current_input);
         }
 
