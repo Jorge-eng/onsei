@@ -4,13 +4,16 @@ import copy
 from keras.models import model_from_json
 from collections import defaultdict
 
+k_activation_func_map = {'relu' : 'tinytensor_relu', 'softmax' : 'tinytesnor_softmax', 'linear' :'tinytensor_linear'}
 
 def write_fixed_point_tensor(name,weights,f):
     dims = weights.shape
     vec = (weights.flatten() * (2**7)).astype(int).tolist()
     vecstr = ['%d' % v for v in vec]
-    myweights = 'const static Weight_t %s_weights[%d] = {%s};\n' % (name,len(vec),','.join(vecstr))
-    mydims = 'const static uint32_t %s_dims[4] = {%d,%d,%d,%d};\n' % (name,dims[0],dims[1],dims[2],dims[3])
+    weights_name = '%s_x' % name
+    dims_name = '%s_dims' % name
+    myweights = 'const static Weight_t %s[%d] = {%s};\n' % (weights_name,len(vec),','.join(vecstr))
+    mydims = 'const static uint32_t %s[4] = {%d,%d,%d,%d};\n' % (dims_name,dims[0],dims[1],dims[2],dims[3])
     mystruct = 'const static ConstTensor_t %s = {&%s_weights[0],&%s_dims[0]};\n' % (name,name,name)
 
     f.write(myweights)
@@ -18,14 +21,17 @@ def write_fixed_point_tensor(name,weights,f):
     f.write(mystruct)
     f.write('\n')
 
+    return weights_name,dims_name
+
 def write_conv_weights(name,weights,f):
     w = copy.deepcopy(weights)
     for i in range(weights.shape[0]):
         for j in range(weights.shape[1]):
            w[i][j] = w[i][j][::-1,::-1]
 
-    write_fixed_point_tensor(name,w,f) 
+    weights_name,dims_name = write_fixed_point_tensor(name,w,f) 
 
+    return weights_name,dims_name
 
 class Layer(object):
     def __init__(self,prevlayers,layers,layer_count):
@@ -50,6 +56,17 @@ class Layer(object):
 
         return p
 
+    def get_activation(self):
+        activation = 'linear'
+        names = [layer['name'] for layer in self.layers]
+        
+        if 'Activation' in names:
+            idx = names.index('Activation')
+            if self.layers[idx].has_key('activation'):
+                activation = self.layers[idx]['activation']
+                
+        return activation
+        
     def add_weights(self,w):
         self.weights.append(w)
         
@@ -61,8 +78,8 @@ class ConvLayer(Layer):
         w0 = self.weights[0]
         weights_name = self.name + '_conv'
         bias_name = self.name + '_bias'
-        write_conv_weights(weights_name,w0,f)
-        write_fixed_point_tensor(bias_name,self.weights[1].reshape(self.weights[1].shape[0],1,1,1),f)
+        wn,wd = write_conv_weights(weights_name,w0,f)
+        bn,bd  = write_fixed_point_tensor(bias_name,self.weights[1].reshape(self.weights[1].shape[0],1,1,1),f)
 
         print 'conv weights: %d,%d,%d,%d' % w0.shape + ' border_mode=%s' % border_mode
 
@@ -78,9 +95,20 @@ class ConvLayer(Layer):
             s2 = input_shape[2] - w0.shape[2] + 1
             s1 = w0.shape[0]
             s0 = 1
-        
-        return (s0,s1,s2,s3)
-                
+
+        output_shape = (s0,s1,s2,s3)
+
+        inputshapestr = '%d,%d,%d,%d' % input_shape
+        outputshapestr ='%d,%d,%d,%d' % output_shape
+        input_name = '%s_input_dims' % self.name
+        output_name = '%s_output_dims' % self.name
+
+        f.write('const static uint32_t %s[4] = {%s};\n' % (input_name,inputshapestr))
+        f.write('const static uint32_t %s[4] = {%s};\n' % (output_name,outputshapestr))
+        f.write('const static ConvLayer2D_t %s = {&%s,&%s,%s,%s,TOFIX(%f),%s};\n' % (self.name,wn,bn,output_name,input_name,self.dropout,k_activation_func_map[self.get_activation()]))
+
+        return output_shape
+
         
     def get_num_weights(self):
         return 2
