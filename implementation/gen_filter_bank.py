@@ -54,7 +54,6 @@ if __name__ == '__main__':
     print fbank.shape
 
     coeffs = []
-    indices = []
     pairs = []
     for irow in range(fbank.shape[0]):
         b = np.where(fbank[irow])
@@ -62,15 +61,13 @@ if __name__ == '__main__':
         istart = b[0][0]
         iend = b[0][-1]
 
-        indices.extend(b[0].astype(str).tolist())
-        coeffs.extend( (c * 32767).astype(int).astype(str).tolist())
+        coeffs.extend( (c * 255).astype(int).astype(str).tolist())
         pairs.append((istart,iend))
 
     strpairs = ['{%d,%d}' % pair for pair in pairs]
-    N = len(indices)
+    N = len(coeffs)
     
-    print 'const static uint8_t k_indices[%d] = {%s};\n' % (N,','.join(indices))
-    print 'const static int16_t k_coeffs[%d] = {%s};\n' % (N,','.join(coeffs))
+    print 'const static uint8_t k_coeffs[%d] = {%s};\n' % (N,','.join(coeffs))
     print 'const static uint8_t k_fft_index_pairs[%d][%d] = {%s}' % (nfilt,2,','.join(strpairs))
 
         
