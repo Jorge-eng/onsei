@@ -3,18 +3,18 @@
 #include <string.h>
 #include <sstream>
 #include <sndfile.hh>
-
-#include "tinytensor_conv_layer.h"
-#include "tinytensor_math.h"
+#include <vector>
+#include "tinytensor_features.h"
 
 using namespace std;
 
 
-#define BUF_SIZE (1<<20)
+#define BUF_SIZE (1<<10)
 
 
 int main(int argc, char * argv[]) {
     
+    tinytensor_features_initialize();
     const std::string inFile = argv[1];
     
     SndfileHandle file = SndfileHandle (inFile) ;
@@ -23,26 +23,33 @@ int main(int argc, char * argv[]) {
     printf ("    Sample rate : %d\n", file.samplerate ()) ;
     printf ("    Channels    : %d\n", file.channels ()) ;
     printf ("    Frames      : %d\n", file.frames ()) ;
-    
-    int16_t mono_samples[file.frames()];
+    uint32_t n = file.frames();
+    std::vector<int16_t> mono_samples;
+    mono_samples.reserve(file.frames());
     int16_t buf[BUF_SIZE];
     
     while (true) {
-        int count = file.read(buf, BUF_SIZE * file.channels());
+        int count = file.read(buf, BUF_SIZE);
         
         if (count <= 0) {
             break;
         }
-        
-        memset(buf,0,sizeof(buf));
-        
-        for (int i = 0; i < BUF_SIZE; i ++) {
-            mono_samples[i] = buf[file.channels() * i];
+                
+        for (int i = 0; i < BUF_SIZE/file.channels(); i ++) {
+            mono_samples.push_back(buf[file.channels() * i]);
+        }
+    }
+    
+    for (int i = 0; i < n; i++) {
+        if (i % NUM_SAMPLES_TO_RUN_FFT == 0) {
+            tinytensor_features_add_samples(&mono_samples.data()[i], NUM_SAMPLES_TO_RUN_FFT);
         }
     }
     
     
-
+    tinytensor_features_deinitialize();
+    
+    
     
     return 0;
 }
