@@ -1,6 +1,6 @@
 function createQuickyTrainingWavs(dataFile, outDir)
 
-load(dataFile) % -> kwClip kwRevClip speechClip backClip
+load(dataFile) % -> kwClip kwRevClip speechClip backClip earlyImplantClip lateImplantClip
 [~,~] = mkdir(outDir);
 
 Fs = 16000;
@@ -9,6 +9,8 @@ nKw = length(kwClip);
 nKwRev = length(kwRevClip);
 nSpeech = length(speechClip);
 nBack = length(backClip);
+nImpEarly = length(earlyImplantClip);
+nImpLate = length(lateImplantClip);
 
 for j = 1:nKw
     wav = resample(kwClip{j},16,48);
@@ -22,11 +24,18 @@ for j = 1:nSpeech
     wav = resample(speechClip{j},16,48);
     audiowrite(fullfile(outDir,['speechClip_' num2str(j) '.wav']), wav, Fs)
 end
+for j = 1:nImpEarly
+    wav = resample(earlyImplantClip{j},16,48);
+    audiowrite(fullfile(outDir,['earlyImplantClip_' num2str(j) '.wav']), wav, Fs)
+end
+for j = 1:nImpLate
+    wav = resample(lateImplantClip{j},16,48);
+    audiowrite(fullfile(outDir,['lateImplantClip_' num2str(j) '.wav']), wav, Fs)
+end
 for j = 1:nBack
     wav = resample(backClip{j},16,48);
     audiowrite(fullfile(outDir,['backClip_' num2str(j) '.wav']), wav, Fs)
 end
-
 
 %{
 - Center each keyword in a 2-second window - clipped out of the ORIGINAL

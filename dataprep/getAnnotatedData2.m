@@ -8,6 +8,7 @@ fileName = {};
 clipStart = [];
 clipEnd = [];
 label = {};
+midPt = [];
 
 fid = fopen(csvFile,'r');
 while 1
@@ -22,6 +23,11 @@ while 1
     clipStart(end+1) = str2double(line{2});
     clipEnd(end+1) = str2double(line{3});
     label{end+1} = line{4};
+    if strcmp('keyword',label{end})
+        midPt(end+1) = str2double(line{5});
+    else
+        midPt(end+1) = NaN;
+    end
 end
 fclose(fid);
 
@@ -31,6 +37,8 @@ kwClip = {};
 kwRevClip = {};
 backClip = {};
 speechClip = {};
+earlyImplantClip = {};
+lateImplantClip = {};
 
 Fs = 48000;
 clipLen = 2 * Fs;
@@ -80,6 +88,21 @@ for j = 1:length(fileNames)
             x(pad:pad+cd,:) = speech(starts(n):starts(n)+cd,:);
             speechClip{end+1} = x;
         end
+    
+        % partial speech implants
+        kwMid = midPt(idx);
+        % early
+        x = kw;
+        impInd = pad:kwMid;
+        speechStart = 1 + floor(rand(1)*(length(speech)-length(impInd)));
+        x(impInd,:) = speech(speechStart:speechStart+(length(impInd)-1),:);
+        earlyImplantClip{end+1} = x;
+        % late
+        x = kw;
+        impInd = kwMid+1:pad+cd;
+        speechStart = 1 + floor(rand(1)*(length(speech)-length(impInd)));
+        x(impInd,:) = speech(speechStart:speechStart+(length(impInd)-1),:);
+        lateImplantClip{end+1} = x;
         
         % backgrounds
         interval = floor((length(background)-clipLen)/backPerFile);
@@ -95,4 +118,4 @@ info.fileName = fileName;
 info.clipStart = clipStart;
 info.clipEnd = clipEnd;
 info.label = label;
-save(dataFile,'kwClip','kwRevClip','speechClip','backClip','info');
+save(dataFile,'kwClip','kwRevClip','speechClip','backClip','earlyImplantClip','lateImplantClip','info');
