@@ -70,7 +70,7 @@ class Detector(object):
     exists in a microphone input stream.
     """
     def __init__(self, model_str, detTh=1.5,
-                 audio_gain=1):
+                 audio_gain=1.):
 
         def audio_callback(in_data, frame_count, time_info, status):
             self.ring_buffer.extend(in_data)
@@ -110,7 +110,7 @@ class Detector(object):
 
     def start(self, detected_callback=play_audio_file,
               interrupt_check=lambda: False,
-              sleep_time=0.20):
+              sleep_time=0.20,debug=False):
 
         if interrupt_check():
             logger.debug("detect voice return")
@@ -140,7 +140,8 @@ class Detector(object):
             else:
                 flag = 0
 
-            #print('%.5f' % self.prob_prev)
+            if debug is True:
+                print('%.5f' % self.prob_prev)
             flag = int(flag)
             if flag > 0:
                 message = "Keyword " + str(flag) + " detected at time: "
@@ -170,12 +171,15 @@ if __name__ == '__main__':
     # Defaults
     sensitivity = 1.5
     audio_gain = 2.0
+    debug = False
 
     model = sys.argv[1]
     if len(sys.argv) > 2:
-        detTh = sys.argv[2]
+        sensitivity = np.float(sys.argv[2])
     if len(sys.argv) > 3:
-        audio_gain = sys.argv[3]
+        audio_gain = np.float(sys.argv[3])
+    if len(sys.argv) > 4:
+        debug = True
 
     # capture SIGINT signal, e.g., Ctrl+C
     signal.signal(signal.SIGINT, signal_handler)
@@ -186,7 +190,7 @@ if __name__ == '__main__':
     # main loop
     detector.start(detected_callback=play_audio_file,
                    interrupt_check=interrupt_callback,
-                   sleep_time=0.20)
+                   sleep_time=0.20,debug=debug)
 
     detector.terminate()
 
