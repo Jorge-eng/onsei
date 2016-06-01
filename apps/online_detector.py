@@ -128,17 +128,21 @@ class Detector(object):
             time.sleep(sleep_time)
 
             data_numeric = np.float32(np.frombuffer(data, dtype='<i2')) * self.audioGain
-            if data_numeric.shape[0] == self.sampleRate * self.winLen_s:
-                ans, self.prob_prev, self.waitCount, self.waiting = detect_online(data_numeric,
-                        self.prob_prev, self.model, self.modelType, self.winLen, self.detWait, self.detTh, self.waitCount, self.waiting)
-            else:
-                ans = 0
 
-            ans = int(ans)
-            if ans == -1:
-                logger.warning("Error initializing streams or reading audio data")
-            elif ans > 0:
-                message = "Keyword " + str(ans) + " detected at time: "
+            # If we have enough data in the buffer
+            if data_numeric.shape[0] == self.sampleRate * self.winLen_s:
+                # Get a detection result
+                flag, self.prob_prev, self.waitCount, self.waiting = detect_online(data_numeric,
+                        self.prob_prev,
+                        self.model, self.modelType, self.winLen,
+                        self.detWait, self.detTh,
+                        self.waitCount, self.waiting)
+            else:
+                flag = 0
+
+            flag = int(flag)
+            if flag > 0:
+                message = "Keyword " + str(flag) + " detected at time: "
                 message += time.strftime("%Y-%m-%d %H:%M:%S",
                                          time.localtime(time.time()))
                 logger.info(message)
