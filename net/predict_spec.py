@@ -114,7 +114,7 @@ def wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, 
 if __name__ == '__main__':
 
     wavFile = sys.argv[1]
-    infoFile = sys.argv[2]
+    infoFile = sys.argv[2]+'.mat'
 
     info = loadmat(infoFile)
     modelDef = info['modelDef'][0]
