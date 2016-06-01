@@ -140,6 +140,7 @@ class Detector(object):
             else:
                 flag = 0
 
+            #print('%.5f' % self.prob_prev)
             flag = int(flag)
             if flag > 0:
                 message = "Keyword " + str(flag) + " detected at time: "
@@ -163,16 +164,23 @@ class Detector(object):
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        print("Usage: python online_detector.py code_path model_path")
+        print("Usage: python online_detector.py model_path [sensitivity] [audio_gain]")
         sys.exit(-1)
 
-    #netpath = sys.argv[1]
+    # Defaults
+    sensitivity = 1.5
+    audio_gain = 2.0
+
     model = sys.argv[1]
+    if len(sys.argv) > 2:
+        detTh = sys.argv[2]
+    if len(sys.argv) > 3:
+        audio_gain = sys.argv[3]
 
     # capture SIGINT signal, e.g., Ctrl+C
     signal.signal(signal.SIGINT, signal_handler)
 
-    detector = Detector(model, detTh=1.5, audio_gain=2.)
+    detector = Detector(model, detTh=sensitivity, audio_gain=audio_gain)
     print('Listening... Press Ctrl+C to exit')
 
     # main loop
