@@ -17,7 +17,7 @@ modelName = sys.argv[1]
 modelType = sys.argv[2]
 
 batchSize = 8
-numEpoch = 20
+numEpoch = 40
 
 # the data, shuffled and split between train and test sets
 inFiles = ('spec_pos.mat',
@@ -30,7 +30,7 @@ modelInfo = 'models/'+modelName+'.mat'
 (feaTrain, labelTrain), (feaTest, labelTest) = data.load_training(
 	inFiles, 'features', modelType,
 	negRatioTrain=10, negRatioTest=10,
-	permuteBeforeSplit=(False,False), testSplit=0.2, normalize=False)
+	permuteBeforeSplit=(False,True), testSplit=0.2, normalize=False)
 
 print('feaTrain shape:', feaTrain.shape)
 print(feaTrain.shape[0], 'train samples')
