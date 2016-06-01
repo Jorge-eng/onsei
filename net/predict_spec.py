@@ -1,13 +1,20 @@
 import sys, os
-sys.path.append('/Users/hello/work/onsei/dataprep')
+TOP_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(TOP_DIR, 'models')
+DATA_PATH = os.path.join(TOP_DIR, '../dataprep')
+sys.path.append(DATA_PATH)
 
 import data
 from scipy.io import loadmat, savemat
 from scipy.io import wavfile
 import audioproc
 import numpy as np
-import matplotlib.pyplot as plt
 import pdb
+try: # pyplot throws errors on ec2
+    import matplotlib.pyplot as plt
+except:
+    print('Warning: pyplot failed to import')
+    pass
 
 def predict(wavFile, model, modelType, winLen=None, winShift=20, verbose=0):
 
@@ -114,13 +121,13 @@ def wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, 
 if __name__ == '__main__':
 
     wavFile = sys.argv[1]
-    infoFile = sys.argv[2]+'.mat'
+    infoFile = os.path.join(MODEL_PATH, sys.argv[2]+'.mat')
 
     info = loadmat(infoFile)
     modelDef = info['modelDef'][0]
     modelWeights = info['modelWeights'][0]
     modelType = info['modelType'][0]
-    winLen = info['winLen'][0]
+    winLen = int(info['winLen'][0])
 
     model = data.load_model(modelDef, modelWeights)
 
