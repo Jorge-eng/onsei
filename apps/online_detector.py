@@ -77,7 +77,7 @@ class Detector(object):
             play_data = chr(0) * len(in_data)
             return play_data, pyaudio.paContinue
 
-        modelInfo = os.path.join(MODEL_PATH, model_str)
+        modelInfo = os.path.join(MODEL_PATH, model_str+'.mat')
         print(modelInfo)
         info = loadmat(modelInfo)
         modelDef = os.path.join(NET_PATH, info['modelDef'][0])
