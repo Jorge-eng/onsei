@@ -47,9 +47,8 @@ unit-test/testfeatures.cpp
 target_link_libraries(unit-test gtest tensor hellomath)
 
 
-add_executable(tinytensor
-tinytensor.cpp)
+add_executable(tinyfeats
+tinyfeats.cpp)
 
-
-target_link_libraries(tinytensor tensor hellomath ${SNDFILE_LIBRARIES})
+target_link_libraries(tinyfeats tensor hellomath ${SNDFILE_LIBRARIES})
 

@@ -13,12 +13,15 @@ extern "C" {
 #define BUF_SIZE_IN_SAMPLES (600)
 #define NUM_MEL_BINS (40)
 
-void tinytensor_features_initialize(void);
+typedef void(*tinytensor_audio_feat_callback_t)(void * context, int8_t * feats);
+    
+void tinytensor_features_initialize(void * results_context, tinytensor_audio_feat_callback_t results_callback);
 
 void tinytensor_features_deinitialize(void);
 
 void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num_samples);
 
+    
     
 #ifdef __cplusplus
 }

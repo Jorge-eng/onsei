@@ -11,10 +11,33 @@ using namespace std;
 
 #define BUF_SIZE (1<<10)
 
+extern "C" {
+    void results_callback(void * context, int8_t * melbins);
+}
+
+typedef struct  {
+    FILE * file;
+} CallbackContext ;
+
+void results_callback(void * context, int8_t * melbins) {
+    CallbackContext * p = static_cast<CallbackContext *>(context);
+    if (p->file) {
+        fwrite(melbins,1,NUM_MEL_BINS,p->file);
+    }
+}
+
 
 int main(int argc, char * argv[]) {
     
-    tinytensor_features_initialize();
+    if (argc < 3) {
+        std::cout << "need to have input file and output file specified" << std::endl;
+        exit(0);
+    }
+    
+    CallbackContext context;
+    context.file = fopen(argv[2], "w");
+    
+    tinytensor_features_initialize(&context,results_callback);
     const std::string inFile = argv[1];
     
     SndfileHandle file = SndfileHandle (inFile) ;
@@ -53,16 +76,10 @@ int main(int argc, char * argv[]) {
             tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
         }
         
-        /*
-        if (i > 1e5) {
-            break;
-        }
-         */
     }
     
-    
+    fclose(context.file);
     tinytensor_features_deinitialize();
-    
     
     
     return 0;

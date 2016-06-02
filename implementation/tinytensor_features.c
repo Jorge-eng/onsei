@@ -34,17 +34,21 @@ typedef struct {
     int16_t * pbuf_write;
     int16_t * end;
     uint32_t num_samples_in_buffer;
+    void * results_context;
+    tinytensor_audio_feat_callback_t results_callback;
     
 } TinyTensorFeatures_t;
 
 static TinyTensorFeatures_t _this;
 
-void tinytensor_features_initialize(void) {
+void tinytensor_features_initialize(void * results_context, tinytensor_audio_feat_callback_t results_callback) {
     memset(&_this,0,sizeof(TinyTensorFeatures_t));
     _this.buf = malloc(BUF_SIZE_IN_SAMPLES*sizeof(int16_t));
     memset(_this.buf,0,BUF_SIZE_IN_SAMPLES*sizeof(int16_t));
     _this.pbuf_write = _this.buf;
     _this.end = _this.buf + BUF_SIZE_IN_SAMPLES;
+    _this.results_callback = results_callback;
+    _this.results_context = results_context;
 }
 
 void tinytensor_features_deinitialize(void) {
@@ -195,6 +199,11 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
             melbank8[i] = (int8_t)temp16;
         }
         
+        if (_this.results_callback) {
+            _this.results_callback(_this.results_context,melbank8);
+        }
+        
+#ifdef PRINT_MEL_BINS
         for (i = 0; i < 40; i++) {
             if (i!= 0) {
                 printf (",");
@@ -203,11 +212,8 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
         }
         
         printf("\n");
+#endif //PRINT_MEL_BINS
         
-        
-        //TODO add to circular buffer for mel bins
-        int foo = 3;
-        foo++;
     }
     
 }
