@@ -9,12 +9,12 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 
 find_package(SndFile REQUIRED)
+find_package(PortAudio REQUIRED)
 
 add_definitions(-DUSE_CPP_DEBUG_LOGGING)
 add_definitions(-DNO_EQUALIZATION)
 
-include_directories (${SNDFILE_INCLUDE_DIRS} "gtest/include/" "gtest" "./")
-
+include_directories (${SNDFILE_INCLUDE_DIRS} ${PORTAUDIO_INCLUDE_DIRS} "gtest/include/" "gtest" "./")
 message(STATUS "${SNDFILE_INCLUDE_DIRS}")
 message(STATUS "${SNDFILE_LIBRARIES}")
 
@@ -52,3 +52,7 @@ tinyfeats.cpp)
 
 target_link_libraries(tinyfeats tensor hellomath ${SNDFILE_LIBRARIES})
 
+add_executable(liverunner 
+liverunner.cpp)
+
+target_link_libraries(liverunner tensor hellomath ${PORTAUDIO_LIBRARIES})
