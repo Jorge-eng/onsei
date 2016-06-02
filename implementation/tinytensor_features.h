@@ -9,7 +9,9 @@ extern "C" {
 
     
 #define NUM_SAMPLES_TO_RUN_FFT (160)
-
+#define FFT_UNPADDED_SIZE (400)
+#define BUF_SIZE_IN_SAMPLES (600)
+#define NUM_MEL_BINS (40)
 
 void tinytensor_features_initialize(void);
 

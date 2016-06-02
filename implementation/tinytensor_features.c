@@ -4,11 +4,8 @@
 #include "hellomath/fft.h"
 #include "hellomath/hellomath.h"
 
-#define BUF_SIZE_IN_SAMPLES (512)
 #define FFT_SIZE_2N (9)
 #define FFT_SIZE (1 << FFT_SIZE_2N)
-#define FFT_UNPADDED_SIZE (400) 
-#define NUM_MEL_BINS (40)
 #define PREEMPHASIS (TOFIX(0.95,15))
 
 #define QFIXEDPOINT_INT16 (15)
@@ -25,9 +22,9 @@ const static uint8_t k_fft_index_pairs[40][2] = {{1,1},{2,3},{3,5},{5,7},{7,9},{
 
 typedef struct {
     int16_t * buf;
-    int16_t * pbuf;
+    int16_t * pbuf_write;
     int16_t * end;
-    uint32_t num_samples_left_to_process;
+    uint32_t num_samples_in_buffer;
     
 } TinyTensorFeatures_t;
 
@@ -36,7 +33,8 @@ static TinyTensorFeatures_t _this;
 void tinytensor_features_initialize(void) {
     memset(&_this,0,sizeof(TinyTensorFeatures_t));
     _this.buf = malloc(BUF_SIZE_IN_SAMPLES*sizeof(int16_t));
-    _this.pbuf = _this.buf;
+    memset(_this.buf,0,BUF_SIZE_IN_SAMPLES*sizeof(int16_t));
+    _this.pbuf_write = _this.buf;
     _this.end = _this.buf + BUF_SIZE_IN_SAMPLES;
 }
 
@@ -44,42 +42,68 @@ void tinytensor_features_deinitialize(void) {
     FREE(_this.buf);
 }
 
-static void add_to_buffer(const int16_t * samples, const uint32_t num_samples) {
-    
-    const int32_t memleft = _this.end - _this.pbuf;
-    int32_t chunk_size = memleft > num_samples ? num_samples : memleft;
 
-    //printf("offset=%d, chunk_size=%d, total=%d\n",_this.pbuf - _this.buf,chunk_size,chunk_size + (int32_t)(_this.pbuf - _this.buf));
-    MEMCPY(_this.pbuf,samples,chunk_size*sizeof(int16_t));
-    _this.pbuf += chunk_size;
-
-    if (chunk_size < num_samples) {
-        const int32_t chunk_size2 = num_samples - chunk_size;
-        _this.pbuf = _this.buf;
-    //    printf("samples offset = %d\n",&samples[chunk_size] - samples);
-        MEMCPY(_this.pbuf,&samples[chunk_size],chunk_size2 * sizeof(int16_t));
-        _this.pbuf += chunk_size2;
-    }
+void tiny_tensor_features_add_to_buffer(const int16_t * samples, const uint32_t num_samples) {
    
-    _this.num_samples_left_to_process += num_samples;
+    int32_t ibuf;
+    
+    for (ibuf = 0; ibuf < num_samples; ibuf++) {
+        *(_this.pbuf_write) = samples[ibuf];
+        
+        if (++_this.pbuf_write >= _this.end) {
+            _this.pbuf_write = _this.buf;
+        }
+    }
+    
+    _this.num_samples_in_buffer += num_samples;
+    
+    if (_this.num_samples_in_buffer > BUF_SIZE_IN_SAMPLES) {
+        _this.num_samples_in_buffer = BUF_SIZE_IN_SAMPLES;
+    }
 }
 
-static void read_out_buffer(int16_t * outbuffer, const uint32_t num_samples) {
-    //find start
+void tiny_tensor_features_get_latest_samples(int16_t * outbuffer, const uint32_t num_samples) {
+    int32_t ibuf;
+    int16_t * pstart = _this.pbuf_write - num_samples;
     
-    int16_t * pstart = _this.pbuf - num_samples < _this.buf ? _this.buf : _this.pbuf - num_samples;
-    
-    uint32_t num_to_read_out = _this.pbuf - pstart;
-    
-    memcpy(outbuffer,pstart,num_to_read_out * sizeof(int16_t));
-    
-    const uint32_t num_to_read_out2 = num_samples - num_to_read_out;
-
-    if (num_to_read_out2 > 0) {
-        memcpy(outbuffer + num_to_read_out,pstart + num_to_read_out,num_to_read_out2*sizeof(int16_t));
+    if (pstart < _this.buf) {
+        pstart += BUF_SIZE_IN_SAMPLES;
     }
     
-    _this.num_samples_left_to_process -= num_samples;
+    
+    for (ibuf = 0; ibuf < num_samples; ibuf++) {
+        outbuffer[ibuf] = *pstart;
+        
+        if (++pstart >= _this.end) {
+            pstart = _this.buf;
+        }
+    }
+    
+    return 1;
+}
+
+void tinytensor_features_get_mel_bank(int16_t * melbank,const int16_t * fr, const int16_t * fi) {
+    uint32_t ifft;
+    uint32_t imel;
+    uint32_t idx;
+    uint32_t utemp32;
+    uint64_t accumulator;
+    
+    //get mel bank feats
+    idx = 0;
+    for (imel = 0; imel < NUM_MEL_BINS; imel++) {
+        accumulator = 0;
+        for (ifft = k_fft_index_pairs[imel][0]; ifft <= k_fft_index_pairs[imel][1]; ifft++) {
+            utemp32 = 1;
+            utemp32 += ((uint32_t)fr[ifft]*fr[ifft]) + ((uint32_t)fi[ifft]*fi[ifft]); //q15 + q15 = q30, q30 * 2 --> q31, unsigned 32 is safe
+            utemp32 = (uint32_t)((((uint64_t) utemp32) * k_coeffs[idx]) >> 8);
+            accumulator += utemp32;
+            idx++;
+        }
+        
+        melbank[imel] = FixedPointLog2Q10(accumulator);
+    }
+
 }
 
 static uint8_t add_samples_and_get_mel(int16_t * melbank, const int16_t * samples, const uint32_t num_samples) {
@@ -89,11 +113,7 @@ static uint8_t add_samples_and_get_mel(int16_t * melbank, const int16_t * sample
     int16_t fi[FFT_SIZE] = {0};
     
     uint32_t i;
-    uint32_t ifft;
-    uint32_t imel;
-    uint32_t idx;
-    uint32_t utemp32;
-    uint64_t accumulator;
+
     int16_t temp16;
     /* add samples to circular buffer
        
@@ -102,13 +122,13 @@ static uint8_t add_samples_and_get_mel(int16_t * melbank, const int16_t * sample
     
      */
     
-    add_to_buffer(samples,num_samples);
+    tiny_tensor_features_add_to_buffer(samples,num_samples);
 
-    if (_this.num_samples_left_to_process < FFT_UNPADDED_SIZE) {
+    if (_this.num_samples_in_buffer < FFT_UNPADDED_SIZE) {
         return 0;
     }
     
-    read_out_buffer(fr,FFT_UNPADDED_SIZE);
+    tiny_tensor_features_get_latest_samples(fr,FFT_UNPADDED_SIZE);
     
   
     //"preemphasis"
@@ -125,20 +145,7 @@ static uint8_t add_samples_and_get_mel(int16_t * melbank, const int16_t * sample
     //PERFORM FFT
     fft(fr,fi,FFT_SIZE_2N);
     
-    //get mel bank feats
-    idx = 0;
-    for (imel = 0; imel < NUM_MEL_BINS; imel++) {
-        accumulator = 0;
-        for (ifft = k_fft_index_pairs[imel][0]; ifft <= k_fft_index_pairs[imel][1]; ifft++) {
-            utemp32 = 1;
-            utemp32 += ((uint32_t)fr[ifft]*fr[ifft]) + ((uint32_t)fi[ifft]*fi[ifft]); //q15 + q15 = q30, q30 * 2 --> q31, unsigned 32 is safe
-            utemp32 = (uint32_t)((((uint64_t) utemp32) * k_coeffs[idx]) >> 8);
-            accumulator += utemp32;
-            idx++;
-        }
-        
-        melbank[imel] = FixedPointLog2Q10(accumulator);
-    }
+    tinytensor_features_get_mel_bank(melbank,fr,fi);
     
     return 1;
 }
