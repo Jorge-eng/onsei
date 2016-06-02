@@ -6,7 +6,8 @@
 
 #define FFT_SIZE_2N (9)
 #define FFT_SIZE (1 << FFT_SIZE_2N)
-#define PREEMPHASIS (TOFIX(0.95,15))
+#define PREEMPHASIS (TOFIX(0.97,15))
+//#define PREEMPHASIS (TOFIX(0,15))
 
 #define QFIXEDPOINT_INT16 (15)
 
@@ -78,8 +79,6 @@ void tiny_tensor_features_get_latest_samples(int16_t * outbuffer, const uint32_t
             pstart = _this.buf;
         }
     }
-    
-    return 1;
 }
 
 void tinytensor_features_get_mel_bank(int16_t * melbank,const int16_t * fr, const int16_t * fi) {
