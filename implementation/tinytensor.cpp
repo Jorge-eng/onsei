@@ -18,11 +18,12 @@ int main(int argc, char * argv[]) {
     const std::string inFile = argv[1];
     
     SndfileHandle file = SndfileHandle (inFile) ;
-    
+   /*
     printf ("Opened file '%s'\n", inFile.c_str()) ;
     printf ("    Sample rate : %d\n", file.samplerate ()) ;
     printf ("    Channels    : %d\n", file.channels ()) ;
     printf ("    Frames      : %d\n", file.frames ()) ;
+    */
     uint32_t n = file.frames();
     std::vector<int16_t> mono_samples;
     mono_samples.reserve(file.frames());
@@ -40,10 +41,24 @@ int main(int argc, char * argv[]) {
         }
     }
     
-    for (int i = 0; i < n; i++) {
+    
+    for (int i = 0; i < mono_samples.size() - NUM_SAMPLES_TO_RUN_FFT; i++) {
         if (i % NUM_SAMPLES_TO_RUN_FFT == 0) {
-            tinytensor_features_add_samples(&mono_samples.data()[i], NUM_SAMPLES_TO_RUN_FFT);
+            
+            int16_t tempbuf[NUM_SAMPLES_TO_RUN_FFT];
+            memset(tempbuf,0xFF,sizeof(tempbuf));
+            for (int t= 0; t < NUM_SAMPLES_TO_RUN_FFT; t++) {
+                tempbuf[t] = mono_samples[i + t];
+            }
+            
+            tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
         }
+        
+        /*
+        if (i > 1e5) {
+            break;
+        }
+         */
     }
     
     

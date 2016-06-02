@@ -40,7 +40,9 @@ unit-test/testconv.cpp
 unit-test/testfull.cpp
 unit-test/testlstm.cpp
 unit-test/testmaxpool.cpp
-unit-test/testnet.cpp)
+unit-test/testnet.cpp
+unit-test/testfeatures.cpp
+)
 
 target_link_libraries(unit-test gtest tensor hellomath)
 
