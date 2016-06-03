@@ -11,12 +11,12 @@
 #define HAVE_NET (0)
 
 #if HAVE_NET
-#include "net.c" 
+#include "net.c"
 #endif 
 
 #define SAMPLE_RATE  (16000)
 #define FRAMES_PER_BUFFER (256)
-#define NUM_SECONDS     (5)
+#define NUM_SECONDS     (20)
 #define NUM_CHANNELS    (1)
 /* #define DITHER_FLAG     (paDitherOff) */
 #define DITHER_FLAG     (0) /**/
@@ -120,13 +120,31 @@ static void feats_callback(void * context, int8_t * feats) {
 
         for (uint32_t t = 0; t < NUM_TIME_ELEMENTS; t++) {
             inmat[j][t] = pcontext->buf[bufidx][j];
+            
+            if (++bufidx >= NUM_TIME_ELEMENTS) {
+                bufidx = 0;
+            }
         }
-        
-        if (++bufidx >= NUM_TIME_ELEMENTS) {
-            bufidx = 0;
-        }
-    }
+     }
     
+    /*
+    
+    for (uint32_t t = 0; t < NUM_TIME_ELEMENTS; t++) {
+        for (uint32_t j = 0; j < NUM_MEL_BINS; j++) {
+            
+            if (j != 0) {
+                printf(",");
+            }
+            
+            printf("%d",inmat[j][t]);
+            
+            
+        }
+        printf("\n");
+        
+    }
+     
+     */
 
     Tensor_t * tensor_out = eval_net(&(pcontext->net),tensor_in);
     printf("%3.1f,%3.1f\n",tensor_out->x[0] / 128.0,tensor_out->x[1] / 128.0);
