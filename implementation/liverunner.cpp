@@ -1,11 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+
 #include "portaudio.h"
 #include "tinytensor_features.h"
+#include "tinytensor_net.h"
+#include "tinytensor_tensor.h"
+
+#define HAVE_NET (0)
+
+#if HAVE_NET
+#include "net.c" 
+#endif 
 
 #define SAMPLE_RATE  (16000)
-#define FRAMES_PER_BUFFER (512)
+#define FRAMES_PER_BUFFER (256)
 #define NUM_SECONDS     (5)
 #define NUM_CHANNELS    (1)
 /* #define DITHER_FLAG     (paDitherOff) */
@@ -29,7 +39,7 @@ paTestData;
  ** It may be called at interrupt level on some machines so don't do anything
  ** that could mess up the system like calling malloc() or free().
  */
-static int recordCallback( const void *inputBuffer, void *outputBuffer,
+static int recordCallback(const void *inputBuffer, void *outputBuffer,
                           unsigned long framesPerBuffer,
                           const PaStreamCallbackTimeInfo* timeInfo,
                           PaStreamCallbackFlags statusFlags,
@@ -37,7 +47,8 @@ static int recordCallback( const void *inputBuffer, void *outputBuffer,
 {
     paTestData *data = (paTestData*)userData;
     const SAMPLE *rptr = (const SAMPLE*)inputBuffer;
-    SAMPLE *wptr = &data->recordedSamples[data->frameIndex * NUM_CHANNELS];
+    SAMPLE localbuf[FRAMES_PER_BUFFER * 2];
+    SAMPLE *wptr = &localbuf[0];
     long framesToCalc;
     long i;
     int finished;
@@ -48,51 +59,95 @@ static int recordCallback( const void *inputBuffer, void *outputBuffer,
     (void) statusFlags;
     (void) userData;
     
-    if( framesLeft < framesPerBuffer )
-    {
+    if( framesLeft < framesPerBuffer ) {
         framesToCalc = framesLeft;
         finished = paComplete;
     }
-    else
-    {
+    else {
         framesToCalc = framesPerBuffer;
         finished = paContinue;
     }
     
-    if( inputBuffer == NULL )
-    {
-        for( i=0; i<framesToCalc; i++ )
-        {
-            *wptr++ = SAMPLE_SILENCE;  /* left */
-            if( NUM_CHANNELS == 2 ) *wptr++ = SAMPLE_SILENCE;  /* right */
-        }
+    if( inputBuffer == NULL ) {
+        return finished;
     }
-    else
-    {
-        for( i=0; i<framesToCalc; i++ )
-        {
-            *wptr++ = *rptr++;  /* left */
-            if( NUM_CHANNELS == 2 ) *wptr++ = *rptr++;  /* right */
-        }
+    
+    for( i=0; i<framesToCalc; i++ ) {
+        *wptr++ = *rptr++;  /* left */
+        //if( NUM_CHANNELS == 2 ) *wptr++ = *rptr++;  /* right */
     }
+    
+    tinytensor_features_add_samples(localbuf, framesToCalc);
+    
     data->frameIndex += framesToCalc;
     return finished;
 }
 
+#define NUM_TIME_ELEMENTS (199)
+typedef struct {
+    ConstSequentialNetwork_t net;
+    int8_t buf[NUM_TIME_ELEMENTS][NUM_MEL_BINS];
+    uint32_t bufidx;
+} FeatsCallbackContext;
 
 static void feats_callback(void * context, int8_t * feats) {
+    FeatsCallbackContext * pcontext = (FeatsCallbackContext *) context;
+    const static uint32_t dims[4] = {1,1,NUM_MEL_BINS,NUM_TIME_ELEMENTS};
+
+    //copy out new feats
+   // printf("%d\n",pcontext->bufidx);
+    memcpy(&(pcontext->buf[pcontext->bufidx][0]),feats,NUM_MEL_BINS*sizeof(int8_t));
+    
+    if (++pcontext->bufidx >= NUM_TIME_ELEMENTS) {
+        pcontext->bufidx = 0;
+    }
+    
+    if (pcontext->bufidx % 20 != 0) {
+        return;
+    }
     
     
+#if HAVE_NET
+
+    Tensor_t * tensor_in = tinytensor_create_new_tensor(dims);
     
+    int8_t (*inmat)[NUM_TIME_ELEMENTS]  = (int8_t (*)[NUM_TIME_ELEMENTS])tensor_in->x;
+    
+  
+    
+    for (uint32_t j = 0; j < NUM_MEL_BINS; j++) {
+        uint32_t bufidx = pcontext->bufidx;
+
+        for (uint32_t t = 0; t < NUM_TIME_ELEMENTS; t++) {
+            inmat[j][t] = pcontext->buf[bufidx][j];
+        }
+        
+        if (++bufidx >= NUM_TIME_ELEMENTS) {
+            bufidx = 0;
+        }
+    }
+    
+
+    Tensor_t * tensor_out = eval_net(&(pcontext->net),tensor_in);
+    printf("%3.1f,%3.1f\n",tensor_out->x[0] / 128.0,tensor_out->x[1] / 128.0);
+    tensor_out->delete_me(tensor_out);
+
+#endif
 }
 
-typedef struct {
-    
-} FeatsCallbackContext;
+
 
 
 /*******************************************************************/
 int main(void) {
+    FeatsCallbackContext featsContext;
+    memset(&featsContext,0,sizeof(featsContext));
+    
+#if HAVE_NET
+    featsContext.net = initialize_network();
+#endif
+
+    
     PaStreamParameters  inputParameters;
     PaStream*           stream;
     PaError             err = paNoError;
@@ -104,7 +159,6 @@ int main(void) {
     SAMPLE              max, val;
     double              average;
     
-    FeatsCallbackContext featsContext;
     
     tinytensor_features_initialize(&featsContext, feats_callback);
     
@@ -134,8 +188,7 @@ int main(void) {
     inputParameters.hostApiSpecificStreamInfo = NULL;
     
     /* Record some audio. -------------------------------------------- */
-    err = Pa_OpenStream(
-                        &stream,
+    err = Pa_OpenStream(&stream,
                         &inputParameters,
                         NULL,                  /* &outputParameters, */
                         SAMPLE_RATE,
@@ -152,7 +205,7 @@ int main(void) {
     while( ( err = Pa_IsStreamActive( stream ) ) == 1 )
     {
         Pa_Sleep(1000);
-        printf("index = %d\n", data.frameIndex ); fflush(stdout);
+       // printf("index = %d\n", data.frameIndex ); fflush(stdout);
     }
     if( err < 0 ) goto done;
     
