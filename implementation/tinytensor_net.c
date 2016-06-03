@@ -10,8 +10,9 @@ Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input) {
 
     Tensor_t * current_input = input;
     Tensor_t * current_output = 0;
-    
-    for (uint32_t ilayer = 0; ilayer < net->num_layers; ilayer++) {
+    uint32_t ilayer;
+
+    for (ilayer = 0; ilayer < net->num_layers; ilayer++) {
         const ConstLayer_t * const layer = &net->layers[ilayer];
         
         uint32_t output_dims[TENSOR_DIM];

@@ -11,10 +11,33 @@ using namespace std;
 
 #define BUF_SIZE (1<<10)
 
+extern "C" {
+    void results_callback(void * context, int8_t * melbins);
+}
+
+typedef struct  {
+    FILE * file;
+} CallbackContext ;
+
+void results_callback(void * context, int8_t * melbins) {
+    CallbackContext * p = static_cast<CallbackContext *>(context);
+    if (p->file) {
+        fwrite(melbins,1,NUM_MEL_BINS,p->file);
+    }
+}
+
 
 int main(int argc, char * argv[]) {
     
-    tinytensor_features_initialize();
+    if (argc < 3) {
+        std::cout << "need to have input file and output file specified" << std::endl;
+        return 0;
+    }
+    
+    CallbackContext context;
+    context.file = fopen(argv[2], "w");
+    
+    tinytensor_features_initialize(&context,results_callback);
     const std::string inFile = argv[1];
     
     SndfileHandle file = SndfileHandle (inFile) ;
@@ -24,7 +47,6 @@ int main(int argc, char * argv[]) {
     printf ("    Channels    : %d\n", file.channels ()) ;
     printf ("    Frames      : %d\n", file.frames ()) ;
     */
-    uint32_t n = file.frames();
     std::vector<int16_t> mono_samples;
     mono_samples.reserve(file.frames());
     int16_t buf[BUF_SIZE];
@@ -48,22 +70,16 @@ int main(int argc, char * argv[]) {
             int16_t tempbuf[NUM_SAMPLES_TO_RUN_FFT];
             memset(tempbuf,0xFF,sizeof(tempbuf));
             for (int t= 0; t < NUM_SAMPLES_TO_RUN_FFT; t++) {
-                tempbuf[t] = mono_samples[i + t];
+                tempbuf[t] = (int) (1.0 * mono_samples[i + t]);
             }
             
             tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
         }
         
-        /*
-        if (i > 1e5) {
-            break;
-        }
-         */
     }
     
-    
+    fclose(context.file);
     tinytensor_features_deinitialize();
-    
     
     
     return 0;

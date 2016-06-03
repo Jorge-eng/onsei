@@ -12,8 +12,8 @@ extern "C" {
 
     
 typedef struct {
-    const ConstLayer_t * layers;
-    const uint32_t num_layers;
+    ConstLayer_t * layers;
+    uint32_t num_layers;
 } ConstSequentialNetwork_t;
     
 Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input);

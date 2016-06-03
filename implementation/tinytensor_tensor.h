@@ -21,14 +21,6 @@ extern "C" {
  
  */
 
-
-    
-
-inline Weight_t * get_slice(Tensor_t * tensor, uint32_t nslice) {
-    const uint32_t stride = tensor->dims[2] * tensor->dims[1];
-    return tensor->x + stride * nslice;
-}
-
     
 Tensor_t * tinytensor_create_new_tensor(const uint32_t dims[TENSOR_DIM]);
 
