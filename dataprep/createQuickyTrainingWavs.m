@@ -11,6 +11,8 @@ nSpeech = length(speechClip);
 nBack = length(backClip);
 nImpEarly = length(earlyImplantClip);
 nImpLate = length(lateImplantClip);
+nPartEarly = length(partialEarlyClip);
+nPartLate = length(partialLateClip);
 
 for j = 1:nKw
     wav = resample(kwClip{j},16,48);
@@ -35,6 +37,14 @@ end
 for j = 1:nBack
     wav = resample(backClip{j},16,48);
     audiowrite(fullfile(outDir,['backClip_' num2str(j) '.wav']), wav, Fs)
+end
+for j = 1:nPartEarly
+    wav = resample(partialEarlyClip{j},16,48);
+    audiowrite(fullfile(outDir,['partialEarlyClip_' num2str(j) '.wav']), wav, Fs)
+end
+for j = 1:nPartLate
+    wav = resample(partialLateClip{j},16,48);
+    audiowrite(fullfile(outDir,['partialLateClip_' num2str(j) '.wav']), wav, Fs)
 end
 
 %{
