@@ -39,6 +39,8 @@ backClip = {};
 speechClip = {};
 earlyImplantClip = {};
 lateImplantClip = {};
+partialEarlyClip = {};
+partialLateClip = {};
 
 Fs = 48000;
 clipLen = 2 * Fs;
@@ -79,6 +81,7 @@ for j = 1:length(fileNames)
         % stretched keyword
         
         % pitch-shifted keyword
+        %kwUp = shiftAndStretch(kw(:,1), Fs, 1, 9, 8);
         
         % noise-added keyword
         
@@ -102,8 +105,12 @@ for j = 1:length(fileNames)
             speechClip{end+1} = x;
         end
     
+        % partial missing
+        
+        
         % partial speech implants
         kwMid = midPt(idx);
+        
         % early
         x = kw;
         impInd = pad:kwMid;
@@ -113,6 +120,12 @@ for j = 1:length(fileNames)
         in = speech(speechStart:speechStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
         earlyImplantClip{end+1} = x;
+        
+        backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
+        in = background(backStart:backStart+(length(impInd)-1),:);
+        x(impInd,:) = (1-window).*out + window.*in;
+        partialLateClip{end+1} = x;
+        
         % late
         x = kw;
         impInd = kwMid+1:pad+cd;
@@ -122,6 +135,11 @@ for j = 1:length(fileNames)
         in = speech(speechStart:speechStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
         lateImplantClip{end+1} = x;
+        
+        backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
+        in = background(backStart:backStart+(length(impInd)-1),:);
+        x(impInd,:) = (1-window).*out + window.*in;
+        partialEarlyClip{end+1} = x;
         
     end
     
@@ -138,7 +156,7 @@ info.fileName = fileName;
 info.clipStart = clipStart;
 info.clipEnd = clipEnd;
 info.label = label;
-save(dataFile,'kwClip','kwRevClip','speechClip','backClip','earlyImplantClip','lateImplantClip','info');
+save(dataFile,'kwClip','kwRevClip','speechClip','backClip','earlyImplantClip','lateImplantClip','partialEarlyClip','partialLateClip','info');
 
 function window = getWindow(winDur, rampDur, numChan)
 % window function

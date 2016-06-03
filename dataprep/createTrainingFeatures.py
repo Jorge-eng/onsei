@@ -25,7 +25,7 @@ features = load_features(dirName, posMatchers)
 savemat('spec_pos.mat',{'features': features})
 
 # Negative examples
-negMatchers = ['kwRevClip','speechClip','backClip','earlyImplantClip','lateImplantClip']
+negMatchers = ['kwRevClip','speechClip','backClip','earlyImplantClip','lateImplantClip','partialEarlyClip','partialLateClip']
 features = load_features(dirName, negMatchers)
 savemat('spec_neg.mat',{'features': features})
 
