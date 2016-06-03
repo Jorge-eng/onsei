@@ -34,6 +34,8 @@ hellomath/fft.c
 hellomath/hellomath.c)
 
 add_library(gtest STATIC gtest/gtest-all.cc)
+target_link_libraries(gtest pthread)
+
 add_executable(unit-test 
 unit-test/main.cpp 
 unit-test/testconv.cpp

@@ -35,7 +35,8 @@ Tensor_t * tinytensor_create_new_tensor(const uint32_t dims[TENSOR_DIM]) {
 
 Tensor_t * tinytensor_clone_new_tensor(const ConstTensor_t * in) {
     uint32_t num_elements= in->dims[0];
-    for (uint32_t i = 1; i < TENSOR_DIM; i++) {
+    uint32_t i;
+    for (i = 1; i < TENSOR_DIM; i++) {
         num_elements *= in->dims[i];
     }
     

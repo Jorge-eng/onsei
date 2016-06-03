@@ -31,7 +31,7 @@ int main(int argc, char * argv[]) {
     
     if (argc < 3) {
         std::cout << "need to have input file and output file specified" << std::endl;
-        exit(0);
+        return 0;
     }
     
     CallbackContext context;
