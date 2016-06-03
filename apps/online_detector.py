@@ -17,6 +17,8 @@ import pdb
 import matplotlib.pyplot as plt
 import data as getdata
 from predict_spec import detect_online
+import uuid
+from scipy.io import wavfile
 
 interrupted = False
 
@@ -50,19 +52,20 @@ class RingBuffer(object):
 
 def play_audio_file(fname=DETECT_SOUND):
     """Simple callback function to play a wave file."""
-    f = wave.open(fname, 'rb')
-    wavData = f.readframes(f.getnframes())
-    audio = pyaudio.PyAudio()
-    stream_out = audio.open(
-        format=audio.get_format_from_width(f.getsampwidth()),
-        channels=f.getnchannels(),
-        rate=f.getframerate(), input=False, output=True)
-    stream_out.start_stream()
-    stream_out.write(wavData)
-    time.sleep(0.2)
-    stream_out.stop_stream()
-    stream_out.close()
-    audio.terminate()
+    if False:
+        f = wave.open(fname, 'rb')
+        wavData = f.readframes(f.getnframes())
+        audio = pyaudio.PyAudio()
+        stream_out = audio.open(
+            format=audio.get_format_from_width(f.getsampwidth()),
+            channels=f.getnchannels(),
+            rate=f.getframerate(), input=False, output=True)
+        stream_out.start_stream()
+        stream_out.write(wavData)
+        time.sleep(0.2)
+        stream_out.stop_stream()
+        stream_out.close()
+        audio.terminate()
 
 class Detector(object):
     """
@@ -148,9 +151,15 @@ class Detector(object):
                 message += time.strftime("%Y-%m-%d %H:%M:%S",
                                          time.localtime(time.time()))
                 logger.info(message)
-                if detected_callback is not None:
+                if True:
+                    fname = os.path.join(TOP_DIR,'detections',str(uuid.uuid4().get_hex()[0:10])+'.wav')
+                    wavfile.write(fname, 16000, np.int16(data_numeric))
+                if False and detected_callback is not None:
                     detected_callback()
-
+            if False and flag == 0 and self.prob_prev > 0.5:
+                pdb.set_trace()
+                plt.plot(data_numeric)
+                #plt.show()
         logger.debug("finished.")
 
     def terminate(self):
