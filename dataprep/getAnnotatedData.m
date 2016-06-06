@@ -105,13 +105,10 @@ for j = 1:length(fileNames)
             speechClip{end+1} = x;
         end
     
-        % partial missing
-        
-        
-        % partial speech implants
+        % partials --- 
         kwMid = midPt(idx);
         
-        % early
+        % partial implant early
         x = kw;
         impInd = pad:kwMid;
         window = getWindow(length(impInd), round(0.05*Fs), size(kw,2)); % smooth edge implants
@@ -121,12 +118,13 @@ for j = 1:length(fileNames)
         x(impInd,:) = (1-window).*out + window.*in;
         earlyImplantClip{end+1} = x;
         
+        % partial late - missing early part
         backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
         in = background(backStart:backStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
         partialLateClip{end+1} = x;
         
-        % late
+        % partial implant late
         x = kw;
         impInd = kwMid+1:pad+cd;
         window = getWindow(length(impInd), round(0.05*Fs), size(kw,2)); % smooth edge implants
@@ -136,6 +134,7 @@ for j = 1:length(fileNames)
         x(impInd,:) = (1-window).*out + window.*in;
         lateImplantClip{end+1} = x;
         
+        % partial early -  missing late part
         backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
         in = background(backStart:backStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
