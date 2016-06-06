@@ -75,7 +75,7 @@ end
 [fPath, fName, fExt] = fileparts(wavFile);
 fid = fopen(csvFile,'a');
 for j = 1:length(a)
-   str = [fName '.' fExt ',' strjoin(strtrim(cellstr(num2str(a{j}))),',') ',' label{j}];
+   str = [fName fExt ',' strjoin(strtrim(cellstr(num2str(a{j}))),',') ',' label{j}];
    fprintf(fid,'%s\n',str); 
 end
 fclose(fid);
