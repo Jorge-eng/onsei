@@ -7,6 +7,7 @@ fileName = {};
 clipStart = [];
 clipEnd = [];
 label = {};
+rawline = {};
 
 fid = fopen(csvFile,'r');
 while 1
@@ -15,26 +16,29 @@ while 1
         break
     end
     
-    line = strsplit(line,',');
+    splitline = strsplit(line,',');
     
-    fileName{end+1} = line{1};
-    clipStart(end+1) = str2double(line{2});
-    clipEnd(end+1) = str2double(line{3});
-    label{end+1} = line{4};
+    fileName{end+1} = splitline{1};
+    clipStart(end+1) = str2double(splitline{2});
+    clipEnd(end+1) = str2double(splitline{3});
+    label{end+1} = splitline{4};
+    
+    % discard existing extra annotations, if any
+    rawline{end+1} = strjoin(splitline(1:4),',');
 end
 fclose(fid);
 
-ii = find(strcmp('keyword', label));
-
 Fs = 48000;
-clipLen = 2 * Fs;
-
 windowLen = Fs * 0.032;
 WINDOW = hann(windowLen);
 NFFT = 2^nextpow2(windowLen);
 NOVERLAP = windowLen / 2;
 frameRate = Fs / NOVERLAP;
 
+fid = fopen('temp.csv', 'w');
+
+% Write out further annotated keywords
+ii = find(strcmp('keyword', label));
 midPt = {};
 for j = 1:length(ii)
     idx = ii(j);
@@ -43,11 +47,8 @@ for j = 1:length(ii)
     
     cs = clipStart(idx);
     ce = clipEnd(idx);
-    cd = ce - cs;
     
-    pad = floor((clipLen - cd) / 2);
-    
-    wav = audioread(fn, [cs-pad+1 cs-pad+clipLen]);
+    wav = audioread(fn, [cs+1 ce]);
     
     S = spectrogram(wav(:,2),WINDOW,NOVERLAP,NFFT,Fs);
 
@@ -63,8 +64,19 @@ for j = 1:length(ii)
     wavPts = round(pts * Fs);
     
     soundsc(wav(1:wavPts,:), Fs)
+    pause(wavPts/Fs)
     soundsc(wav(wavPts+1:end,:), Fs)
    
     midPt{end+1} = wavPts;
     
+    fprintf(fid, '%s\n', [rawline{idx} ',' num2str(wavPts)]);
 end
+
+% Write out everything else as it was
+ii = setdiff(1:length(label), ii);
+for j = 1:length(ii)
+    fprintf(fid, '%s\n', rawline{ii(j)});
+end
+fclose(fid);
+
+movefile('temp.csv', csvFile)

@@ -1,4 +1,4 @@
-function getAnnotatedData2(dirName, csvFile, dataFile)
+function getAnnotatedData(dirName, csvFile, dataFile)
 
 if ~exist('dataFile','var')
     dataFile = 'clipData2.mat';
@@ -72,7 +72,7 @@ for j = 1:length(fileNames)
         ce = clipEnd(idx);
         cd = ce - cs;
         
-        pad = floor((clipLen - cd) / 2);
+        pad = min(cs, clipLen - cd);
         
         % keyword
         kw = audioread(fn, [cs-pad+1 cs-pad+clipLen]);
@@ -110,7 +110,7 @@ for j = 1:length(fileNames)
         
         % partial implant early
         x = kw;
-        impInd = pad:kwMid;
+        impInd = pad:pad+kwMid;
         window = getWindow(length(impInd), round(0.05*Fs), size(kw,2)); % smooth edge implants
         speechStart = 1 + floor(rand(1)*(length(speech)-length(impInd)));
         out = x(impInd,:);
@@ -126,7 +126,7 @@ for j = 1:length(fileNames)
         
         % partial implant late
         x = kw;
-        impInd = kwMid+1:pad+cd;
+        impInd = pad+kwMid+1:pad+cd;
         window = getWindow(length(impInd), round(0.05*Fs), size(kw,2)); % smooth edge implants
         speechStart = 1 + floor(rand(1)*(length(speech)-length(impInd)));
         out = x(impInd,:);
