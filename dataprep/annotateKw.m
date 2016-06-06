@@ -64,7 +64,7 @@ for j = 1:length(ii)
     wavPts = round(pts * Fs);
     
     soundsc(wav(1:wavPts,:), Fs)
-    pause(wavPts/Fs)
+    pause(wavPts/Fs + 0.05)
     soundsc(wav(wavPts+1:end,:), Fs)
    
     midPt{end+1} = wavPts;
