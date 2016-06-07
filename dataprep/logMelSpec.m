@@ -1,4 +1,5 @@
 function logM = logMelSpec(wav, Fs, nMel, windowLen_s, frameShift_s)
+% logM = logMelSpec(wav, Fs, nMel, windowLen_s, frameShift_s)
 
 if ~exist('nMel','var')
     nMel = 40;
