@@ -4,6 +4,10 @@ import sys
 from scipy.io import savemat
 import pdb
 
+""" Usage: 
+python createTrainingFeatures.py /path/to/audio/clips
+"""
+
 def load_features(dirName, matchers):
 
     for c, m in enumerate(matchers):
@@ -25,7 +29,9 @@ features = load_features(dirName, posMatchers)
 savemat('spec_pos.mat',{'features': features})
 
 # Negative examples
-negMatchers = ['kwRevClip','speechClip','backClip','earlyImplantClip','lateImplantClip','partialEarlyClip','partialLateClip']
+negMatchers = ['kwRevClip','speechClip','backClip',
+               'earlyImplantClip','lateImplantClip','partialEarlyClip','partialLateClip',
+               'shiftEarlyClip','shiftLateClip']
 features = load_features(dirName, negMatchers)
 savemat('spec_neg.mat',{'features': features})
 
