@@ -1,4 +1,5 @@
 function getAnnotatedData(dirName, csvFile, dataFile)
+% getAnnotatedData(dirName, csvFile, dataFile)
 
 if ~exist('dataFile','var')
     dataFile = 'clipData.mat';
@@ -33,16 +34,18 @@ fclose(fid);
 
 fileNames = unique(fileName);
 
-kwClip = {};
-kwRevClip = {};
-backClip = {};
-speechClip = {};
-earlyImplantClip = {};
-lateImplantClip = {};
-partialEarlyClip = {};
-partialLateClip = {};
-shiftEarlyClip = {};
-shiftLateClip = {};
+for j = 1:length(fileNames)
+    kwClip{j} = {};
+    kwRevClip{j} = {};
+    backClip{j} = {};
+    speechClip{j} = {};
+    earlyImplantClip{j} = {};
+    lateImplantClip{j} = {};
+    partialEarlyClip{j} = {};
+    partialLateClip{j} = {};
+    shiftEarlyClip{j} = {};
+    shiftLateClip{j} = {};
+end
 
 Fs = 48000;
 clipLen = 2 * Fs;
@@ -86,7 +89,7 @@ for j = 1:length(fileNames)
         
         % keyword
         kw = audioread(fn, [cs-pad+1 cs-pad+clipLen]);
-        kwClip{end+1} = kw;
+        kwClip{j}{end+1} = kw;
         
         % stretched keyword
         
@@ -103,7 +106,7 @@ for j = 1:length(fileNames)
         out = x(pad:pad+cd,:);
         in = flipud(x(pad:pad+cd,:));
         x(pad:pad+cd,:) = (1-window).*out + window.*in;
-        kwRevClip{end+1} = x;
+        kwRevClip{j}{end+1} = x;
         
         % speech implants
         starts = 1 + floor(rand(1, alignedSpeechPerKw)*(length(speech)-clipLen));
@@ -112,12 +115,12 @@ for j = 1:length(fileNames)
             out = x(pad:pad+cd,:);
             in = speech(starts(n):starts(n)+cd,:);
             x(pad:pad+cd,:) = (1-window).*out + window.*in;
-            speechClip{end+1} = x;
+            speechClip{j}{end+1} = x;
         end
         starts = 1 + floor(rand(1, randomSpeechPerKw)*(length(speech)-clipLen));
         for n = 1:randomSpeechPerKw
             x = speech(starts(n):starts(n)+clipLen,:);
-            speechClip{end+1} = x;
+            speechClip{j}{end+1} = x;
         end
         
         % partials --- 
@@ -131,13 +134,13 @@ for j = 1:length(fileNames)
         out = x(impInd,:);
         in = speech(speechStart:speechStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
-        earlyImplantClip{end+1} = x;
+        earlyImplantClip{j}{end+1} = x;
         
         % partial late - missing early part
         backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
         in = background(backStart:backStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
-        partialLateClip{end+1} = x;
+        partialLateClip{j}{end+1} = x;
         
         % partial implant late
         x = kw;
@@ -147,13 +150,13 @@ for j = 1:length(fileNames)
         out = x(impInd,:);
         in = speech(speechStart:speechStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
-        lateImplantClip{end+1} = x;
+        lateImplantClip{j}{end+1} = x;
         
         % partial early -  missing late part
         backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
         in = background(backStart:backStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
-        partialEarlyClip{end+1} = x;
+        partialEarlyClip{j}{end+1} = x;
             
         % Partials shifted to boundaries --
         % The end
@@ -165,7 +168,7 @@ for j = 1:length(fileNames)
             backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
             in = background(backStart:backStart+(length(impInd)-1),:);
             kwSh(impInd,:) = (1-window).*out + window.*in;
-            shiftLateClip{end+1} = kwSh;
+            shiftLateClip{j}{end+1} = kwSh;
         end
         % The beginning
         if cs+kwMid+clipLen <= auInfo.TotalSamples
@@ -176,7 +179,7 @@ for j = 1:length(fileNames)
             backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
             in = background(backStart:backStart+(length(impInd)-1),:);
             kwSh(impInd,:) = (1-window).*out + window.*in;
-            shiftEarlyClip{end+1} = kwSh;
+            shiftEarlyClip{j}{end+1} = kwSh;
         end
             
     end
@@ -185,18 +188,18 @@ for j = 1:length(fileNames)
     interval = floor((length(background)-clipLen)/backPerFile);
     starts = 1:interval:interval*backPerFile;
     for n = 1:backPerFile
-        backClip{end+1} = background(starts(n):(starts(n)-1)+clipLen,:);
+        backClip{j}{end+1} = background(starts(n):(starts(n)-1)+clipLen,:);
     end
     
 end
 
 disp('Saving Data...')
+info.fileNames = fileNames;
 info.fileName = fileName;
 info.clipStart = clipStart;
 info.clipEnd = clipEnd;
 info.label = label;
 save(dataFile,'*Clip','info')
-%save(dataFile,'kwClip','kwRevClip','speechClip','backClip','earlyImplantClip','lateImplantClip','partialEarlyClip','partialLateClip','info');
 
 function window = getWindow(winDur, rampDur, numChan)
 % window function

@@ -1,6 +1,7 @@
 function createQuickyTrainingWavs(dataFile, outDir)
+% createQuickyTrainingWavs(dataFile, outDir)
 
-%load(dataFile) % -> kwClip kwRevClip speechClip backClip earlyImplantClip lateImplantClip
+load(dataFile, 'info')
 [~,~] = mkdir(outDir);
 
 Fs = 16000;
@@ -10,20 +11,16 @@ vars = {'kwClip','kwRevClip','speechClip','backClip',...
         'partialEarlyClip','partialLateClip',...
         'shiftEarlyClip','shiftLateClip'};
     
-for j = 1:length(vars)
-    data = load(dataFile, vars{j});
-    N = length(data.(vars{j}));
-    for n = 1:N
-        wav = resample(data.(vars{j}){n},16,48);
-        audiowrite(fullfile(outDir,[vars{j} '_' num2str(n) '.wav']), wav, Fs)
+for v = 1:length(vars)
+    var = vars{v};
+    disp(['Creating ' var])
+    data = load(dataFile, var);
+    nFiles = length(data.(var));
+    for n = 1:nFiles
+        [~,fileTag] = fileparts(info.fileNames{n});
+        for s = 1:length(data.(var){n})
+            wav = resample(data.(var){n}{s},16,48);
+            audiowrite(fullfile(outDir,[var '_' fileTag '_' num2str(s) '.wav']), wav, Fs)
+        end
     end
 end
-
-%{
-- Center each keyword in a 2-second window - clipped out of the ORIGINAL
-file
-- Also take the keyword portion and flip it for a negative
-- Also take a random speech portion of the same duration as the keyword,
-and replace
-- 50 keywords, 50 reversed keywords, 200 non-keywords, 20 silences?
-%}
