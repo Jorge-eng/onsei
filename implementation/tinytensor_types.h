@@ -13,7 +13,7 @@ typedef int8_t Weight_t;
 typedef Weight_t Data_t; //data and weight are the same for now
     
 //callback defs
-typedef Weight_t (*SquashFunc_t)(int32_t x);
+typedef void (*SquashFunc_t)(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
 
 #define TENSOR_DIM (4)
 
@@ -26,6 +26,7 @@ typedef struct{
     Weight_t * x;
     uint32_t dims[TENSOR_DIM];
     TensorDelete_t delete_me;
+    int8_t scale;
 } Tensor_t;
     
 typedef struct{

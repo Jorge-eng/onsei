@@ -16,7 +16,7 @@
 
 #define SAMPLE_RATE  (16000)
 #define FRAMES_PER_BUFFER (256)
-#define NUM_SECONDS     (20)
+#define NUM_SECONDS     (60)
 #define NUM_CHANNELS    (1)
 /* #define DITHER_FLAG     (paDitherOff) */
 #define DITHER_FLAG     (0) /**/
@@ -93,7 +93,7 @@ typedef struct {
 static void feats_callback(void * context, int8_t * feats) {
     FeatsCallbackContext * pcontext = (FeatsCallbackContext *) context;
     const static uint32_t dims[4] = {1,1,NUM_MEL_BINS,NUM_TIME_ELEMENTS};
-
+    int32_t temp32;
     //copy out new feats
    // printf("%d\n",pcontext->bufidx);
     memcpy(&(pcontext->buf[pcontext->bufidx][0]),feats,NUM_MEL_BINS*sizeof(int8_t));
@@ -114,12 +114,29 @@ static void feats_callback(void * context, int8_t * feats) {
     int8_t (*inmat)[NUM_TIME_ELEMENTS]  = (int8_t (*)[NUM_TIME_ELEMENTS])tensor_in->x;
     
   
-    
+    int8_t max = -128;
+    int8_t min = 127;
     for (uint32_t j = 0; j < NUM_MEL_BINS; j++) {
         uint32_t bufidx = pcontext->bufidx;
 
         for (uint32_t t = 0; t < NUM_TIME_ELEMENTS; t++) {
-            inmat[j][t] = pcontext->buf[bufidx][j];
+            temp32 = pcontext->buf[bufidx][j];
+            
+            if (temp32 > max) {
+                max = temp32;
+            }
+            
+            if (temp32 < min) {
+                min = temp32;
+            }
+            
+            temp32 += 70;
+            
+            if (temp32 > INT8_MAX) {
+                temp32 = INT8_MAX;
+            }
+            
+            inmat[j][t] = temp32;
             
             if (++bufidx >= NUM_TIME_ELEMENTS) {
                 bufidx = 0;
@@ -147,7 +164,7 @@ static void feats_callback(void * context, int8_t * feats) {
      */
 
     Tensor_t * tensor_out = eval_net(&(pcontext->net),tensor_in);
-    printf("%3.1f,%3.1f\n",tensor_out->x[0] / 128.0,tensor_out->x[1] / 128.0);
+    printf("%4.2f,%4.2f, %d, %d\n",tensor_out->x[0] / 128.0,tensor_out->x[1] / 128.0,max,min);
     tensor_out->delete_me(tensor_out);
 
 #endif

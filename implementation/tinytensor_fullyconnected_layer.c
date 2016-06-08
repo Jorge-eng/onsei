@@ -30,7 +30,7 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     uint32_t imax = 0;
     int32_t max = 0x80000000; //assumes two complement
     assert(layer->activation);
-
+    int8_t out_scale = 0;
     
     
     for (iweightrow = 0; iweightrow < n_out; iweightrow++) {
@@ -54,7 +54,8 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         }
         
         //squash
-        output[iweightrow] = layer->activation(accumulator);
+        //Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale
+        layer->activation(&output[iweightrow],&out_scale,accumulator,in->scale);
         
         weights += n_in;
     }
@@ -65,6 +66,8 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
             output[imax] = MAX_WEIGHT;
         }
     }
+    
+    out->scale = out_scale;//just take the last, they're all the same
     
     
 

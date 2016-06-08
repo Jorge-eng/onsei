@@ -23,7 +23,6 @@ tinytensor_math.c
 tinytensor_net.c
 tinytensor_tensor.c
 tinytensor_conv_layer.c
-tinytensor_maxpool_layer.c
 tinytensor_fullyconnected_layer.c
 tinytensor_lstm_layer.c
 tinytensor_features.c
@@ -41,7 +40,6 @@ unit-test/main.cpp
 unit-test/testconv.cpp
 unit-test/testfull.cpp
 unit-test/testlstm.cpp
-unit-test/testmaxpool.cpp
 unit-test/testnet.cpp
 unit-test/testfeatures.cpp
 )

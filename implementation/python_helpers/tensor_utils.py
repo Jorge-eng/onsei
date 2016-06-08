@@ -4,7 +4,7 @@ import copy
 from keras.models import model_from_json
 from collections import defaultdict
 
-k_activation_func_map = {'relu' : 'tinytensor_relu', 'softmax' : 'tinytensor_sigmoid', 'linear' :'tinytensor_linear'}
+k_activation_func_map = {'relu' : 'tinytensor_relu', 'sigmoid' : 'tinytensor_sigmoid', 'linear' :'tinytensor_linear'}
 
 def write_header(f):
     f.write('#include "tinytensor_conv_layer.h"\n')    
@@ -88,7 +88,9 @@ class ConvLayer(Layer):
         weights_name = self.name + '_conv'
         bias_name = self.name + '_bias'
         wn,wd = write_conv_weights(weights_name,w0,f)
-        bn,bd  = write_fixed_point_tensor(bias_name,self.weights[1].reshape(self.weights[1].shape[0],1,1,1),f)
+
+        w1 = self.weights[1].reshape(self.weights[1].shape[0],1,1,1)
+        bn,bd  = write_fixed_point_tensor(bias_name,w1,f)
 
         print 'conv weights: %d,%d,%d,%d' % w0.shape + ' border_mode=%s' % border_mode
 
@@ -230,17 +232,17 @@ def write_sequential_network(layerobjs,model,f):
     input_shape = (1,input_shape[0],input_shape[1],input_shape[2])
     for obj in layerobjs:
         print obj.name,obj.dropout
-        print input_shape
+        print input_shape,input_shape[0]*input_shape[1]*input_shape[2]*input_shape[3]
         input_shape = obj.write(input_shape,f)
 
-        print input_shape
+        print input_shape,input_shape[0]*input_shape[1]*input_shape[2]*input_shape[3]
         print '---------'
 
     f.write('\n\n\n')
     f.write('static ConstLayer_t _layers[%d];\n' % len(layerobjs))
     f.write('static ConstSequentialNetwork_t net = {&_layers[0],%d};\n' % len(layerobjs))
 
-    f.write('ConstSequentialNetwork_t initialize_network(void) {\n\n')
+    f.write('static ConstSequentialNetwork_t initialize_network(void) {\n\n')
 
     for idx,obj in enumerate(layerobjs):
         f.write('  _layers[%d] = ' % idx)
@@ -250,13 +252,23 @@ def write_sequential_network(layerobjs,model,f):
     f.write('  return net;\n')
     f.write('\n}')
 
-def save_model_to_c(model_name):
-
-    with open('%s.json' %(model_name),'r') as f:
+def save_model_to_c_from_file(model_name):
+    fname = '%s.json' % model_name
+    with open(fname,'r') as f:
         config_json = f.read()
+        
+    print 'read model from %s' % fname
 
+    weights_filename = '%s.h5' % model_name
+    print 'compiling...'
     model = model_from_json(config_json)
-    model.load_weights('%s.h5' %(model_name))
+    print 'loading weights from %s' % weights_filename
+    model.load_weights(weights_filename)
+
+    save_model_to_c(model,model_name)
+
+def save_model_to_c(model,name):
+
     config = model.get_config()
 
     organized_layers = []
@@ -276,11 +288,13 @@ def save_model_to_c(model_name):
 
     layerobjs = create_layer_objects(organized_layers)
 
-    f = open('test.c','w')
+    outname = '%s.c' % name
+    print 'writing to %s' % outname
+    f = open(outname,'w')
 
     write_sequential_network(layerobjs,model,f)
 
     f.close()
 
 if __name__ == '__main__':
-    save_model_to_c('cnn_spec_try')
+    save_model_to_c_from_file('model_may31_small_sigm')

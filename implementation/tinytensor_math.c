@@ -1,6 +1,8 @@
 #include "tinytensor_math.h"
 #include <assert.h>
 
+#define MAX_MAX_POOL_SIZE (8)
+
 const static int8_t tanh_table[356] = {0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,36,37,38,39,40,41,42,43,44,44,45,46,47,48,49,50,51,51,52,53,54,55,55,56,57,58,59,59,60,61,62,63,63,64,65,65,66,67,68,68,69,70,70,71,72,73,73,74,75,75,76,76,77,78,78,79,80,80,81,81,82,83,83,84,84,85,85,86,86,87,88,88,89,89,90,90,91,91,92,92,93,93,93,94,94,95,95,96,96,97,97,97,98,98,99,99,99,100,100,101,101,101,102,102,102,103,103,103,104,104,104,105,105,105,106,106,106,107,107,107,108,108,108,108,109,109,109,109,110,110,110,110,111,111,111,111,112,112,112,112,113,113,113,113,113,114,114,114,114,114,115,115,115,115,115,116,116,116,116,116,116,117,117,117,117,117,117,118,118,118,118,118,118,118,119,119,119,119,119,119,119,119,120,120,120,120,120,120,120,120,120,121,121,121,121,121,121,121,121,121,121,122,122,122,122,122,122,122,122,122,122,122,122,123,123,123,123,123,123,123,123,123,123,123,123,123,123,123,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,124,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,125,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,126,127};
 
 
@@ -20,30 +22,38 @@ int32_t tinymath_abs_int32(int32_t x) {
     return x >= 0 ? x : -x;
 }
 
-Weight_t tinytensor_tanh(int32_t x) {
+void tinytensor_tanh(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale) {
     const static uint32_t k_max_len = sizeof(tanh_table) / sizeof(tanh_table[0]);
-
     const uint8_t sign = x < 0;
-    Weight_t y = 0x7F;
+    Weight_t yy = 0x7F;
+    
+    *out_scale = 0;
     
     x = tinymath_abs_int32(x);
     
+    if (in_scale > 0) {
+        x >>= in_scale;
+    }
+    
     if (x < k_max_len) {
-        y = tanh_table[x];
+        yy = tanh_table[x];
     }
 
 
     if (sign) {
-        return -y;
+        *y = -yy;
+        return;
     }
 
-    return y;
+    *y = yy;
 }
 
 //(tanh + 1) / 2 == sigmoid
 //crud, but should work okay
-Weight_t tinytensor_sigmoid(int32_t x) {
-    int32_t tanh = tinytensor_tanh(x);
+void tinytensor_sigmoid(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale) {
+    Weight_t tanh;
+    
+    tinytensor_tanh(&tanh,out_scale,x,0);
     
     //add one
     tanh += (1 << QFIXEDPOINT);
@@ -55,10 +65,11 @@ Weight_t tinytensor_sigmoid(int32_t x) {
         tanh = MAX_WEIGHT;
     }
     
-    return (Weight_t) tanh;
+    *y = (Weight_t)tanh;
+    *out_scale = 0;
 }
 
-Weight_t tinytensor_linear(int32_t x) {
+void tinytensor_linear(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale) {
     
     if (x > MAX_WEIGHT) {
         x = MAX_WEIGHT;
@@ -68,102 +79,204 @@ Weight_t tinytensor_linear(int32_t x) {
         x = -MAX_WEIGHT;
     }
     
-    return x;
+    *y = x;
+    *out_scale = in_scale;
 }
 
 
-Weight_t tinytensor_relu(int32_t x) {
+void tinytensor_relu(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale) {
     x =  x < 0 ? 0 : x;
     
     if (x > MAX_WEIGHT) {
         x = MAX_WEIGHT;
     }
     
-    if (x < -MAX_WEIGHT) {
-        x = -MAX_WEIGHT;
-    }
-    
-    return x;
+    *y = x;
+    *out_scale = in_scale;
+
 }
 
 
 
 
+int8_t tiny_tensor_get_scaling(Weight_t maxWeight) {
+    //find max scaling
+    
+    int8_t i;
+    for (i = 1; i < 8; i++) {
+        if (( ((int16_t)maxWeight) << i) > MAX_WEIGHT) {
+            break;
+        }
+    }
+    
+    return (i-1);
+    
+}
+
+int8_t tiny_tensor_compare_scaled_numbers(const Weight_t x1, const int8_t scale1, const Weight_t x2, const int8_t scale2) {
+    int32_t xx1 = x1 << 16;
+    int32_t xx2 = x2 << 16;
+    
+    if (scale1 > 0) {
+        xx1 >>= scale1;
+    }
+    else {
+        xx1 <<= -scale1;
+    }
+    
+    if (scale2 > 0) {
+        xx2 >>= scale2;
+    }
+    else {
+        xx2 <<= -scale2;
+    }
+  
+    
+    if (xx1 > xx2) {
+        return 1;
+    }
+    
+    if (xx2 > xx1) {
+        return -1;
+    }
+    
+    return 0;
+    
+}
+
 //takes two 3 dimensional tensors (a bunch of images, and a bunch of convolutional filters),
 //applies them accross each of the innermost tensor dimension (i.e. A1 x B1 x C1, A2 x B2 x C2, we're talking about A1 and A2, and A1 == A2)
-void tinytensor_convolve3d_direct(Weight_t * out, const Weight_t * weights,const Weight_t * image, const Weight_t bias,const uint32_t num_weights_rows,const uint32_t num_weights_cols, const uint32_t num_image_rows, const uint32_t num_image_cols, const uint32_t num_images,const Weight_t incoming_dropout,SquashFunc_t activation) {
+void tinytensor_convolve3d_direct_maxpooling(
+                                             Weight_t * pmax_weight,
+                                             int8_t * output_scaling,
+                                             Weight_t * out,
+                                             const uint32_t * pool_dims,
+                                             const Weight_t * weights,
+                                             const Weight_t * image,
+                                             const Weight_t bias,
+                                             const uint32_t num_weights_rows,
+                                             const uint32_t num_weights_cols,
+                                             const uint32_t num_image_rows,
+                                             const uint32_t num_image_cols,
+                                             const uint32_t num_images,
+                                             const Weight_t incoming_dropout,
+                                             SquashFunc_t activation,
+                                             int8_t incoming_scaling) {
     
-    
+    Weight_t max_weight = -MAX_WEIGHT;
+    int8_t max_scale = 8;
+    Weight_t temp_weight;
+    int8_t temp_scale;
     const uint32_t num_rows_out = num_image_rows - num_weights_rows + 1;
     const uint32_t num_cols_out = num_image_cols - num_weights_cols + 1;
     const uint32_t weight_size = num_weights_rows * num_weights_cols;
     const uint32_t image_size = num_image_rows * num_image_cols;
     
+    const uint32_t num_pool_rows = num_rows_out / pool_dims[0];
+    const uint32_t num_pool_cols = num_cols_out / pool_dims[1];
+    
+
+    
     uint32_t ioutrow,ioutcol;
     uint32_t iimage;
     uint32_t j,i;
+    uint32_t ipool_row,ipool_col;
+
     
+    int32_t max_pool[MAX_MAX_POOL_SIZE][MAX_MAX_POOL_SIZE];
+    int32_t temp32;
     const int16_t dropout_weight = (1 << QFIXEDPOINT) - incoming_dropout;
     
     Weight_t * out_row = out;
     
     assert(activation);
     
-    for (ioutrow = 0; ioutrow < num_rows_out; ioutrow++) {
-        for (ioutcol = 0; ioutcol < num_cols_out; ioutcol++) {
+    for (ipool_row = 0; ipool_row < num_pool_rows; ipool_row++) {
+        for (ipool_col = 0; ipool_col < num_pool_cols; ipool_col++)
+        {
+            const uint32_t outrow_start = ipool_row * pool_dims[0];
+            const uint32_t outcol_start = ipool_col * pool_dims[1];
+            const uint32_t outrow_end = outrow_start + pool_dims[0];
+            const uint32_t outcol_end = outcol_start + pool_dims[1];
             
-            int32_t accumulator = 0;
-            const Weight_t * weight_start = weights;
-            const Weight_t * image_start = image +  (ioutrow * num_image_cols) + ioutcol;
             
-            for (iimage = 0; iimage < num_images; iimage++) {
-                
-                //element by element multiply of one matrix against another (NOT THIS IS NOT A MATRIX MULTIPLY)
-                //summing as you go.
-                
-                const Weight_t * image_row = image_start;
-                const Weight_t * weight_row = weight_start;
-
-                for (j = 0; j < num_weights_rows; j++) {
+            for (ioutrow = outrow_start; ioutrow < outrow_end; ioutrow++)
+            {
+                for (ioutcol = outcol_start; ioutcol < outcol_end; ioutcol++)
+                {
                     
-                    // ***** TODO optimize this right here *****
-                    for (i = 0; i < num_weights_cols; i++) {
-                      //  if (i != 0) printf(",  ");
-                        //printf("%d * %d",image_row[i],weight_row[i]);
-                        accumulator += image_row[i] * weight_row[i];
+                    int32_t accumulator = 0;
+                    const Weight_t * weight_start = weights;
+                    const Weight_t * image_start = image +  (ioutrow * num_image_cols) + ioutcol;
+                    
+                    for (iimage = 0; iimage < num_images; iimage++) {
+                        
+                        //element by element multiply of one matrix against another
+                        //summing as you go.
+                        
+                        const Weight_t * image_row = image_start;
+                        const Weight_t * weight_row = weight_start;
+                        
+                        for (j = 0; j < num_weights_rows; j++) {
+                            
+                            
+                            
+                            // ***** TODO optimize this right here *****
+                            for (i = 0; i < num_weights_cols; i++) {
+                                //if (i != 0) printf(",  ");
+                                //printf("img=%d * w=%d",image_row[i],weight_row[i]);
+                                accumulator += image_row[i] * weight_row[i];
+                            }
+                            //   printf("\n");
+                            weight_row += num_weights_cols;
+                            image_row += num_image_cols;
+                        }
+                        
+                        //traverse to next slice for weights and image
+                        weight_start += weight_size;
+                        image_start += image_size;
                     }
-                    //printf("\n");
-                    weight_row += num_weights_cols;
-                    image_row += num_image_cols;
+                    
+                    
+                    max_pool[ioutrow % pool_dims[0]][ioutcol % pool_dims[1]] = accumulator;
                 }
                 
-                //traverse to next slice for weights and image
-                weight_start += weight_size;
-                image_start += image_size;
+            }
+            
+            
+            //find max in pool
+            temp32 = INT32_MIN;
+            for (j = 0; j < pool_dims[0]; j++) {
+                for (i = 0; i < pool_dims[1]; i++) {
+                    if (temp32 < max_pool[j][i]) {
+                        temp32 = max_pool[j][i];
+                    }
+                }
+            }
+            
+            temp32 >>= QFIXEDPOINT;
+            temp32 *= dropout_weight;
+            temp32 >>= QFIXEDPOINT;
+            temp32 += bias;
+            
+            activation(&temp_weight,&temp_scale,temp32,incoming_scaling);
+            
+            if (tiny_tensor_compare_scaled_numbers(temp_weight,temp_scale,max_weight,max_scale) > 0) {
+                max_weight = temp_weight;
+                max_scale = temp_scale;
             }
             
 
-            
-            
-            // printf("accumulation=%d\n",accumulator);
-            accumulator >>= QFIXEDPOINT;
-            //printf("\n");
-
-            
-            //apply dropout before bias addition
-            accumulator *= dropout_weight;
-            accumulator >>= QFIXEDPOINT;
-            
-            //add bias
-            accumulator += bias;
-            
-            //squash and saturate
-            out_row[ioutcol] = activation(accumulator);
-            
+            out_row[ipool_col] = temp_weight;
         }
         
-        out_row += num_cols_out;
+        out_row += num_pool_cols;
     }
+    
+
+    *pmax_weight = max_weight;
+    *output_scaling = max_scale;
 }
+
 
 
