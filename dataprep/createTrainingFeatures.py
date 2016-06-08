@@ -19,19 +19,29 @@ def load_features(dirName, matchers):
 
     return features
 
+def get_conditions():
 
-# Input audio directory
-dirName = sys.argv[1]
+    posMatchers = ['kwClip']
+     
+    negMatchers = ['kwRevClip','speechClip','backClip',
+                   'earlyImplantClip','lateImplantClip','partialEarlyClip','partialLateClip',
+                   'shiftEarlyClip','shiftLateClip']
 
-# Positive examples
-posMatchers = ['kwClip']
-features = load_features(dirName, posMatchers)
-savemat('spec_pos.mat',{'features': features})
+    return posMatchers, negMatchers
+ 
 
-# Negative examples
-negMatchers = ['kwRevClip','speechClip','backClip',
-               'earlyImplantClip','lateImplantClip','partialEarlyClip','partialLateClip',
-               'shiftEarlyClip','shiftLateClip']
-features = load_features(dirName, negMatchers)
-savemat('spec_neg.mat',{'features': features})
+if __name__ == '__main__':
+
+    # Input audio directory
+    dirName = sys.argv[1]
+
+    posMatchers, negMatchers = get_conditions()
+
+    # Positive examples
+    features = load_features(dirName, posMatchers)
+    savemat('spec_pos.mat',{'features': features})
+
+    # Negative examples
+    features = load_features(dirName, negMatchers)
+    savemat('spec_neg.mat',{'features': features})
 
