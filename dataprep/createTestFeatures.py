@@ -25,7 +25,6 @@ dirName = sys.argv[1]
 outName = sys.argv[2]
 matchers = sys.argv[3:]
 
-pdb.set_trace()
 features = load_features(dirName, matchers)
 savemat(outName,{'features': features})
 
