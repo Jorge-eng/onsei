@@ -201,11 +201,18 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
     delta_scale = tiny_tensor_get_scaling(max_weight);
 
     //scale output tensor
+    //printf("delta_scale=%d\n",delta_scale);
     if (delta_scale > 0) {
         for (i = 0; i < out_len; i++) {
+            //if (i!=0) printf(",");
+            //printf("%d ",out->x[i]);
             out->x[i] <<= delta_scale;
+            //printf("%d",out->x[i]);
+
         }
+        //printf("\n");
     }
+    
     
     out->scale = max_scale_out + delta_scale;
     

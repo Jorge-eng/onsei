@@ -99,12 +99,13 @@ void tinytensor_relu(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale
 
 
 
-int8_t tiny_tensor_get_scaling(Weight_t maxWeight) {
+int8_t tiny_tensor_get_scaling(Weight_t max_weight) {
     //find max scaling
+    max_weight = tinymath_abs_int8(max_weight);
     
     int8_t i;
     for (i = 1; i < 8; i++) {
-        if (( ((int16_t)maxWeight) << i) > MAX_WEIGHT) {
+        if (( ((int16_t)max_weight) << i) > MAX_WEIGHT) {
             break;
         }
     }
@@ -116,6 +117,9 @@ int8_t tiny_tensor_get_scaling(Weight_t maxWeight) {
 int8_t tiny_tensor_compare_scaled_numbers(const Weight_t x1, const int8_t scale1, const Weight_t x2, const int8_t scale2) {
     int32_t xx1 = x1 << 16;
     int32_t xx2 = x2 << 16;
+    
+    xx1 = tinymath_abs_int32(xx1);
+    xx2 = tinymath_abs_int32(xx2);
     
     if (scale1 > 0) {
         xx1 >>= scale1;
@@ -164,9 +168,10 @@ void tinytensor_convolve3d_direct_maxpooling(
                                              int8_t incoming_scaling) {
     
     Weight_t max_weight = -MAX_WEIGHT;
-    int8_t max_scale = 8;
+    int8_t max_scale = 0;
     Weight_t temp_weight;
     int8_t temp_scale;
+    
     const uint32_t num_rows_out = num_image_rows - num_weights_rows + 1;
     const uint32_t num_cols_out = num_image_cols - num_weights_cols + 1;
     const uint32_t weight_size = num_weights_rows * num_weights_cols;
@@ -225,9 +230,10 @@ void tinytensor_convolve3d_direct_maxpooling(
                             for (i = 0; i < num_weights_cols; i++) {
                                 //if (i != 0) printf(",  ");
                                 //printf("img=%d * w=%d",image_row[i],weight_row[i]);
+                                //fflush(0);
                                 accumulator += image_row[i] * weight_row[i];
                             }
-                            //   printf("\n");
+                            //printf("\n");
                             weight_row += num_weights_cols;
                             image_row += num_image_cols;
                         }
@@ -242,7 +248,7 @@ void tinytensor_convolve3d_direct_maxpooling(
                 }
                 
             }
-            
+
             
             //find max in pool
             temp32 = INT32_MIN;
@@ -267,9 +273,11 @@ void tinytensor_convolve3d_direct_maxpooling(
             }
             
 
+            //printf("eq=%d sc=%d\n",temp_weight,temp_scale);fflush(0);
+            //printf("addr=%d\n\n",&out_row[ipool_col] - out);
             out_row[ipool_col] = temp_weight;
         }
-        
+        //printf("-----\n");
         out_row += num_pool_cols;
     }
     
