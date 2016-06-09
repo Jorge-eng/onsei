@@ -30,6 +30,7 @@ Tensor_t * tinytensor_create_new_tensor(const uint32_t dims[TENSOR_DIM]) {
     MEMCPY(tensor->dims, dims, sizeof(tensor->dims));
     tensor->x = MALLLOC(num_elements * sizeof(Weight_t));
     tensor->delete_me = delete_tensor;
+    
     return tensor;
 }
 
@@ -42,6 +43,7 @@ Tensor_t * tinytensor_clone_new_tensor(const ConstTensor_t * in) {
     
     Tensor_t * tensor = tinytensor_create_new_tensor(in->dims);
     memcpy(tensor->x,in->x,sizeof(Weight_t) * num_elements);
+    tensor->scale = in->scale;
     return tensor;
 }
 

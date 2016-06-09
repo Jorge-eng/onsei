@@ -136,7 +136,7 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
     Weight_t max_weight_this_filterbank;
     int8_t scale_out_this_filterbank;
     
-    Weight_t max_weight = -MAX_WEIGHT;
+    Weight_t max_weight = 0;
     int8_t max_scale_out = 0;
     int8_t delta_scale;
     
@@ -175,16 +175,18 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
                                                 out_start,
                                                 layer->max_pool_dims,
                                                 weight_start,
+                                                layer->weights->scale,
                                                 image_start,
+                                                in->scale,
                                                 *bias,
+                                                layer->biases->scale,
                                                 num_weights_rows,
                                                 num_weights_cols,
                                                 num_image_rows ,
                                                 num_image_cols,
                                                 num_images,
                                                 layer->incoming_dropout,
-                                                layer->activation,
-                                                in->scale);
+                                                layer->activation);
         
         
         if (tiny_tensor_compare_scaled_numbers(max_weight_this_filterbank,scale_out_this_filterbank,max_weight,max_scale_out) > 0) {
@@ -214,7 +216,18 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
     }
     
     
+    int32_t max = 0;
+    for (i = 0; i < out_len; i++) {
+        if (abs(out->x[i]) > abs(max)) {
+            max = out->x[i];
+        }
+    }
+    
+    
     out->scale = max_scale_out + delta_scale;
+    
+    printf("max=%d,s=%d   delta=%d\n",max,out->scale,delta_scale);
+
     
 }
 

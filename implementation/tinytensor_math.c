@@ -22,6 +22,22 @@ int32_t tinymath_abs_int32(int32_t x) {
     return x >= 0 ? x : -x;
 }
 
+void tinytensor_descale(Weight_t * y, int8_t * out_scale, int32_t x, int8_t in_scale) {
+    //make it fit in 8 bits
+    uint8_t i;
+    int32_t ux = tinymath_abs_int32(x);
+    
+    for (i = 0; i < 24; i++) {
+        if (  (ux >> i) <= 127 ) {
+            break;
+        }
+    }
+    
+    *out_scale = in_scale - i;
+    *y = x >> i;
+    
+}
+
 void tinytensor_tanh(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale) {
     const static uint32_t k_max_len = sizeof(tanh_table) / sizeof(tanh_table[0]);
     const uint8_t sign = x < 0;
@@ -52,20 +68,22 @@ void tinytensor_tanh(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale
 //crud, but should work okay
 void tinytensor_sigmoid(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale) {
     Weight_t tanh;
+    int16_t temp16;
     
-    tinytensor_tanh(&tanh,out_scale,x,0);
+    tinytensor_tanh(&tanh,out_scale,x,in_scale);
+    temp16 = tanh;
     
     //add one
-    tanh += (1 << QFIXEDPOINT);
+    temp16 += (1 << QFIXEDPOINT);
     
     //divide by two
-    tanh >>= 1;
+    temp16 >>= 1;
     
-    if (tanh > MAX_WEIGHT) {
-        tanh = MAX_WEIGHT;
+    if (temp16 > MAX_WEIGHT) {
+        temp16 = MAX_WEIGHT;
     }
     
-    *y = (Weight_t)tanh;
+    *y = (Weight_t)temp16;
     *out_scale = 0;
 }
 
@@ -100,10 +118,15 @@ void tinytensor_relu(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale
 
 
 int8_t tiny_tensor_get_scaling(Weight_t max_weight) {
+    int8_t i;
+    
+    if (max_weight == 0) {
+        return 0;
+    }
+
     //find max scaling
     max_weight = tinymath_abs_int8(max_weight);
     
-    int8_t i;
     for (i = 1; i < 8; i++) {
         if (( ((int16_t)max_weight) << i) > MAX_WEIGHT) {
             break;
@@ -156,18 +179,20 @@ void tinytensor_convolve3d_direct_maxpooling(
                                              Weight_t * out,
                                              const uint32_t * pool_dims,
                                              const Weight_t * weights,
+                                             int8_t weight_scaling,
                                              const Weight_t * image,
+                                             int8_t incoming_scaling,
                                              const Weight_t bias,
+                                             int8_t bias_scaling,
                                              const uint32_t num_weights_rows,
                                              const uint32_t num_weights_cols,
                                              const uint32_t num_image_rows,
                                              const uint32_t num_image_cols,
                                              const uint32_t num_images,
                                              const Weight_t incoming_dropout,
-                                             SquashFunc_t activation,
-                                             int8_t incoming_scaling) {
+                                             SquashFunc_t activation) {
     
-    Weight_t max_weight = -MAX_WEIGHT;
+    Weight_t max_weight = 0;
     int8_t max_scale = 0;
     Weight_t temp_weight;
     int8_t temp_scale;
@@ -190,6 +215,9 @@ void tinytensor_convolve3d_direct_maxpooling(
     
     int32_t max_pool[MAX_MAX_POOL_SIZE][MAX_MAX_POOL_SIZE];
     int32_t temp32;
+    int64_t temp64;
+    int32_t bias32;
+    int8_t bias_scaling_diff;
     const int16_t dropout_weight = (1 << QFIXEDPOINT) - incoming_dropout;
     
     Weight_t * out_row = out;
@@ -260,12 +288,41 @@ void tinytensor_convolve3d_direct_maxpooling(
                 }
             }
             
-            temp32 >>= QFIXEDPOINT;
-            temp32 *= dropout_weight;
-            temp32 >>= QFIXEDPOINT;
-            temp32 += bias;
+           
+            //dropout
+            temp64 = temp32 * dropout_weight;
+            temp64 >>= QFIXEDPOINT;
+            temp64 >>= weight_scaling;
             
-            activation(&temp_weight,&temp_scale,temp32,incoming_scaling);
+            //compensate for weight scaling
+            bias_scaling_diff = incoming_scaling - bias_scaling;
+            
+            bias32 = bias;
+            bias32 <<= QFIXEDPOINT;
+
+            if (bias_scaling_diff > 0) {
+                //bias is bigger!
+                bias32 <<= bias_scaling_diff;
+            }
+            else {
+                bias32 >>= -bias_scaling_diff;
+            }
+            
+            
+            //add bias
+            temp64 += bias32;
+            
+            temp64 >>= QFIXEDPOINT;
+            
+            if (temp64 > INT32_MAX) {
+                temp64 = INT32_MAX;
+            }
+            
+            if (temp64 < INT32_MIN) {
+                temp64 = INT32_MIN;
+            }
+            
+            activation(&temp_weight,&temp_scale,(int32_t)temp64,incoming_scaling + weight_scaling);
             
             if (tiny_tensor_compare_scaled_numbers(temp_weight,temp_scale,max_weight,max_scale) > 0) {
                 max_weight = temp_weight;
