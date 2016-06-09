@@ -8,7 +8,6 @@ k_activation_func_map = {'relu' : 'tinytensor_relu', 'sigmoid' : 'tinytensor_sig
 
 def write_header(f):
     f.write('#include "tinytensor_conv_layer.h"\n')    
-    f.write('#include "tinytensor_maxpool_layer.h"\n')    
     f.write('#include "tinytensor_fullyconnected_layer.h"\n')    
     f.write('#include "tinytensor_math.h"\n')
     f.write('#include "tinytensor_net.h"\n')    
@@ -16,13 +15,26 @@ def write_header(f):
 
 def write_fixed_point_tensor(name,weights,f):
     dims = weights.shape
-    vec = (weights.flatten() * (2**7)).astype(int).tolist()
+
+    the_max = np.max(np.abs(weights))
+
+    scale = 0
+    if the_max > 0:
+        scale = -int(np.ceil(np.log2(the_max)))
+
+    if scale < 0:
+        scale = 0
+
+    if scale > 8:
+        scale = 8
+    
+    vec = (weights.flatten() * (2**(7+scale))).astype(int).tolist()
     vecstr = ['%d' % v for v in vec]
     weights_name = '%s_x' % name
     dims_name = '%s_dims' % name
     myweights = 'const static Weight_t %s[%d] = {%s};\n' % (weights_name,len(vec),','.join(vecstr))
     mydims = 'const static uint32_t %s[4] = {%d,%d,%d,%d};\n' % (dims_name,dims[0],dims[1],dims[2],dims[3])
-    mystruct = 'const static ConstTensor_t %s = {&%s[0],&%s[0]};\n' % (name,weights_name,dims_name)
+    mystruct = 'const static ConstTensor_t %s = {&%s[0],&%s[0],%d};\n' % (name,weights_name,dims_name,scale)
 
     f.write(myweights)
     f.write(mydims)
@@ -82,7 +94,23 @@ class Layer(object):
 
 
 class ConvLayer(Layer):
+    def get_max_pool_size(self):
+        names = [layer['name'] for layer in self.layers]
+
+        if 'MaxPooling2D' not in names:
+            return (1,1)
+        
+        max_pool_layer = self.layers[names.index('MaxPooling2D')]
+
+        return max_pool_layer['pool_size']
+            
     def write(self,input_shape,f):
+
+
+        pool_size = self.get_max_pool_size()
+        poolvar = self.name + '_pool_size'
+        write_uint32_array(poolvar,pool_size,f)
+
         border_mode = self.layers[0]['border_mode']
         w0 = self.weights[0]
         weights_name = self.name + '_conv'
@@ -95,23 +123,25 @@ class ConvLayer(Layer):
         print 'conv weights: %d,%d,%d,%d' % w0.shape + ' border_mode=%s' % border_mode
 
         if border_mode == 'same':
-            s3 = input_shape[3]
-            s2 = input_shape[2]
+            s3 = input_shape[3] / pool_size[1]
+            s2 = input_shape[2] / pool_size[0]
             s1 = w0.shape[0]
             s0 = 1
 
 
         elif border_mode == 'valid':
-            s3 = input_shape[3] - w0.shape[3] + 1
-            s2 = input_shape[2] - w0.shape[2] + 1
+            s3 = (input_shape[3] - w0.shape[3] + 1) / pool_size[1]
+            s2 = (input_shape[2] - w0.shape[2] + 1) / pool_size[0]
             s1 = w0.shape[0]
             s0 = 1
 
+
+        
         output_shape = (s0,s1,s2,s3)
 
         input_name,output_name = write_dims(input_shape,output_shape,self.name,f)
         
-        f.write('const static ConvLayer2D_t %s = {&%s,&%s,%s,%s,TOFIX(%f),%s};\n' % (self.name.lower(),weights_name,bias_name,output_name,input_name,self.dropout,k_activation_func_map[self.get_activation()]))
+        f.write('const static ConvLayer2D_t %s = {&%s,&%s,%s,%s,%s,TOFIX(%f),%s};\n' % (self.name.lower(),weights_name,bias_name,output_name,input_name,poolvar,self.dropout,k_activation_func_map[self.get_activation()]))
         f.write('\n\n\n')
 
         return output_shape
@@ -123,34 +153,7 @@ class ConvLayer(Layer):
     def get_num_weights(self):
         return 2
 
-class MaxPoolingLayer(Layer):
-    def write(self,input_shape,f):
-        pool_size = self.layers[0]['pool_size']
-        print 'pool dims: %d,%d' % pool_size
 
-        s3 = input_shape[3] / pool_size[1]
-        s2 = input_shape[2] / pool_size[0]
-        s1 = input_shape[1]
-        s0 = 1
-
-        output_shape = (s0,s1,s2,s3)
-
-        pool_dims_name = '%s_pool_dims' % self.name
-        write_uint32_array(pool_dims_name,pool_size,f)
-        input_name,output_name = write_dims(input_shape,output_shape,self.name,f)
-
-        f.write('const static MaxPoolLayer_t %s = {%s,%s,%s};\n' % (self.name.lower(),pool_dims_name,output_name,input_name))
-        f.write('\n\n\n')
-        
-        return output_shape
-
-    def write_creation(self,f):
-        objname = self.name.lower()
-        f.write('tinytensor_create_maxpool_layer(&%s)' % (objname))
-
-
-    def get_num_weights(self):
-        return 0
     
 class Dense(Layer):
     def write(self,input_shape,f):
@@ -184,7 +187,7 @@ class Dense(Layer):
         return 2
 
 
-layer_map = {'Dense' : Dense, 'MaxPooling2D' : MaxPoolingLayer, 'Convolution2D' : ConvLayer}
+layer_map = {'Dense' : Dense, 'Convolution2D' : ConvLayer}
 
 def create_layer_objects(organized_layers):
     layer_counts = defaultdict(int)
@@ -231,7 +234,7 @@ def write_sequential_network(layerobjs,model,f):
     input_shape = layerobjs[0].layers[0]['input_shape']
     input_shape = (1,input_shape[0],input_shape[1],input_shape[2])
     for obj in layerobjs:
-        print obj.name,obj.dropout
+        print 'name=%s, dropout=%f' %(obj.name,obj.dropout)
         print input_shape,input_shape[0]*input_shape[1]*input_shape[2]*input_shape[3]
         input_shape = obj.write(input_shape,f)
 
