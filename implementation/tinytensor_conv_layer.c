@@ -132,14 +132,7 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
     
     const Weight_t * const image_start = in->x;    
     const Weight_t * bias = layer->biases->x;
-    
-    Weight_t max_weight_this_filterbank;
-    int8_t scale_out_this_filterbank;
-    
-    Weight_t max_weight = 0;
-    int8_t max_scale_out = 0;
-    int8_t delta_scale;
-    
+        
     Weight_t * out_start = out->x;
     const uint32_t out_image_size = layer->output_dims[3] * layer->output_dims[2];
     
@@ -170,8 +163,7 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
     
     for (iout = 0; iout < num_out_images; iout++) {
         
-        tinytensor_convolve3d_direct_maxpooling(&max_weight_this_filterbank,
-                                                &scale_out_this_filterbank,
+        tinytensor_convolve3d_direct_maxpooling(
                                                 out_start,
                                                 layer->max_pool_dims,
                                                 weight_start,
@@ -189,31 +181,11 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
                                                 layer->activation);
         
         
-        if (tiny_tensor_compare_scaled_numbers(max_weight_this_filterbank,scale_out_this_filterbank,max_weight,max_scale_out) > 0) {
-            max_weight = max_weight_this_filterbank;
-            max_scale_out = scale_out_this_filterbank;
-        }
-        
         bias += 1;
         out_start += out_image_size;
         weight_start += weight_filter_size;
     }
     
-    
-    delta_scale = tiny_tensor_get_scaling(max_weight);
-
-    //scale output tensor
-    //printf("delta_scale=%d\n",delta_scale);
-    if (delta_scale > 0) {
-        for (i = 0; i < out_len; i++) {
-            //if (i!=0) printf(",");
-            //printf("%d ",out->x[i]);
-            out->x[i] <<= delta_scale;
-            //printf("%d",out->x[i]);
-
-        }
-        //printf("\n");
-    }
     
     
     int32_t max = 0;
@@ -223,10 +195,9 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
         }
     }
     
+    out->scale = in->scale;
     
-    out->scale = max_scale_out + delta_scale;
-    
-    printf("max=%d,s=%d   delta=%d\n",max,out->scale,delta_scale);
+    printf("max=%d\t\ts=%d\n",max,out->scale);
 
     
 }

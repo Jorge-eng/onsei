@@ -2,7 +2,10 @@
 import numpy as np
 import copy
 from keras.models import model_from_json
+from keras.models import Sequential
 from collections import defaultdict
+from keras.optimizers import Adam
+
 
 k_activation_func_map = {'relu' : 'tinytensor_relu', 'sigmoid' : 'tinytensor_sigmoid', 'linear' :'tinytensor_linear'}
 
@@ -27,7 +30,8 @@ def write_fixed_point_tensor(name,weights,f):
 
     if scale > 8:
         scale = 8
-    
+
+    print 'scale=%d' % scale   
     vec = (weights.flatten() * (2**(7+scale))).astype(int).tolist()
     vecstr = ['%d' % v for v in vec]
     weights_name = '%s_x' % name
@@ -230,9 +234,9 @@ def write_sequential_network(layerobjs,model,f):
 
 
     write_header(f)
-    
     input_shape = layerobjs[0].layers[0]['input_shape']
     input_shape = (1,input_shape[0],input_shape[1],input_shape[2])
+    original_input_shape = input_shape
     for obj in layerobjs:
         print 'name=%s, dropout=%f' %(obj.name,obj.dropout)
         print input_shape,input_shape[0]*input_shape[1]*input_shape[2]*input_shape[3]
@@ -254,8 +258,14 @@ def write_sequential_network(layerobjs,model,f):
 
     f.write('  return net;\n')
     f.write('\n}')
+    return original_input_shape
 
 def save_model_to_c_from_file(model_name):
+    model = get_model(model_name)
+
+    save_model_to_c(model,model_name)
+
+def get_model(model_name):
     fname = '%s.json' % model_name
     with open(fname,'r') as f:
         config_json = f.read()
@@ -267,8 +277,27 @@ def save_model_to_c_from_file(model_name):
     model = model_from_json(config_json)
     print 'loading weights from %s' % weights_filename
     model.load_weights(weights_filename)
+    return model
 
-    save_model_to_c(model,model_name)
+def get_model_scaling(model,input_shape):
+    M = 1000
+    N = 1;
+    for s in input_shape:
+        N *= s
+
+    y = []
+    for i in range(M):
+        x = 2 * np.random.rand(N).reshape(input_shape) - 1
+        y.append(model.predict(x))
+
+    
+    ranges = []
+    for yy in y:
+        ranges.append(np.max(yy) - np.min(yy))
+
+    max_range = np.max(ranges)
+
+    return np.log2(max_range)
 
 def save_model_to_c(model,name):
 
@@ -295,8 +324,16 @@ def save_model_to_c(model,name):
     print 'writing to %s' % outname
     f = open(outname,'w')
 
-    write_sequential_network(layerobjs,model,f)
+    input_shape = write_sequential_network(layerobjs,model,f)
 
+    N = len(layerobjs[0].layers)
+    m2 = Sequential()
+    for i in range(N):
+        m2.add(model.layers[i])
+
+    m2.compile(Adam(),'mse')
+    scale1 = get_model_scaling(m2,input_shape)
+    print scale1
     f.close()
 
 if __name__ == '__main__':

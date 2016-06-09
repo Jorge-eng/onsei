@@ -127,13 +127,13 @@ int8_t tiny_tensor_get_scaling(Weight_t max_weight) {
     //find max scaling
     max_weight = tinymath_abs_int8(max_weight);
     
-    for (i = 1; i < 8; i++) {
-        if (( ((int16_t)max_weight) << i) > MAX_WEIGHT) {
+    for (i = 0; i < 8; i++) {
+        if (( ((int16_t)max_weight) << i) > MAX_WEIGHT/2) {
             break;
         }
     }
     
-    return (i-1);
+    return i;
     
 }
 
@@ -174,14 +174,12 @@ int8_t tiny_tensor_compare_scaled_numbers(const Weight_t x1, const int8_t scale1
 //takes two 3 dimensional tensors (a bunch of images, and a bunch of convolutional filters),
 //applies them accross each of the innermost tensor dimension (i.e. A1 x B1 x C1, A2 x B2 x C2, we're talking about A1 and A2, and A1 == A2)
 void tinytensor_convolve3d_direct_maxpooling(
-                                             Weight_t * pmax_weight,
-                                             int8_t * output_scaling,
                                              Weight_t * out,
                                              const uint32_t * pool_dims,
                                              const Weight_t * weights,
                                              int8_t weight_scaling,
                                              const Weight_t * image,
-                                             int8_t incoming_scaling,
+                                             int8_t input_scaling,
                                              const Weight_t bias,
                                              int8_t bias_scaling,
                                              const uint32_t num_weights_rows,
@@ -192,8 +190,7 @@ void tinytensor_convolve3d_direct_maxpooling(
                                              const Weight_t incoming_dropout,
                                              SquashFunc_t activation) {
     
-    Weight_t max_weight = 0;
-    int8_t max_scale = 0;
+
     Weight_t temp_weight;
     int8_t temp_scale;
     
@@ -292,10 +289,9 @@ void tinytensor_convolve3d_direct_maxpooling(
             //dropout
             temp64 = temp32 * dropout_weight;
             temp64 >>= QFIXEDPOINT;
-            temp64 >>= weight_scaling;
             
             //compensate for weight scaling
-            bias_scaling_diff = incoming_scaling - bias_scaling;
+            bias_scaling_diff = weight_scaling + input_scaling - bias_scaling;
             
             bias32 = bias;
             bias32 <<= QFIXEDPOINT;
@@ -313,6 +309,7 @@ void tinytensor_convolve3d_direct_maxpooling(
             temp64 += bias32;
             
             temp64 >>= QFIXEDPOINT;
+            temp64 >>= weight_scaling;
             
             if (temp64 > INT32_MAX) {
                 temp64 = INT32_MAX;
@@ -322,25 +319,14 @@ void tinytensor_convolve3d_direct_maxpooling(
                 temp64 = INT32_MIN;
             }
             
-            activation(&temp_weight,&temp_scale,(int32_t)temp64,incoming_scaling + weight_scaling);
-            
-            if (tiny_tensor_compare_scaled_numbers(temp_weight,temp_scale,max_weight,max_scale) > 0) {
-                max_weight = temp_weight;
-                max_scale = temp_scale;
-            }
-            
-
-            //printf("eq=%d sc=%d\n",temp_weight,temp_scale);fflush(0);
-            //printf("addr=%d\n\n",&out_row[ipool_col] - out);
+            activation(&temp_weight,&temp_scale,(int32_t)temp64,input_scaling);
+            assert(temp_scale == 0);
             out_row[ipool_col] = temp_weight;
         }
         //printf("-----\n");
         out_row += num_pool_cols;
     }
     
-
-    *pmax_weight = max_weight;
-    *output_scaling = max_scale;
 }
 
 
