@@ -51,6 +51,11 @@ int main(int argc, char * argv[]) {
     mono_samples.reserve(file.frames());
     int16_t buf[BUF_SIZE];
     
+    if (file.samplerate () != 16000) {
+        std::cout << "only accepts 16khz inputs" << std::endl;
+        return 0;
+    }
+    
     while (true) {
         int count = file.read(buf, BUF_SIZE);
         
