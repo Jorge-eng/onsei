@@ -31,7 +31,11 @@ void results_callback(void * context, int8_t * melbins) {
     CallbackContext * p = static_cast<CallbackContext *>(context);
 
     for (uint32_t i = 0; i < NUM_MEL_BINS; i++) {
-        p->buf[i][p->bufidx] = melbins[i] + 80;
+        int32_t temp32 = melbins[i] + 80;
+        if (temp32 > MAX_WEIGHT) {
+            temp32 = MAX_WEIGHT;
+        }
+        p->buf[i][p->bufidx] = (Weight_t)temp32;
     }
     
     
@@ -108,6 +112,11 @@ int main(int argc, char * argv[]) {
     std::vector<int16_t> mono_samples;
     mono_samples.reserve(file.frames());
     int16_t buf[BUF_SIZE];
+    
+    if (file.samplerate () != 16000) {
+        std::cout << "only accepts 16khz inputs" << std::endl;
+        return 0;
+    }
     
     while (true) {
         int count = file.read(buf, BUF_SIZE);
