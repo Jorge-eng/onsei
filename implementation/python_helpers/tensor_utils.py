@@ -2,13 +2,15 @@
 import numpy as np
 import copy
 from keras.models import model_from_json
+from keras.models import Sequential
 from collections import defaultdict
+from keras.optimizers import Adam
 
-k_activation_func_map = {'relu' : 'tinytensor_relu', 'softmax' : 'tinytensor_sigmoid', 'linear' :'tinytensor_linear'}
+
+k_activation_func_map = {'relu' : 'tinytensor_relu', 'sigmoid' : 'tinytensor_sigmoid', 'linear' :'tinytensor_linear'}
 
 def write_header(f):
     f.write('#include "tinytensor_conv_layer.h"\n')    
-    f.write('#include "tinytensor_maxpool_layer.h"\n')    
     f.write('#include "tinytensor_fullyconnected_layer.h"\n')    
     f.write('#include "tinytensor_math.h"\n')
     f.write('#include "tinytensor_net.h"\n')    
@@ -16,13 +18,27 @@ def write_header(f):
 
 def write_fixed_point_tensor(name,weights,f):
     dims = weights.shape
-    vec = (weights.flatten() * (2**7)).astype(int).tolist()
+
+    the_max = np.max(np.abs(weights))
+
+    scale = 0
+    if the_max > 0:
+        scale = -int(np.ceil(np.log2(the_max)))
+
+    if scale < 0:
+        scale = 0
+
+    if scale > 8:
+        scale = 8
+
+    print 'scale=%d' % scale   
+    vec = (weights.flatten() * (2**(7+scale))).astype(int).tolist()
     vecstr = ['%d' % v for v in vec]
     weights_name = '%s_x' % name
     dims_name = '%s_dims' % name
     myweights = 'const static Weight_t %s[%d] = {%s};\n' % (weights_name,len(vec),','.join(vecstr))
     mydims = 'const static uint32_t %s[4] = {%d,%d,%d,%d};\n' % (dims_name,dims[0],dims[1],dims[2],dims[3])
-    mystruct = 'const static ConstTensor_t %s = {&%s[0],&%s[0]};\n' % (name,weights_name,dims_name)
+    mystruct = 'const static ConstTensor_t %s = {&%s[0],&%s[0],%d};\n' % (name,weights_name,dims_name,scale)
 
     f.write(myweights)
     f.write(mydims)
@@ -82,34 +98,54 @@ class Layer(object):
 
 
 class ConvLayer(Layer):
+    def get_max_pool_size(self):
+        names = [layer['name'] for layer in self.layers]
+
+        if 'MaxPooling2D' not in names:
+            return (1,1)
+        
+        max_pool_layer = self.layers[names.index('MaxPooling2D')]
+
+        return max_pool_layer['pool_size']
+            
     def write(self,input_shape,f):
+
+
+        pool_size = self.get_max_pool_size()
+        poolvar = self.name + '_pool_size'
+        write_uint32_array(poolvar,pool_size,f)
+
         border_mode = self.layers[0]['border_mode']
         w0 = self.weights[0]
         weights_name = self.name + '_conv'
         bias_name = self.name + '_bias'
         wn,wd = write_conv_weights(weights_name,w0,f)
-        bn,bd  = write_fixed_point_tensor(bias_name,self.weights[1].reshape(self.weights[1].shape[0],1,1,1),f)
+
+        w1 = self.weights[1].reshape(self.weights[1].shape[0],1,1,1)
+        bn,bd  = write_fixed_point_tensor(bias_name,w1,f)
 
         print 'conv weights: %d,%d,%d,%d' % w0.shape + ' border_mode=%s' % border_mode
 
         if border_mode == 'same':
-            s3 = input_shape[3]
-            s2 = input_shape[2]
+            s3 = input_shape[3] / pool_size[1]
+            s2 = input_shape[2] / pool_size[0]
             s1 = w0.shape[0]
             s0 = 1
 
 
         elif border_mode == 'valid':
-            s3 = input_shape[3] - w0.shape[3] + 1
-            s2 = input_shape[2] - w0.shape[2] + 1
+            s3 = (input_shape[3] - w0.shape[3] + 1) / pool_size[1]
+            s2 = (input_shape[2] - w0.shape[2] + 1) / pool_size[0]
             s1 = w0.shape[0]
             s0 = 1
 
+
+        
         output_shape = (s0,s1,s2,s3)
 
         input_name,output_name = write_dims(input_shape,output_shape,self.name,f)
         
-        f.write('const static ConvLayer2D_t %s = {&%s,&%s,%s,%s,TOFIX(%f),%s};\n' % (self.name.lower(),weights_name,bias_name,output_name,input_name,self.dropout,k_activation_func_map[self.get_activation()]))
+        f.write('const static ConvLayer2D_t %s = {&%s,&%s,%s,%s,%s,TOFIX(%f),%s};\n' % (self.name.lower(),weights_name,bias_name,output_name,input_name,poolvar,self.dropout,k_activation_func_map[self.get_activation()]))
         f.write('\n\n\n')
 
         return output_shape
@@ -121,34 +157,7 @@ class ConvLayer(Layer):
     def get_num_weights(self):
         return 2
 
-class MaxPoolingLayer(Layer):
-    def write(self,input_shape,f):
-        pool_size = self.layers[0]['pool_size']
-        print 'pool dims: %d,%d' % pool_size
 
-        s3 = input_shape[3] / pool_size[1]
-        s2 = input_shape[2] / pool_size[0]
-        s1 = input_shape[1]
-        s0 = 1
-
-        output_shape = (s0,s1,s2,s3)
-
-        pool_dims_name = '%s_pool_dims' % self.name
-        write_uint32_array(pool_dims_name,pool_size,f)
-        input_name,output_name = write_dims(input_shape,output_shape,self.name,f)
-
-        f.write('const static MaxPoolLayer_t %s = {%s,%s,%s};\n' % (self.name.lower(),pool_dims_name,output_name,input_name))
-        f.write('\n\n\n')
-        
-        return output_shape
-
-    def write_creation(self,f):
-        objname = self.name.lower()
-        f.write('tinytensor_create_maxpool_layer(&%s)' % (objname))
-
-
-    def get_num_weights(self):
-        return 0
     
 class Dense(Layer):
     def write(self,input_shape,f):
@@ -182,7 +191,7 @@ class Dense(Layer):
         return 2
 
 
-layer_map = {'Dense' : Dense, 'MaxPooling2D' : MaxPoolingLayer, 'Convolution2D' : ConvLayer}
+layer_map = {'Dense' : Dense, 'Convolution2D' : ConvLayer}
 
 def create_layer_objects(organized_layers):
     layer_counts = defaultdict(int)
@@ -225,22 +234,22 @@ def write_sequential_network(layerobjs,model,f):
 
 
     write_header(f)
-    
     input_shape = layerobjs[0].layers[0]['input_shape']
     input_shape = (1,input_shape[0],input_shape[1],input_shape[2])
+    original_input_shape = input_shape
     for obj in layerobjs:
-        print obj.name,obj.dropout
-        print input_shape
+        print 'name=%s, dropout=%f' %(obj.name,obj.dropout)
+        print input_shape,input_shape[0]*input_shape[1]*input_shape[2]*input_shape[3]
         input_shape = obj.write(input_shape,f)
 
-        print input_shape
+        print input_shape,input_shape[0]*input_shape[1]*input_shape[2]*input_shape[3]
         print '---------'
 
     f.write('\n\n\n')
     f.write('static ConstLayer_t _layers[%d];\n' % len(layerobjs))
     f.write('static ConstSequentialNetwork_t net = {&_layers[0],%d};\n' % len(layerobjs))
 
-    f.write('ConstSequentialNetwork_t initialize_network(void) {\n\n')
+    f.write('static ConstSequentialNetwork_t initialize_network(void) {\n\n')
 
     for idx,obj in enumerate(layerobjs):
         f.write('  _layers[%d] = ' % idx)
@@ -249,14 +258,49 @@ def write_sequential_network(layerobjs,model,f):
 
     f.write('  return net;\n')
     f.write('\n}')
+    return original_input_shape
 
-def save_model_to_c(model_name):
+def save_model_to_c_from_file(model_name):
+    model = get_model(model_name)
 
-    with open('%s.json' %(model_name),'r') as f:
+    save_model_to_c(model,model_name)
+
+def get_model(model_name):
+    fname = '%s.json' % model_name
+    with open(fname,'r') as f:
         config_json = f.read()
+        
+    print 'read model from %s' % fname
 
+    weights_filename = '%s.h5' % model_name
+    print 'compiling...'
     model = model_from_json(config_json)
-    model.load_weights('%s.h5' %(model_name))
+    print 'loading weights from %s' % weights_filename
+    model.load_weights(weights_filename)
+    return model
+
+def get_model_scaling(model,input_shape):
+    M = 1000
+    N = 1;
+    for s in input_shape:
+        N *= s
+
+    y = []
+    for i in range(M):
+        x = 2 * np.random.rand(N).reshape(input_shape) - 1
+        y.append(model.predict(x))
+
+    
+    ranges = []
+    for yy in y:
+        ranges.append(np.max(yy) - np.min(yy))
+
+    max_range = np.max(ranges)
+
+    return np.log2(max_range)
+
+def save_model_to_c(model,name):
+
     config = model.get_config()
 
     organized_layers = []
@@ -276,11 +320,21 @@ def save_model_to_c(model_name):
 
     layerobjs = create_layer_objects(organized_layers)
 
-    f = open('test.c','w')
+    outname = '%s.c' % name
+    print 'writing to %s' % outname
+    f = open(outname,'w')
 
-    write_sequential_network(layerobjs,model,f)
+    input_shape = write_sequential_network(layerobjs,model,f)
 
+    N = len(layerobjs[0].layers)
+    m2 = Sequential()
+    for i in range(N):
+        m2.add(model.layers[i])
+
+    m2.compile(Adam(),'mse')
+    scale1 = get_model_scaling(m2,input_shape)
+    print scale1
     f.close()
 
 if __name__ == '__main__':
-    save_model_to_c('cnn_spec_try')
+    save_model_to_c_from_file('model_may31_small_sigm')

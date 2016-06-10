@@ -9,7 +9,6 @@ extern "C" {
 #endif
     
 typedef struct {
-    const uint32_t * pool_dims;
     const uint32_t * output_dims;
     const uint32_t * input_dims;
 } MaxPoolLayer_t;

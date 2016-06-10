@@ -14,6 +14,7 @@ typedef struct {
     const ConstTensor_t * biases;
     const uint32_t * output_dims;
     const uint32_t * input_dims;
+    const uint32_t * max_pool_dims;
     Weight_t incoming_dropout;
     SquashFunc_t activation;
 
