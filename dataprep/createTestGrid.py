@@ -11,16 +11,22 @@ dirName = sys.argv[1]
 outName = sys.argv[2]
 
 pos, neg = get_conditions()
-conditions = pos + neg
+condMatch = pos + neg
 
-indivs = ['160517_08','160606_03','160606_04']
+idMatch = ['160517_08','160606_03','160606_04']
 
-features = {}
-for indiv in indivs:
-    features[indiv] = {}
-    for cond in conditions:
-        features[indiv][cond] = load_features(dirName, [cond+'_'+indiv])
+identity = []
+sampleType = []
+features = np.array([])
+for i in idMatch:
+    for c in condMatch:
+        fea = load_features(dirName, [c+'_'+i])
+        identity.extend([i]*fea.shape[2])
+        sampleType.extend([c]*fea.shape[2])
+        if features.shape[0] == 0:
+            features = fea
+        else:
+            features = np.append(features, fea, axis=2)
 
-with open(outName, 'wb') as f:
-    pickle.dump({'features': features, 'indivs': indivs, 'conditions': conditions}, f)
+savemat(outName, {'features': features, 'identity': identity, 'sampleType': sampleType})
 
