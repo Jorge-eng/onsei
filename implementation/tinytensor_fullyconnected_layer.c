@@ -112,10 +112,10 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     }
     
 
-    out->scale = in->scale;
+    out->scale = 0;
 
     
-    printf("max=%d\t\ts=%d\n",max,out->scale);
+    //printf("max=%d\t\ts=%d\n",max,out->scale);
 
 
 }

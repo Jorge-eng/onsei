@@ -4,7 +4,10 @@
 #include "data/model_may31_small_sigm.c"
 #include "data/test_input_rand.c"
 #include "data/test_input.c"
-
+#include "data/kwClip_1.c"
+#include "data/kwClip_41.c"
+#include "data/kwClip_42.c"
+#include "data/kwClip_43.c"
 
 class TestNet : public ::testing::Test {
 protected:
@@ -125,18 +128,58 @@ TEST_F(TestNet, Realistic1) {
 
 TEST_F(TestNet, Realistic2) {
     
-    tensor_in = tinytensor_clone_new_tensor(&test_input);
+    tensor_in = tinytensor_clone_new_tensor(&kwClip_41);
     
     ConstSequentialNetwork_t net = initialize_network();
     tensor_out = eval_net(&net,tensor_in);
     
     printf("%d,%d\n",tensor_out->x[0],tensor_out->x[1]);
     
-    ASSERT_NEAR(tensor_out->x[0],0,20);
-    ASSERT_NEAR(tensor_out->x[1],127,20);
+    ASSERT_TRUE(tensor_out->x[1] > tensor_out->x[0] + 20);
+
+    
+}
+
+TEST_F(TestNet, Realistic3) {
+    
+    tensor_in = tinytensor_clone_new_tensor(&kwClip_42);
+    
+    ConstSequentialNetwork_t net = initialize_network();
+    tensor_out = eval_net(&net,tensor_in);
+    
+    printf("%d,%d\n",tensor_out->x[0],tensor_out->x[1]);
+    
+    ASSERT_TRUE(tensor_out->x[1] > tensor_out->x[0] + 20);
     
     
 }
 
+TEST_F(TestNet, Realistic4) {
+    
+    tensor_in = tinytensor_clone_new_tensor(&kwClip_43);
+    
+    ConstSequentialNetwork_t net = initialize_network();
+    tensor_out = eval_net(&net,tensor_in);
+    
+    printf("%d,%d\n",tensor_out->x[0],tensor_out->x[1]);
+    
+    ASSERT_TRUE(tensor_out->x[1] > tensor_out->x[0] + 20);
+    
+    
+}
+
+TEST_F(TestNet, Realistic5) {
+    
+    tensor_in = tinytensor_clone_new_tensor(&kwClip_1);
+    
+    ConstSequentialNetwork_t net = initialize_network();
+    tensor_out = eval_net(&net,tensor_in);
+    
+    printf("%d,%d\n",tensor_out->x[0],tensor_out->x[1]);
+    
+    ASSERT_TRUE(tensor_out->x[1] > tensor_out->x[0] + 20);
+    
+    
+}
 
 

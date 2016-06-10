@@ -8,14 +8,19 @@
 #include "tinytensor_net.h"
 #include "tinytensor_tensor.h"
 
-#define HAVE_NET (0)
+#include <iostream>
+#include <sys/time.h>
+#define HAVE_NET (1)
+#define PRINT_TIMING (0)
+
+
 
 #if HAVE_NET
-#include "net.c"
+#include "unit-test/data/model_may31_small_sigm.c"
 #endif 
 
 #define SAMPLE_RATE  (16000)
-#define FRAMES_PER_BUFFER (256)
+#define FRAMES_PER_BUFFER (128)
 #define NUM_SECONDS     (60)
 #define NUM_CHANNELS    (1)
 /* #define DITHER_FLAG     (paDitherOff) */
@@ -39,6 +44,9 @@ paTestData;
  ** It may be called at interrupt level on some machines so don't do anything
  ** that could mess up the system like calling malloc() or free().
  */
+static struct timeval tp;
+static int64_t ms;
+
 static int recordCallback(const void *inputBuffer, void *outputBuffer,
                           unsigned long framesPerBuffer,
                           const PaStreamCallbackTimeInfo* timeInfo,
@@ -79,6 +87,13 @@ static int recordCallback(const void *inputBuffer, void *outputBuffer,
     
     tinytensor_features_add_samples(localbuf, framesToCalc);
     
+#if PRINT_TIMING
+    gettimeofday(&tp, NULL);
+    int64_t ms2 = tp.tv_sec * 1000 + tp.tv_usec / 1000; //get current timestamp in milliseconds
+    
+    std::cout << (float)(ms2 - ms) << std::endl;
+#endif
+    
     data->frameIndex += framesToCalc;
     return finished;
 }
@@ -86,85 +101,59 @@ static int recordCallback(const void *inputBuffer, void *outputBuffer,
 #define NUM_TIME_ELEMENTS (199)
 typedef struct {
     ConstSequentialNetwork_t net;
-    int8_t buf[NUM_TIME_ELEMENTS][NUM_MEL_BINS];
+    int8_t buf[NUM_MEL_BINS][NUM_TIME_ELEMENTS];
     uint32_t bufidx;
 } FeatsCallbackContext;
 
 static void feats_callback(void * context, int8_t * feats) {
-    FeatsCallbackContext * pcontext = (FeatsCallbackContext *) context;
+    FeatsCallbackContext * p = (FeatsCallbackContext *) context;
+    static uint32_t counter = 0;
+    //desire to have the dims as 40 x 199
+    //data comes in as 40 x 1 vectors, soo
+    
     const static uint32_t dims[4] = {1,1,NUM_MEL_BINS,NUM_TIME_ELEMENTS};
     int32_t temp32;
-    //copy out new feats
-   // printf("%d\n",pcontext->bufidx);
-    memcpy(&(pcontext->buf[pcontext->bufidx][0]),feats,NUM_MEL_BINS*sizeof(int8_t));
-    
-    if (++pcontext->bufidx >= NUM_TIME_ELEMENTS) {
-        pcontext->bufidx = 0;
+    //get feats
+
+    for (uint32_t i = 0; i < NUM_MEL_BINS; i++) {
+        p->buf[i][p->bufidx] = feats[i] + 80;
     }
     
-    if (pcontext->bufidx % 20 != 0) {
+    
+    if (++(p->bufidx) >= NUM_TIME_ELEMENTS) {
+        p->bufidx = 0;
+    }
+    
+    
+    if (++counter % 20) {
         return;
     }
     
+    if (counter < NUM_TIME_ELEMENTS) {
+        return;
+    }
     
 #if HAVE_NET
-
+    
     Tensor_t * tensor_in = tinytensor_create_new_tensor(dims);
     
-    int8_t (*inmat)[NUM_TIME_ELEMENTS]  = (int8_t (*)[NUM_TIME_ELEMENTS])tensor_in->x;
-    
-  
-    int8_t max = -128;
-    int8_t min = 127;
-    for (uint32_t j = 0; j < NUM_MEL_BINS; j++) {
-        uint32_t bufidx = pcontext->bufidx;
-
+    Weight_t * px = tensor_in->x;
+    for (uint32_t i = 0; i < NUM_MEL_BINS; i++ ) {
+        uint32_t bufidx = p->bufidx;
+        
         for (uint32_t t = 0; t < NUM_TIME_ELEMENTS; t++) {
-            temp32 = pcontext->buf[bufidx][j];
-            
-            if (temp32 > max) {
-                max = temp32;
-            }
-            
-            if (temp32 < min) {
-                min = temp32;
-            }
-            
-            temp32 += 70;
-            
-            if (temp32 > INT8_MAX) {
-                temp32 = INT8_MAX;
-            }
-            
-            inmat[j][t] = temp32;
+            *px = p->buf[i][bufidx];
             
             if (++bufidx >= NUM_TIME_ELEMENTS) {
                 bufidx = 0;
             }
+            
+            px++;
         }
-     }
-    
-    /*
-    
-    for (uint32_t t = 0; t < NUM_TIME_ELEMENTS; t++) {
-        for (uint32_t j = 0; j < NUM_MEL_BINS; j++) {
-            
-            if (j != 0) {
-                printf(",");
-            }
-            
-            printf("%d",inmat[j][t]);
-            
-            
-        }
-        printf("\n");
-        
     }
-     
-     */
-
-    Tensor_t * tensor_out = eval_net(&(pcontext->net),tensor_in);
-    printf("%4.2f,%4.2f, %d, %d\n",tensor_out->x[0] / 128.0,tensor_out->x[1] / 128.0,max,min);
+    
+    Tensor_t * tensor_out = eval_net(&(p->net),tensor_in);
+    printf("%4.2f,%4.2f\n",tensor_out->x[0] / 128.0,tensor_out->x[1] / 128.0);
     tensor_out->delete_me(tensor_out);
 
 #endif
@@ -177,7 +166,10 @@ static void feats_callback(void * context, int8_t * feats) {
 int main(void) {
     FeatsCallbackContext featsContext;
     memset(&featsContext,0,sizeof(featsContext));
-    
+
+    gettimeofday(&tp, NULL);
+    ms = tp.tv_sec * 1000 + tp.tv_usec / 1000; //get current timestamp in milliseconds
+
 #if HAVE_NET
     featsContext.net = initialize_network();
 #endif

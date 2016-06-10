@@ -27,14 +27,15 @@ tinytensor_fullyconnected_layer.c
 tinytensor_lstm_layer.c
 tinytensor_features.c
 )
-
+#############
 add_library(hellomath STATIC 
 hellomath/fft.c 
 hellomath/hellomath.c)
-
+#############
 add_library(gtest STATIC gtest/gtest-all.cc)
 target_link_libraries(gtest pthread)
 
+############
 add_executable(unit-test 
 unit-test/main.cpp 
 unit-test/testconv.cpp
@@ -46,13 +47,22 @@ unit-test/testfeatures.cpp
 
 target_link_libraries(unit-test gtest tensor hellomath)
 
-
+###########
 add_executable(tinyfeats
 tinyfeats.cpp)
 
 target_link_libraries(tinyfeats tensor hellomath ${SNDFILE_LIBRARIES})
 
+
+###########
 add_executable(liverunner 
 liverunner.cpp)
 
 target_link_libraries(liverunner tensor hellomath ${PORTAUDIO_LIBRARIES})
+
+#########
+add_executable(wavrunner
+wavrunner.cpp)
+
+target_link_libraries(wavrunner tensor hellomath ${SNDFILE_LIBRARIES})
+

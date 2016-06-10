@@ -197,7 +197,7 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
     
     out->scale = in->scale;
     
-    printf("max=%d\t\ts=%d\n",max,out->scale);
+    //printf("max=%d\t\ts=%d\n",max,out->scale);
 
     
 }
