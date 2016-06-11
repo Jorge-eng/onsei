@@ -30,6 +30,15 @@ def load_sequence_batch(filePath, var='features'):
 
     return data
 
+def get_data_loader(modelType):
+
+    if modelType=='cnn':
+        data_loader = load_batch
+    elif modelType=='rnn':
+        data_loader = load_sequence_batch
+
+    return data_loader
+
 def permute_pair(X, y):
 
     perm = np.random.permutation(X.shape[0])
@@ -48,10 +57,7 @@ def split_pair(X, y, testSplit):
 
 def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=False, permuteBeforeSplit=(True,True)):
 
-    if modelType=='cnn':
-        data_loader = load_batch
-    elif modelType=='rnn':
-        data_loader = load_sequence_batch
+    data_loader = get_data_loader(modelType)
 
     # pos
     feaTrainPos = data_loader(inFiles[0], dataVar)
