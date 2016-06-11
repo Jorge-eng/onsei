@@ -16,19 +16,19 @@ except:
     print('Warning: pyplot failed to import')
     pass
 
-def predict(wavFile, model, modelType, winLen=None, winShift=20, verbose=0):
+def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=20, verbose=0):
 
     if winLen is None:
         winLen = model.input_shape[3]
 
-    feaStream, starts = fbank_stream(wavFile, winLen, winShift, modelType)
+    feaStream, starts = fbank_wav_stream(wavFile, winLen, winShift, modelType)
     feaStream = (feaStream-7) / 12
 
     prob = model.predict_proba(feaStream, batch_size=128, verbose=verbose)
 
     return prob, starts
 
-def fbank_stream(wavFile, winLen, winShift, modelType):
+def fbank_wav_stream(wavFile, winLen, winShift, modelType):
 
     logM = audioproc.wav2fbank(wavFile)
     nBands = logM.shape[0]
@@ -75,7 +75,7 @@ def detect_events(prob, detWinLen=2, detWait=10, detTh=1.5):
 
 def detect_online(wav, prob_prev, model, modelType, winLen=None, detWait=10, detTh=1.5, waitCount=0, waiting=False):
 
-    prob, starts = predict(wav, model, modelType, winLen, verbose=0)
+    prob, starts = predict_wav_stream(wav, model, modelType, winLen, verbose=0)
     prob = prob[0, 1]
 
     detect = np.float32(0)
@@ -118,10 +118,9 @@ def wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, 
 
     return detect
 
-if __name__ == '__main__':
+def get_model(modelTag):
 
-    wavFile = sys.argv[1]
-    infoFile = os.path.join(MODEL_PATH, sys.argv[2]+'.mat')
+    infoFile = os.path.join(MODEL_PATH, modelTag+'.mat')
 
     info = loadmat(infoFile)
     modelDef = info['modelDef'][0]
@@ -131,10 +130,41 @@ if __name__ == '__main__':
 
     model = data.load_model(modelDef, modelWeights)
 
-    prob, startTimes = predict(wavFile, model, modelType, winLen=winLen)
+    return model, modelType, winLen
+ 
 
-    detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
-    #detect = wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, detTh=1.5)
+if __name__ == '__main__':
+    # Usage: 
+    # $ python predict_spec.py audio in.wav out.mat model_name
+    # $ python predict_spec.py features in.mat out.mat model_name
 
-    savemat('prob.mat',{'prob':prob,'startTimes':startTimes,'detect':detect})
+    inType = sys.argv[1]
+    inFile = sys.argv[2]
+    outFile = sys.argv[3]
+    modelTag = sys.argv[4]
+
+    model, modelType, winLen = get_model(modelTag)
+
+    if inType == 'audio':
+
+        prob, startTimes = predict_wav_stream(inFile, model, modelType, winLen=winLen)
+
+        # Batch sequence detection
+        detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
+
+        # Online sequence detection
+        #detect = wav2detect(inFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, detTh=1.5)
+
+        savemat(outFile, {'prob': prob, 'startTimes': startTimes, 'detect': detect})
+
+    elif inType == 'features':
+
+        data_loader = data.get_data_loader(modelType)
+        
+        features = data_loader(inFile, var='features')
+
+        pdb.set_trace()
+        prob = model.predict_proba(features, batch_size=128, verbose=1)
+
+        savemat(outFile, {'prob': prob})
 
