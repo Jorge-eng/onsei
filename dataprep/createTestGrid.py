@@ -28,6 +28,9 @@ for i in idMatch:
         else:
             features = np.append(features, fea, axis=2)
 
+# Normalization (Todo...)
+features = (features - 7) / 12
+
 savemat(outName, {'features': features, 'identity': identity, 'sampleType': sampleType,
-                  'idMatch', idMatch, 'condMatch', condMatch})
+                  'idMatch': idMatch, 'condMatch': condMatch})
 
