@@ -163,7 +163,6 @@ if __name__ == '__main__':
         
         features = data_loader(inFile, var='features')
 
-        pdb.set_trace()
         prob = model.predict_proba(features, batch_size=128, verbose=1)
 
         savemat(outFile, {'prob': prob})
