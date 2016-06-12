@@ -1,5 +1,6 @@
 import numpy as np
 import audioproc as ap
+from createTrainingFeatures import load_features, get_conditions
 import sys, os
 from scipy.io import savemat
 import glob
@@ -48,18 +49,20 @@ def bin2fbank_batch(dirName, matcher=None):
 
     return logM
 
-# Input audio directory
-dirName = sys.argv[1]
+if __name__ == '__main__':
 
-# Positive examples
-posMatchers = ['kwClip']
-features = load_features(dirName, posMatchers)
-features = ((np.float32(features) + 80) / 140 * 12) + 7
-savemat('spec_pos.mat',{'features': features})
+    # Input audio directory
+    dirName = sys.argv[1]
 
-# Negative examples
-negMatchers = ['kwRevClip','speechClip','backClip','earlyImplantClip','lateImplantClip','partialEarlyClip','partialLateClip']
-features = load_features(dirName, negMatchers)
-features = ((np.float32(features) + 80) / 140 * 12) + 7
-savemat('spec_neg.mat',{'features': features})
+    posMatchers, negMatchers = get_conditions()
+
+    # Positive examples
+    features = load_features(dirName, posMatchers)
+    features = ((np.float32(features) + 80) / 140 * 12) + 7
+    savemat('spec_pos.mat',{'features': features})
+
+    # Negative examples
+    features = load_features(dirName, negMatchers)
+    features = ((np.float32(features) + 80) / 140 * 12) + 7
+    savemat('spec_neg.mat',{'features': features})
 
