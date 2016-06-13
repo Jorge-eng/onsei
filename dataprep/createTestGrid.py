@@ -21,7 +21,7 @@ if len(glob.glob(os.path.join(dirName,'*.wav'))) > 0:
     normalizer = lambda x: (x - 7) / 12
 elif len(glob.glob(os.path.join(dirName,'*.bin'))) > 0:
     load_features = load_features_tinyfeats
-    normalizer = lambda x: ((np.float32(x) + 80)/ 140 * 12) + 7
+    normalizer = lambda x: (np.float32(x) + 80) / 140 
 
 identity = []
 sampleType = []
