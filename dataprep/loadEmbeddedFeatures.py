@@ -19,7 +19,7 @@ def load_features(dirName, matchers):
 
 def find_bin_files(wavDir, matcher=None):
 
-    # Find all audio files in the directory
+    # Find all bin files in the directory
     allFiles = glob.glob(os.path.join(wavDir,'*.bin'))
     binFiles = []
     for f in allFiles:
