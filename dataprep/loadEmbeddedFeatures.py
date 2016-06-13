@@ -1,6 +1,6 @@
 import numpy as np
 import audioproc as ap
-from createTrainingFeatures import load_features, get_conditions
+from createTrainingFeatures import get_conditions
 import sys, os
 from scipy.io import savemat
 import glob
