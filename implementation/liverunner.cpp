@@ -19,9 +19,16 @@
 #include "unit-test/data/model_may31_small_sigm.c"
 #endif 
 
+#define MIN_PROB_TO_USE_FOR_SUM (40)
+#define OUTBUF_SUM_LEN (2)
+#define NET_RUN_PERIOD (20)
+#define MIN_FEAT (-40)
+#define FEAT_OFFSET (80)
+#define MIN_FEAT_COUNT (200)
 #define SAMPLE_RATE  (16000)
+#define THRESHOLD (150)
 #define FRAMES_PER_BUFFER (128)
-#define NUM_SECONDS     (60)
+#define NUM_SECONDS     (3600)
 #define NUM_CHANNELS    (1)
 /* #define DITHER_FLAG     (paDitherOff) */
 #define DITHER_FLAG     (0) /**/
@@ -108,6 +115,8 @@ typedef struct {
 static void feats_callback(void * context, int8_t * feats) {
     FeatsCallbackContext * p = (FeatsCallbackContext *) context;
     static uint32_t counter = 0;
+    static Weight_t outbuf[OUTBUF_SUM_LEN] = {0};
+    static uint32_t ioutbuf = 0;
     //desire to have the dims as 40 x 199
     //data comes in as 40 x 1 vectors, soo
     
@@ -116,7 +125,7 @@ static void feats_callback(void * context, int8_t * feats) {
     //get feats
 
     for (uint32_t i = 0; i < NUM_MEL_BINS; i++) {
-        p->buf[i][p->bufidx] = feats[i] + 80;
+        p->buf[i][p->bufidx] = feats[i] + FEAT_OFFSET;
     }
     
     
@@ -125,7 +134,7 @@ static void feats_callback(void * context, int8_t * feats) {
     }
     
     
-    if (++counter % 20) {
+    if (++counter % NET_RUN_PERIOD) {
         return;
     }
     
@@ -152,9 +161,46 @@ static void feats_callback(void * context, int8_t * feats) {
         }
     }
     
+    bool okay_to_run = false;
+    uint32_t feat_count = 0;
+    const uint32_t len = tensor_in->dims[0]*tensor_in->dims[1]*tensor_in->dims[2]*tensor_in->dims[3];
+    for (uint32_t i = 0; i < len; i++) {
+        if (tensor_in->x[i] > MIN_FEAT + FEAT_OFFSET) {
+            feat_count++;
+        }
+    }
+    
+    if (feat_count > MIN_FEAT_COUNT) {
+        okay_to_run = true;
+    }
+    
+    if (!okay_to_run) {
+        memset(outbuf,0,sizeof(outbuf));
+        tensor_in->delete_me(tensor_in);
+        return;
+    }
+
+    
     Tensor_t * tensor_out = eval_net(&(p->net),tensor_in);
-    printf("%4.2f,%4.2f\n",tensor_out->x[0] / 128.0,tensor_out->x[1] / 128.0);
+
+    outbuf[ioutbuf++ % OUTBUF_SUM_LEN] = tensor_out->x[1];
+    
+    int outsum = 0;
+    for (uint32_t i = 0; i < OUTBUF_SUM_LEN; i++) {
+        if (outbuf[i] > MIN_PROB_TO_USE_FOR_SUM) {
+            outsum += outbuf[i];
+        }
+    }
+
+    
+
+    printf("%4.2f,%4.2f,%d\n",tensor_out->x[0] / 128.0,tensor_out->x[1] / 128.0,outsum);
     tensor_out->delete_me(tensor_out);
+
+    if (outsum > THRESHOLD) {
+        printf("THRESHOLD!\n");
+        putchar('\a');
+    }
 
 #endif
 }
