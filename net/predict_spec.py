@@ -167,3 +167,14 @@ if __name__ == '__main__':
 
         savemat(outFile, {'prob': prob})
 
+    elif inType == 'tinyfeats':
+
+        from loadEmbeddedFeatures import load_bin
+        features = load_bin(inFile) # Todo: enable loading RNN formatted data
+        features = (np.float32(features) + 80) / 140
+        features = features.reshape(1, 1, features.shape[0], features.shape[1])
+
+        prob = model.predict_proba(features, batch_size=128, verbose=1)
+
+        savemat(outFile, {'prob': prob})
+
