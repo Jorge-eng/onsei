@@ -13,11 +13,11 @@ static void get_conv2d_output_size(const void * context,uint32_t * dims) {
     
 }
 
-inline static Weight_t get_max_in_region(const uint32_t num_rows, const uint32_t num_cols, const Weight_t * const startPos, const uint32_t num_image_cols) {
+inline static Weight_t get_max_in_region(const uint32_t num_rows, const uint32_t num_cols, const ImagePixel_t * const startPos, const uint32_t num_image_cols) {
     uint32_t j,i;
-    Weight_t max = -MAX_WEIGHT;
+    ImagePixel_t max = -MAX_WEIGHT;
     
-    const Weight_t * p = startPos;
+    const ImagePixel_t * p = startPos;
     for (j = 0; j < num_rows; j++) {
         for (i = 0; i < num_cols; i++) {
             max = p[i] > max ? p[i] : max;
@@ -29,7 +29,7 @@ inline static Weight_t get_max_in_region(const uint32_t num_rows, const uint32_t
     return max;
 }
 
-static void eval_maxpool_single_image(const uint32_t * pool_dims,Weight_t * const output_image_start,const uint32_t num_output_image_rows, const uint32_t num_output_image_cols, const Weight_t * input_image_start, const uint32_t num_input_image_rows, const uint32_t num_input_image_cols) {
+static void eval_maxpool_single_image(const uint32_t * pool_dims,ImagePixel_t * const output_image_start,const uint32_t num_output_image_rows, const uint32_t num_output_image_cols, const ImagePixel_t * input_image_start, const uint32_t num_input_image_rows, const uint32_t num_input_image_cols) {
     
     
     const uint32_t num_row_regions = num_input_image_rows / pool_dims[0];
@@ -46,8 +46,8 @@ static void eval_maxpool_single_image(const uint32_t * pool_dims,Weight_t * cons
     
     
     {
-        const Weight_t * input_image_row = input_image_start;
-        Weight_t * output_image_row = output_image_start;
+        const ImagePixel_t * input_image_row = input_image_start;
+        ImagePixel_t * output_image_row = output_image_start;
         
         //main part of image
         for (iregionrow = 0; iregionrow < num_row_regions; iregionrow++) {
@@ -55,7 +55,7 @@ static void eval_maxpool_single_image(const uint32_t * pool_dims,Weight_t * cons
             //start of row
             
             
-            const Weight_t * prow = &input_image_row[0];
+            const ImagePixel_t * prow = &input_image_row[0];
             
             for (iregioncol = 0; iregioncol < num_col_regions; iregioncol++) {
                 output_image_row[iregioncol] = get_max_in_region(pool_dims[0],
@@ -75,8 +75,8 @@ static void eval_maxpool_single_image(const uint32_t * pool_dims,Weight_t * cons
     if (leftover_cols > 0) {
         
         //start input/output rows positioned at the very right edge
-        const Weight_t * input_image_row = &input_image_start[num_col_regions*pool_dims[1]];
-        Weight_t * output_image_row = &output_image_start[num_col_regions];
+        const ImagePixel_t * input_image_row = &input_image_start[num_col_regions*pool_dims[1]];
+        ImagePixel_t * output_image_row = &output_image_start[num_col_regions];
         
         //go down right edge
         for (iregionrow = 0; iregionrow < num_row_regions; iregionrow++) {
@@ -92,8 +92,8 @@ static void eval_maxpool_single_image(const uint32_t * pool_dims,Weight_t * cons
     //handle bottom edge
     if (leftover_rows > 0) {
         //start input/output rows position at teh very bottom edge
-        const Weight_t * p = input_image_start + num_input_image_cols * pool_dims[0] * num_row_regions;
-        Weight_t * output_image_row = output_image_start + num_output_image_cols * num_row_regions;
+        const ImagePixel_t * p = input_image_start + num_input_image_cols * pool_dims[0] * num_row_regions;
+        ImagePixel_t * output_image_row = output_image_start + num_output_image_cols * num_row_regions;
         
         for (iregioncol = 0; iregioncol < num_col_regions; iregioncol++) {
             output_image_row[iregioncol] = get_max_in_region(leftover_rows, pool_dims[1],p, num_input_image_cols);
@@ -103,8 +103,8 @@ static void eval_maxpool_single_image(const uint32_t * pool_dims,Weight_t * cons
     
     //handle lower right corner
     if (leftover_rows > 0 && leftover_cols > 0) {
-        const Weight_t * p = input_image_start + num_input_image_cols * pool_dims[0] * num_row_regions + pool_dims[1]*num_col_regions;
-        Weight_t * output_image_row = output_image_start + num_output_image_cols * num_row_regions;
+        const ImagePixel_t * p = input_image_start + num_input_image_cols * pool_dims[0] * num_row_regions + pool_dims[1]*num_col_regions;
+        ImagePixel_t * output_image_row = output_image_start + num_output_image_cols * num_row_regions;
         
         output_image_row[num_col_regions] = get_max_in_region(leftover_rows, leftover_cols,p, num_input_image_cols);
     }
@@ -112,7 +112,7 @@ static void eval_maxpool_single_image(const uint32_t * pool_dims,Weight_t * cons
 }
 
 
-static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_t * in) {
+static void eval_conv2d_direct(const void * context,ImageTensor_t * out,const ImageTensor_t * in) {
     const ConvLayer2D_t * layer = (ConvLayer2D_t *)context;
     
     uint32_t iout;
@@ -130,10 +130,10 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
     const Weight_t * weight_start = layer->weights->x;
     const uint32_t weight_filter_size = layer->weights->dims[1] * layer->weights->dims[2] * layer->weights->dims[3];
     
-    const Weight_t * const image_start = in->x;    
+    const ImagePixel_t * const image_start = in->x;
     const Weight_t * bias = layer->biases->x;
         
-    Weight_t * out_start = out->x;
+    ImagePixel_t * out_start = out->x;
     const uint32_t out_image_size = layer->output_dims[3] * layer->output_dims[2];
     
     assert(layer->weights->dims[1] == in->dims[1]);

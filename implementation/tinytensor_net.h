@@ -16,7 +16,7 @@ typedef struct {
     uint32_t num_layers;
 } ConstSequentialNetwork_t;
     
-Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input);
+ImageTensor_t * eval_net(const ConstSequentialNetwork_t * net,ImageTensor_t * input);
     
 
 

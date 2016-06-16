@@ -31,11 +31,11 @@ int8_t tiny_tensor_get_scaling(Weight_t maxWeight);
 
 
 void tinytensor_convolve3d_direct_maxpooling(
-                                             Weight_t * out,
+                                             ImagePixel_t * out,
                                              const uint32_t * pool_dims,
                                              const Weight_t * weights,
                                              int8_t weight_scaling,
-                                             const Weight_t * image,
+                                             const ImagePixel_t * image,
                                              int8_t incoming_scaling,
                                              const Weight_t bias,
                                              int8_t bias_scaling,

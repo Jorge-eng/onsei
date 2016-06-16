@@ -6,7 +6,7 @@ from keras.models import Sequential
 from collections import defaultdict
 from keras.optimizers import Adam
 
-
+Q_FIXED_POINT = 15
 k_activation_func_map = {'relu' : 'tinytensor_relu', 'sigmoid' : 'tinytensor_sigmoid', 'linear' :'tinytensor_linear'}
 
 def write_header(f):
@@ -28,17 +28,17 @@ def write_fixed_point_tensor(name,weights,f):
     if scale < 0:
         scale = 0
 
-    if scale > 8:
-        scale = 8
+    if scale > Q_FIXED_POINT:
+        scale = Q_FIXED_POINT
 
     print 'scale=%d' % scale   
-    vec = (weights.flatten() * (2**(7+scale))).astype(int).tolist()
+    vec = (weights.flatten() * (2**(Q_FIXED_POINT+scale))).astype(int).tolist()
     vecstr = ['%d' % v for v in vec]
     weights_name = '%s_x' % name
     dims_name = '%s_dims' % name
     myweights = 'const static Weight_t %s[%d] = {%s};\n' % (weights_name,len(vec),','.join(vecstr))
     mydims = 'const static uint32_t %s[4] = {%d,%d,%d,%d};\n' % (dims_name,dims[0],dims[1],dims[2],dims[3])
-    mystruct = 'const static ConstTensor_t %s = {&%s[0],&%s[0],%d};\n' % (name,weights_name,dims_name,scale)
+    mystruct = 'const static ConstWeightTensor_t %s = {&%s[0],&%s[0],%d};\n' % (name,weights_name,dims_name,scale)
 
     f.write(myweights)
     f.write(mydims)

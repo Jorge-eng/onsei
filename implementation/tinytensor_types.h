@@ -9,7 +9,9 @@ extern "C" {
 #define MAX_WEIGHT (0x7F)
 #define MAX_LONG_WEIGHT (0x7FFF)
 
-typedef int8_t Weight_t;
+typedef int16_t Weight_t;
+typedef int8_t ImagePixel_t;
+
 typedef Weight_t Data_t; //data and weight are the same for now
     
 //callback defs
@@ -23,22 +25,28 @@ typedef void (*SquashFunc_t)(Weight_t * y, int8_t * out_scale, int32_t x,int8_t 
 typedef void(*TensorDelete_t)(void * context);
 
 typedef struct{
-    Weight_t * x;
+    ImagePixel_t * x;
     uint32_t dims[TENSOR_DIM];
     TensorDelete_t delete_me;
     int8_t scale;
-} Tensor_t;
+} ImageTensor_t;
+    
+typedef struct{
+    const ImagePixel_t * x;
+    const uint32_t dims[TENSOR_DIM];
+    const int8_t scale;
+} ConstImageTensor_t;
     
 typedef struct{
     const Weight_t * x;
     const uint32_t * dims;
-    int8_t scale;
-} ConstTensor_t;
+    const int8_t scale;
+} ConstWeightTensor_t;
 
 /*
       LAYER DEFS
  */
-typedef void (*ConstLayerEval_t)(const void * context,Tensor_t * out,const Tensor_t * in);
+typedef void (*ConstLayerEval_t)(const void * context,ImageTensor_t * out,const ImageTensor_t * in);
 
 typedef void (*ConstLayerDims_t)(const void * context,uint32_t * dims);
 

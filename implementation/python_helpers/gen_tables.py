@@ -2,6 +2,7 @@
 
 import numpy as np
 import sys
+max_int = 32767
 
 def write(my_str):
     sys.stdout.write(my_str)
@@ -12,11 +13,12 @@ def gen_tanh_table():
 
     #bounds are between -1 and 1 on the output, it's symmetric
     #so assume only inputs on domain [0,inf)
-    Q = 7
+    Q = 10
     largest_number = (2**Q - 1) / float(2 ** Q)
 
-    xmax = int(np.arctanh(largest_number) * (2**Q)) + 2
-
+    xmax = int(np.arctanh(largest_number) * (2**Q)) + 2 
+    if xmax > max_int:
+        xmax = max_int
 
     table = []
     for i in range(xmax):

@@ -8,8 +8,8 @@ extern "C" {
 #endif
     
 typedef struct {
-    const ConstTensor_t * weights;
-    const ConstTensor_t * biases;
+    const ConstWeightTensor_t * weights;
+    const ConstWeightTensor_t * biases;
     const uint32_t * output_dims;
     const uint32_t * input_dims;
     const Weight_t incoming_dropout;

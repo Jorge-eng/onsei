@@ -6,10 +6,10 @@
 
 
 
-Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input) {
+ImageTensor_t * eval_net(const ConstSequentialNetwork_t * net,ImageTensor_t * input) {
 
-    Tensor_t * current_input = input;
-    Tensor_t * current_output = 0;
+    ImageTensor_t * current_input = input;
+    ImageTensor_t * current_output = 0;
     uint32_t ilayer;
 
     for (ilayer = 0; ilayer < net->num_layers; ilayer++) {
@@ -19,7 +19,7 @@ Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input) {
         layer->get_output_dims(layer->context,&output_dims[0]);
         
         //allocate output
-        current_output = tinytensor_create_new_tensor(output_dims);
+        current_output = tinytensor_create_new_image_tensor(output_dims);
 
         //perform evaluation
         layer->eval(layer->context,current_output,current_input);

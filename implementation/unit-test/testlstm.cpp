@@ -24,8 +24,8 @@ protected:
         }
     }
     
-    Tensor_t * tensor_in;
-    Tensor_t * tensor_out;
+    ImageTensor_t * tensor_in;
+    ImageTensor_t * tensor_out;
     
 };
 
