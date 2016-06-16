@@ -27,7 +27,7 @@ static void eval_fullyconnected(const void * context,ImageTensor_t * out,const I
     ImagePixel_t * output = out->x;
     const uint32_t out_len = out->dims[0] * out->dims[1] * out->dims[2] * out->dims[3];
     
-    Weight_t temp_weight;
+    ImagePixel_t temp_pixel;
     int8_t temp_scale;
     uint32_t i;
     
@@ -78,7 +78,7 @@ static void eval_fullyconnected(const void * context,ImageTensor_t * out,const I
         //add bias
         temp64 += bias32;
         
-        temp64 >>= QFIXEDPOINT;
+        temp64 >>= QFIXEDPOINT_INT16;
         temp64 >>= layer->weights->scale;
         temp64 >>= in->scale;
         
@@ -95,10 +95,10 @@ static void eval_fullyconnected(const void * context,ImageTensor_t * out,const I
             foo++;
         }
 
-        layer->activation(&temp_weight,&temp_scale,(int32_t)temp64,0);
+        layer->activation(&temp_pixel,&temp_scale,(int32_t)temp64,0);
         assert(temp_scale == 0);
         
-        *output = temp_weight;
+        *output = temp_pixel;
         output++;
     }
     //printf("\n");

@@ -4,10 +4,6 @@
 #include "../tinytensor_fullyconnected_layer.h"
 #include "../tinytensor_tensor.h"
 
-#include "data/fullweights.c"
-#include "data/fullbiases.c"
-#include "data/small_model_ref.c"
-
 #include "data/big_full_weights.c"
 #include "data/big_full_bias.c"
 #include "data/big_full_input.c"
@@ -15,12 +11,11 @@
 
 #define NO_DROPOUT (0)
 #define NO_HARD_MAX (0)
-static const uint32_t output_ref_dims[] = {1,1,1,1};
-const static FullyConnectedLayer_t small_layer = {&fullweights,&fullbiases,output_ref_dims,small_model_ref_dims,NO_DROPOUT,tinytensor_linear,NO_HARD_MAX};
+
 
 const static uint32_t big_input_ref_dims[4] = {1,1,1,3648};
 const static uint32_t big_output_ref_dims[4] = {1,1,1,512};
-const static FullyConnectedLayer_t big_layer = {&big_full_weights,&big_full_bias,big_output_ref_dims,big_input_ref_dims,NO_DROPOUT,tinytensor_relu,NO_HARD_MAX};
+const static FullyConnectedLayer_t big_layer = {&big_full_weights,&big_full_bias,big_output_ref_dims,big_input_ref_dims,NO_DROPOUT,tinytensor_linear,NO_HARD_MAX};
 
 class TestFull : public ::testing::Test {
 protected:
@@ -63,9 +58,9 @@ protected:
     }
      */
     
-    Tensor_t * tensor_in;
-    Tensor_t * tensor_out;
-    Tensor_t * ref;
+    ImageTensor_t * tensor_in;
+    ImageTensor_t * tensor_out;
+    ImageTensor_t * ref;
     int idx;
     
 };
@@ -73,23 +68,13 @@ protected:
 class DISABLED_TestFull : public TestFull {};
 
 
-TEST_F(TestFull, TestSmall) {
-    ConstLayer_t layer = tinytensor_create_fullyconnected_layer(&small_layer);
-    
-    tensor_in = tinytensor_clone_new_tensor(&small_model_ref);
-    tensor_out = tinytensor_create_new_tensor(output_ref_dims);
-    
-    layer.eval(layer.context,tensor_out,tensor_in);
-    
-    ASSERT_NEAR(tensor_out->x[0],19,5);
-}
 
 TEST_F(TestFull, TestBig) {
     
     ConstLayer_t layer = tinytensor_create_fullyconnected_layer(&big_layer);
     
-    tensor_in = tinytensor_clone_new_tensor(&big_full_input);
-    tensor_out = tinytensor_create_new_tensor(big_output_ref_dims);
+    tensor_in = tinytensor_clone_new_image_tensor(&big_full_input);
+    tensor_out = tinytensor_create_new_image_tensor(big_output_ref_dims);
     
     layer.eval(layer.context,tensor_out,tensor_in);
     

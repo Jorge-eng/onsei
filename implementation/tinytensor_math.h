@@ -19,10 +19,10 @@ extern "C" {
     ((int16_t)(((int32_t)(a * b)) >> QFIXEDPOINT_INT16))
 
 /* INPUTS ARE EXPECTED TO BE IN Q7, JUST POTENTIALLY VERY LARGE IN MAGNITUDE */
-void tinytensor_tanh(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
-void tinytensor_sigmoid(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
-void tinytensor_linear(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
-void tinytensor_relu(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
+void tinytensor_tanh(ImagePixel_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
+void tinytensor_sigmoid(ImagePixel_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
+void tinytensor_linear(ImagePixel_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
+void tinytensor_relu(ImagePixel_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
 
 void tinytensor_descale(Weight_t * y, int8_t * out_scale, int32_t x, int8_t in_scale);
 int8_t tiny_tensor_compare_scaled_numbers(const Weight_t x1, const int8_t scale1, const Weight_t x2, const int8_t scale2);
