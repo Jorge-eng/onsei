@@ -103,7 +103,7 @@ TEST_F(TestFull, TestBig) {
         
         idx = i;
         
-        ASSERT_NEAR( refval , val,20);
+        ASSERT_NEAR( refval , val,8);
     }
     
     idx = -1;
