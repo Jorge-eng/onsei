@@ -1,7 +1,6 @@
 #include "gtest/gtest.h"
 #include "../tinytensor_net.h"
 
-/*
 #include "data/model_may31_small_sigm.c"
 #include "data/test_input_rand.c"
 #include "data/test_input.c"
@@ -36,7 +35,7 @@ protected:
 
 class DISABLED_TestNet : public TestNet {};
 
-
+/*
 TEST_F (DISABLED_TestNet,TestManually) {
     const int32_t tol = 8;
     tensor_in = tinytensor_clone_new_tensor(&test_input);
@@ -112,7 +111,6 @@ TEST_F (DISABLED_TestNet,TestManually) {
 }
  */
 
-/*
 TEST_F(TestNet, Realistic1) {
 
     tensor_in = tinytensor_clone_new_tensor(&test_input_rand);
@@ -183,7 +181,5 @@ TEST_F(TestNet, Realistic5) {
     
     
 }
- 
- */
 
 
