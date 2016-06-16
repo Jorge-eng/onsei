@@ -63,7 +63,7 @@ static void eval_fullyconnected(const void * context,ImageTensor_t * out,const I
         //make bia
         bias_scaling_diff =  layer->weights->scale + in->scale - layer->biases->scale;
         
-        bias32 = bias[iweightrow]; //Q15 + QB
+        bias32 = bias[iweightcol]; //Q15 + QB
         bias32 <<= QFIXEDPOINT; //Q22 + QB
         
         if (bias_scaling_diff > 0) {

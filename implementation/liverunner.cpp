@@ -115,7 +115,7 @@ typedef struct {
 static void feats_callback(void * context, int8_t * feats) {
     FeatsCallbackContext * p = (FeatsCallbackContext *) context;
     static uint32_t counter = 0;
-    static Weight_t outbuf[OUTBUF_SUM_LEN] = {0};
+    static ImagePixel_t outbuf[OUTBUF_SUM_LEN] = {0};
     static uint32_t ioutbuf = 0;
     //desire to have the dims as 40 x 199
     //data comes in as 40 x 1 vectors, soo
@@ -144,9 +144,9 @@ static void feats_callback(void * context, int8_t * feats) {
     
 #if HAVE_NET
     
-    Tensor_t * tensor_in = tinytensor_create_new_tensor(dims);
+    ImageTensor_t * tensor_in = tinytensor_create_new_image_tensor(dims);
     
-    Weight_t * px = tensor_in->x;
+    ImagePixel_t * px = tensor_in->x;
     for (uint32_t i = 0; i < NUM_MEL_BINS; i++ ) {
         uint32_t bufidx = p->bufidx;
         
@@ -181,7 +181,7 @@ static void feats_callback(void * context, int8_t * feats) {
     }
 
     
-    Tensor_t * tensor_out = eval_net(&(p->net),tensor_in);
+    ImageTensor_t * tensor_out = eval_net(&(p->net),tensor_in);
 
     outbuf[ioutbuf++ % OUTBUF_SUM_LEN] = tensor_out->x[1];
     

@@ -35,7 +35,7 @@ void results_callback(void * context, int8_t * melbins) {
         if (temp32 > MAX_WEIGHT) {
             temp32 = MAX_WEIGHT;
         }
-        p->buf[i][p->bufidx] = (Weight_t)temp32;
+        p->buf[i][p->bufidx] = (ImagePixel_t)temp32;
     }
     
     
@@ -57,9 +57,9 @@ void results_callback(void * context, int8_t * melbins) {
     
     const uint32_t dims[4] = {1,1,NUM_MEL_BINS,NUM_TIME_STEPS};
     
-    Tensor_t * tensor_in = tinytensor_create_new_tensor(dims);
+    ImageTensor_t * tensor_in = tinytensor_create_new_image_tensor(dims);
     
-    Weight_t * px = tensor_in->x;
+    ImagePixel_t * px = tensor_in->x;
     for (uint32_t i = 0; i < NUM_MEL_BINS; i++ ) {
         uint32_t bufidx = p->bufidx;
 
@@ -75,7 +75,7 @@ void results_callback(void * context, int8_t * melbins) {
     }
         
     
-    Tensor_t * tensor_out = eval_net(&(p->net),tensor_in);
+    ImageTensor_t * tensor_out = eval_net(&(p->net),tensor_in);
     
     std::cout << (int32_t)tensor_out->x[0] << "," << (int32_t)tensor_out->x[1] << std::endl;
     
