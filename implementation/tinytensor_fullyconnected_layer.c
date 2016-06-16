@@ -63,7 +63,7 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         //compensate for weight scaling
         bias_scaling_diff =  layer->weights->scale + in->scale - layer->biases->scale;
         
-        bias32 = bias[iweightrow];
+        bias32 = bias[iweightcol];
         bias32 <<= QFIXEDPOINT;
         
         if (bias_scaling_diff > 0) {
@@ -115,7 +115,7 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     out->scale = 0;
 
     
-    //printf("max=%d\t\ts=%d\n",max,out->scale);
+    printf("max=%d\t\ts=%d\n",max,out->scale);
 
 
 }
