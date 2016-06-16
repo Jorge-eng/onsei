@@ -55,16 +55,16 @@ static void eval_fullyconnected(const void * context,ImageTensor_t * out,const I
         }
         
         
-
+        //accumulator is Q22 + QW + QI  b/c weights are Q15, and image is Q7
         //dropout
-        temp64 = accumulator * dropout_weight;
-        temp64 >>= QFIXEDPOINT;
+        temp64 = accumulator * dropout_weight; //Q29 + QW + QI
+        temp64 >>= QFIXEDPOINT; //Q22 + QW + QI
         
-        //compensate for weight scaling
+        //make bia
         bias_scaling_diff =  layer->weights->scale + in->scale - layer->biases->scale;
         
-        bias32 = bias[iweightrow];
-        bias32 <<= QFIXEDPOINT;
+        bias32 = bias[iweightrow]; //Q15 + QB
+        bias32 <<= QFIXEDPOINT; //Q22 + QB
         
         if (bias_scaling_diff > 0) {
             //bias is bigger!
@@ -76,11 +76,11 @@ static void eval_fullyconnected(const void * context,ImageTensor_t * out,const I
         
         
         //add bias
-        temp64 += bias32;
+        temp64 += bias32; //Q22 + QW + QI
         
-        temp64 >>= QFIXEDPOINT_INT16;
-        temp64 >>= layer->weights->scale;
-        temp64 >>= in->scale;
+        temp64 >>= QFIXEDPOINT_INT16; //Q7 + QW + QI
+        temp64 >>= layer->weights->scale; //Q7 + QI
+        temp64 >>= in->scale; //Q7
         
         if (temp64 > INT32_MAX) {
             temp64 = INT32_MAX;
