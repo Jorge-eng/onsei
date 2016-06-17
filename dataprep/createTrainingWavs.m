@@ -1,5 +1,5 @@
-function createQuickyTrainingWavs(dataFile, outDir)
-% createQuickyTrainingWavs(dataFile, outDir)
+function createTrainingWavs(dataFile, outDir)
+% createTrainingWavs(dataFile, outDir)
 
 load(dataFile, 'info')
 [~,~] = mkdir(outDir);
