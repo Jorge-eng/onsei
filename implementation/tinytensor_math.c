@@ -215,14 +215,15 @@ void tinytensor_convolve3d_direct_maxpooling(
     int64_t temp64;
     int32_t bias32;
     int8_t bias_scaling_diff;
-    const int16_t dropout_weight = (1 << QFIXEDPOINT) - incoming_dropout;
-    
+   // const int16_t dropout_weight = (1 << QFIXEDPOINT) - incoming_dropout;
+    //const int16_t dropout_weight = incoming_dropout == 0 ? 128 : incoming_dropout;
+    const int16_t dropout_weight = 128;
     Weight_t * out_row = out;
     
     assert(activation);
-//    if (num_images > 1) {
-//        bias32 = 0;
-//    }
+    if (num_images > 1) {
+        bias32 = 0;
+    }
     
     for (ipool_row = 0; ipool_row < num_pool_rows; ipool_row++) {
         for (ipool_col = 0; ipool_col < num_pool_cols; ipool_col++)
@@ -312,9 +313,12 @@ void tinytensor_convolve3d_direct_maxpooling(
             //add bias
             temp64 += bias32;
             
-            temp64 >>= QFIXEDPOINT;
             temp64 >>= weight_scaling;
             temp64 >>= input_scaling;
+            
+            temp64 += (1 << (QFIXEDPOINT - 1));
+            temp64 >>= QFIXEDPOINT;
+
 
             if (temp64 > INT32_MAX) {
                 temp64 = INT32_MAX;

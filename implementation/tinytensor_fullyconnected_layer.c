@@ -32,7 +32,7 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     uint32_t i;
     
     const int16_t dropout_weight = (1 << QFIXEDPOINT) - layer->incoming_dropout;
-
+    //const int16_t dropout_weight = 128;
     uint32_t iweightrow,iweightcol;
     int64_t accumulator;
     int64_t temp64;
@@ -115,7 +115,7 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     out->scale = 0;
 
     
-    printf("max=%d\t\ts=%d\n",max,out->scale);
+    //printf("max=%d\t\ts=%d\n",max,out->scale);
 
 
 }
