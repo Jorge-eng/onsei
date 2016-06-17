@@ -56,7 +56,8 @@ randomSpeechPerKw = 2;
 noiseDir = '~/Dropbox/Data/keyword/noiseWavs';
 d = dir(fullfile(noiseDir, '*.wav'));
 noiseFiles = {d.name};
-noiseScales = 6:3:30;
+%noiseScales = 6:3:30;
+noiseScales = Inf;
 
 for j = 1:length(fileNames)
     disp(['File ' num2str(j) ' out of ' num2str(length(fileNames))])
@@ -94,21 +95,16 @@ for j = 1:length(fileNames)
         
         % keyword
         kw = audioread(fn, [cs-pad+1 cs-pad+clipLen]);
-        noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
-        kwClip{j}{end+1} = kw + noise;
-        
-        % stretched keyword
-        
-        % pitch-shifted keyword
-        %kwUp = shiftAndStretch(kw(:,1), Fs, 1, 9, 8);
-        
-        % noise-added keyword
         
         % window for smooth-edge implants, same one for revKw and speech
         window = getWindow(cd+1, round(0.05*Fs), size(kw,2));
         
+        kwVoc = applyRandomShift(kw, Fs);
+        noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
+        kwClip{j}{end+1} = kwVoc + noise;
+        
         % reversed keyword
-        x = kw;
+        x = kwVoc;
         out = x(pad:pad+cd,:);
         in = flipud(x(pad:pad+cd,:));
         x(pad:pad+cd,:) = (1-window).*out + window.*in;
@@ -122,12 +118,14 @@ for j = 1:length(fileNames)
             out = x(pad:pad+cd,:);
             in = speech(starts(n):starts(n)+cd,:);
             x(pad:pad+cd,:) = (1-window).*out + window.*in;
+            x = applyRandomShift(x, Fs);
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
             speechClip{j}{end+1} = x + noise;
         end
         starts = 1 + floor(rand(1, randomSpeechPerKw)*(length(speech)-clipLen));
         for n = 1:randomSpeechPerKw
             x = speech(starts(n)+1:starts(n)+clipLen,:);
+            x = applyRandomShift(x, Fs);
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
             speechClip{j}{end+1} = x + noise;
         end
@@ -143,13 +141,16 @@ for j = 1:length(fileNames)
         out = x(impInd,:);
         in = speech(speechStart:speechStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
+        x = applyRandomShift(x, Fs);
         noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
         earlyImplantClip{j}{end+1} = x + noise;
         
         % partial late - missing early part
+        x = kw;
         backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
         in = background(backStart:backStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
+        x = applyRandomShift(x, Fs);
         noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
         partialLateClip{j}{end+1} = x + noise;
         
@@ -161,13 +162,16 @@ for j = 1:length(fileNames)
         out = x(impInd,:);
         in = speech(speechStart:speechStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
+        x = applyRandomShift(x, Fs);
         noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
         lateImplantClip{j}{end+1} = x + noise;
         
         % partial early -  missing late part
+        x = kw;
         backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
         in = background(backStart:backStart+(length(impInd)-1),:);
         x(impInd,:) = (1-window).*out + window.*in;
+        x = applyRandomShift(x, Fs);
         noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
         partialEarlyClip{j}{end+1} = x + noise;
             
@@ -181,6 +185,7 @@ for j = 1:length(fileNames)
             backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
             in = background(backStart:backStart+(length(impInd)-1),:);
             kwSh(impInd,:) = (1-window).*out + window.*in;
+            kwSh = applyRandomShift(kwSh, Fs);
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
             shiftLateClip{j}{end+1} = kwSh + noise;
         end
@@ -193,6 +198,7 @@ for j = 1:length(fileNames)
             backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
             in = background(backStart:backStart+(length(impInd)-1),:);
             kwSh(impInd,:) = (1-window).*out + window.*in;
+            kwSh = applyRandomShift(kwSh, Fs);
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
             shiftEarlyClip{j}{end+1} = kwSh + noise;
         end
@@ -204,7 +210,9 @@ for j = 1:length(fileNames)
     starts = 1:interval:interval*backPerFile;
     for n = 1:backPerFile
         noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen);
-        backClip{j}{end+1} = background(starts(n):(starts(n)-1)+clipLen,:) + noise;
+        x = background(starts(n):(starts(n)-1)+clipLen,:);
+        x = applyRandomShift(x, Fs);
+        backClip{j}{end+1} = x + noise;
     end
     
 end
@@ -242,3 +250,29 @@ noise = noise / noiseScales(scaleIdx);
 
 noise = repmat(noise, [1 2]);
 
+function kw = applyRandomShift(kw, Fs)
+return % skip for now - it's causing overtraining
+
+[clipLen, nCh] = size(kw);
+
+shiftDenom = 16;
+numJitter = 2;
+shiftNum = randperm(2*numJitter+1, 1) - (numJitter+1) + shiftDenom;
+
+clip = kw;%(pad+1:pad+cd, :);
+
+clipShift = shiftAndStretch(clip(:,1), Fs, 1.0, shiftNum, shiftDenom);
+clipShift = repmat(clipShift, [1 nCh]);
+lenOut = size(clipShift, 1);
+
+gain = sqrt(mean(clip(:,1).^2)) / sqrt(mean(clipShift(:,1).^2));
+clipShift = clipShift * gain;
+
+lenDiff = clipLen - lenOut;
+padIn = floor(lenDiff/2);
+in = clip(padIn+1:padIn+lenOut,:);
+
+window = getWindow(lenOut, round(0.05*Fs), nCh);
+clipShift = (1-window).*in + window.*clipShift;
+
+kw(padIn+1:padIn+lenOut,:) = clipShift;
