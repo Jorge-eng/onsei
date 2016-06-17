@@ -14,7 +14,7 @@ outName = sys.argv[2]
 pos, neg = get_conditions()
 condMatch = pos + neg
 
-idMatch = ['160517_08','160606_03','160606_04']
+idMatch = ['160517_07','160517_08','160606_03','160606_04']
 
 if len(glob.glob(os.path.join(dirName,'*.wav'))) > 0:
     load_features = load_features_python
