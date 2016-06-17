@@ -17,6 +17,7 @@ typedef struct {
 } ConstSequentialNetwork_t;
     
 Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input);
+Tensor_t * eval_partial_net(const ConstSequentialNetwork_t * net,Tensor_t * input,const uint32_t stop_layer);
     
 
 

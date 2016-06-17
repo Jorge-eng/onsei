@@ -22,7 +22,7 @@
 #define MIN_PROB_TO_USE_FOR_SUM (40)
 #define OUTBUF_SUM_LEN (2)
 #define NET_RUN_PERIOD (20)
-#define MIN_FEAT (-40)
+#define MIN_FEAT (-60)
 #define FEAT_OFFSET (80)
 #define MIN_FEAT_COUNT (200)
 #define SAMPLE_RATE  (16000)

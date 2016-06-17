@@ -32,7 +32,7 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     uint32_t i;
     
     const int16_t dropout_weight = (1 << QFIXEDPOINT) - layer->incoming_dropout;
-
+    //const int16_t dropout_weight = 128;
     uint32_t iweightrow,iweightcol;
     int64_t accumulator;
     int64_t temp64;
@@ -63,7 +63,7 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         //compensate for weight scaling
         bias_scaling_diff =  layer->weights->scale + in->scale - layer->biases->scale;
         
-        bias32 = bias[iweightrow];
+        bias32 = bias[iweightcol];
         bias32 <<= QFIXEDPOINT;
         
         if (bias_scaling_diff > 0) {

@@ -48,11 +48,15 @@ def write_fixed_point_tensor(name,weights,f):
     return weights_name,dims_name
 
 def write_conv_weights(name,weights,f):
+    
     w = copy.deepcopy(weights)
+    print w.shape
     for i in range(weights.shape[0]):
         for j in range(weights.shape[1]):
            w[i][j] = w[i][j][::-1,::-1]
 
+    print w.shape
+    print (w[0][0]*128).astype(int)
     weights_name,dims_name = write_fixed_point_tensor(name,w,f) 
 
     return weights_name,dims_name
@@ -230,8 +234,11 @@ def write_sequential_network(layerobjs,model,f):
         weights_idx += obj.get_num_weights()
 
         for idx in range(weights_idx_begin,weights_idx):
-            obj.add_weights(model.get_weights()[idx])
+            w = copy.deepcopy(model.get_weights()[idx])
+                            
+            obj.add_weights(w)
 
+        print '-----'
 
     write_header(f)
     input_shape = layerobjs[0].layers[0]['input_shape']
