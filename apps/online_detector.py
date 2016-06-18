@@ -52,7 +52,7 @@ class RingBuffer(object):
 
 def play_audio_file(fname=DETECT_SOUND):
     """Simple callback function to play a wave file."""
-    if False:
+    if True:
         f = wave.open(fname, 'rb')
         wavData = f.readframes(f.getnframes())
         audio = pyaudio.PyAudio()
@@ -154,7 +154,7 @@ class Detector(object):
                 if True:
                     fname = os.path.join(TOP_DIR,'detections',str(uuid.uuid4().get_hex()[0:10])+'.wav')
                     wavfile.write(fname, 16000, np.int16(data_numeric))
-                if False and detected_callback is not None:
+                if True and detected_callback is not None:
                     detected_callback()
             if False and flag == 0 and self.prob_prev > 0.5:
                 pdb.set_trace()

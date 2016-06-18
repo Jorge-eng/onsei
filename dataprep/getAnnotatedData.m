@@ -56,8 +56,8 @@ randomSpeechPerKw = 2;
 noiseDir = '~/Dropbox/Data/keyword/noiseWavs';
 d = dir(fullfile(noiseDir, '*.wav'));
 noiseFiles = {d.name};
-%noiseScales = 6:3:30;
-noiseScales = Inf;
+noiseScales = 12:3:30;
+%noiseScales = Inf;
 
 for j = 1:length(fileNames)
     disp(['File ' num2str(j) ' out of ' num2str(length(fileNames))])

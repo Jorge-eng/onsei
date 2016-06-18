@@ -1,4 +1,5 @@
 function midPt = annotateKw(dirName, csvFile)
+% midPt = annotateKw(dirName, csvFile)
 
 %dirName = '/Users/hello/Dropbox/Data/keyword';
 %csvFile = '/Users/hello/Dropbox/Data/keyword/annotations.csv';
