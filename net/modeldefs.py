@@ -176,3 +176,46 @@ def model_may31_small_sigm(inputShape, numClasses):
 
     return model, optimizer, loss
 
+def model_jun17_small_sigm(inputShape, numClasses):
+
+    #optimizer = SGD(lr=0.003, decay=0.0, momentum=0.9, nesterov=True)
+    optimizer = 'rmsprop'
+    loss = 'binary_crossentropy'
+
+    model = Sequential()
+
+    model.add(Convolution2D(8, 3, 5, border_mode='valid', input_shape=inputShape))
+    model.add(Activation('relu'))
+
+    model.add(MaxPooling2D(pool_size=(2, 3)))
+    model.add(Dropout(0.25))
+
+    model.add(Convolution2D(8, 3, 5, border_mode='valid')) # best 64 or 32
+    model.add(Activation('relu'))
+
+    model.add(MaxPooling2D(pool_size=(2, 3)))
+    model.add(Dropout(0.25))
+
+    # New part
+    model.add(Convolution2D(16, 3, 3, border_mode='valid')) # best 64 or 32
+    model.add(Activation('relu'))
+
+    model.add(MaxPooling2D(pool_size=(1, 1)))
+    model.add(Dropout(0.25))
+    # end new part
+
+    model.add(Flatten())
+
+    model.add(Dense(1024))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.5))
+
+    #model.add(Dense(256))
+    #model.add(Activation('relu'))
+    #model.add(Dropout(0.5))
+
+    model.add(Dense(numClasses))
+    model.add(Activation('sigmoid'))
+
+    return model, optimizer, loss
+
