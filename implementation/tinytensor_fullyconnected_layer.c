@@ -78,6 +78,8 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         //add bias
         temp64 += bias32;
         
+        //rounding
+        temp64 += (1 << (QFIXEDPOINT - 1));
         temp64 >>= QFIXEDPOINT;
         temp64 >>= layer->weights->scale;
         temp64 >>= in->scale;
@@ -90,11 +92,6 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
             temp64 = INT32_MIN;
         }
         
-        if (temp64 > 127 || temp64 < -127) {
-            int foo = 3;
-            foo++;
-        }
-
         layer->activation(&temp_weight,&temp_scale,(int32_t)temp64,0);
         assert(temp_scale == 0);
         

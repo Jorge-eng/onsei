@@ -90,7 +90,7 @@ TEST_F(TestNet, test_input_rand) {
     ConstSequentialNetwork_t net = initialize_network();
     tensor_out = eval_net(&net,tensor_in);
     
-    //printf("%d,%d\n",tensor_out->x[0],tensor_out->x[1]);
+    printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
     
     //should be 127,0 but underflow....
     //just make sure it makes the right decision
@@ -158,7 +158,7 @@ TEST_F(TestNet, kwClip_160517_02_1_layer2) {
         idx = i;
         int x = tensor_out->x[i];
         int y = midresult.x[i];
-        ASSERT_NEAR(x,y,10);
+        ASSERT_NEAR(x,y,3);
     }
     
     idx = -1;
@@ -171,7 +171,7 @@ TEST_F(TestNet, kwClip_160517_02_1) {
     ConstSequentialNetwork_t net = initialize_network();
     tensor_out = eval_net(&net,tensor_in);
     
-    //printf("%d,%d\n",tensor_out->x[0],tensor_out->x[1]);
+    printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
     
     ASSERT_NEAR(tensor_out->x[1],90,20); //relaxing our standards mightily here.  Why? agh.
     
@@ -185,7 +185,7 @@ TEST_F(TestNet, kwClip_160517_03_1) {
     ConstSequentialNetwork_t net = initialize_network();
     tensor_out = eval_net(&net,tensor_in);
     
-    //printf("%d,%d\n",tensor_out->x[0],tensor_out->x[1]);
+    printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
     
     ASSERT_NEAR(tensor_out->x[1],127,10);
     
@@ -199,7 +199,7 @@ TEST_F(TestNet, kwClip_160517_04) {
     ConstSequentialNetwork_t net = initialize_network();
     tensor_out = eval_net(&net,tensor_in);
     
-    //printf("%d,%d\n",tensor_out->x[0],tensor_out->x[1]);
+    printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
     
     ASSERT_NEAR(tensor_out->x[1],127,10);
     
@@ -213,7 +213,7 @@ TEST_F(TestNet, kwClip_160517_05_1) {
     ConstSequentialNetwork_t net = initialize_network();
     tensor_out = eval_net(&net,tensor_in);
     
-   // printf("%d,%d\n",tensor_out->x[0],tensor_out->x[1]);
+    printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
     
     ASSERT_NEAR(tensor_out->x[1],127,10);
     
