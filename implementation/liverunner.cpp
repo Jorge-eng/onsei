@@ -16,17 +16,17 @@
 
 
 #if HAVE_NET
-#include "unit-test/data/model_may31_small_sigm.c"
+#include "unit-test/data/model_jun17_small_sigm.c"
 #endif 
 
 #define MIN_PROB_TO_USE_FOR_SUM (40)
 #define OUTBUF_SUM_LEN (2)
 #define NET_RUN_PERIOD (20)
-#define MIN_FEAT (-60)
+#define MIN_FEAT (-80)
 #define FEAT_OFFSET (80)
 #define MIN_FEAT_COUNT (200)
 #define SAMPLE_RATE  (16000)
-#define THRESHOLD (150)
+#define DETECTION_THRESHOLD (128)
 #define FRAMES_PER_BUFFER (128)
 #define NUM_SECONDS     (3600)
 #define NUM_CHANNELS    (1)
@@ -117,6 +117,7 @@ static void feats_callback(void * context, int8_t * feats) {
     static uint32_t counter = 0;
     static Weight_t outbuf[OUTBUF_SUM_LEN] = {0};
     static uint32_t ioutbuf = 0;
+    static uint32_t off_count = 0;
     //desire to have the dims as 40 x 199
     //data comes in as 40 x 1 vectors, soo
     
@@ -133,6 +134,9 @@ static void feats_callback(void * context, int8_t * feats) {
         p->bufidx = 0;
     }
     
+    if (off_count) {
+        off_count--;
+    }
     
     if (++counter % NET_RUN_PERIOD) {
         return;
@@ -197,9 +201,13 @@ static void feats_callback(void * context, int8_t * feats) {
     printf("%4.2f,%4.2f,%d\n",tensor_out->x[0] / 128.0,tensor_out->x[1] / 128.0,outsum);
     tensor_out->delete_me(tensor_out);
 
-    if (outsum > THRESHOLD) {
+    if (outsum > DETECTION_THRESHOLD && !off_count) {
         printf("THRESHOLD!\n");
         putchar('\a');
+        fflush(0);
+        
+        off_count = 3 * NET_RUN_PERIOD;
+        
     }
 
 #endif
