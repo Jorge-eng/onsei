@@ -48,7 +48,7 @@ for j = 1:length(fileNames)
 end
 
 Fs = 48000;
-clipLen = 2 * Fs;
+clipLen = 1.6 * Fs;
 backPerFile = 4;
 alignedSpeechPerKw = 2;
 randomSpeechPerKw = 2;
@@ -82,15 +82,24 @@ for j = 1:length(fileNames)
     ii = find(strcmp('keyword', label(fileLoc)));
     for k = 1:length(ii)
         idx = fileLoc(ii(k));
+
+        tJitter = 0.05;
+        jitter = round(Fs * tJitter*(rand(1)*2-1));
         
-        cs = clipStart(idx);
-        ce = clipEnd(idx);
+        cs = clipStart(idx) + jitter;
+        ce = clipEnd(idx) + jitter;
         cd = ce - cs;
         
         if clipLen - cd > cs
             disp('Discarding first keyword')
             continue
         end
+        tMax = 1.55;
+        if cd > round(tMax * Fs)
+            disp('Discarding keyword: too long')
+            continue
+        end
+        
         pad = clipLen - cd;
         
         % keyword
