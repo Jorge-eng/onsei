@@ -1,7 +1,7 @@
 import numpy as np
 from createTrainingFeatures import load_features as load_features_python
 from loadEmbeddedFeatures import load_features as load_features_tinyfeats
-from createTrainingFeatures import get_conditions
+from createTrainingFeatures import get_conditions, tilt_compensation
 import sys, os
 import glob
 from scipy.io import savemat
@@ -9,7 +9,7 @@ import pdb
 
 # Input audio directory
 dirName = sys.argv[1]
-outName = sys.argv[2]
+outName = sys.argv[2]+'.mat'
 
 pos, neg = get_conditions()
 condMatch = pos + neg
@@ -36,6 +36,13 @@ for i in idMatch:
             features = fea
         else:
             features = np.append(features, fea, axis=2)
+
+if False:
+    # Positive examples
+    trainPos = load_features('/home/dklein/Dropbox/Data/keyword/trainingWavsNoiseJitter', pos)
+    pdb.set_trace()
+    tilt = tilt_compensation(trainPos)
+    features = features - tilt[:,np.newaxis,np.newaxis]
 
 # Normalization (Todo...)
 features = normalizer(features)

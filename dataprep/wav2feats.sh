@@ -1,6 +1,6 @@
 # Example: 
 # $ ./wav2feats.sh train ~/Dropbox/Data/keyword/trainingWavs trainingFeats
-# $ ./wav2feats.sh test ~/Dropbox/Data/keyword/testingWavs testingFeats.mat
+# $ ./wav2feats.sh test ~/Dropbox/Data/keyword/testingWavs testingFeats
 
 if [ $1 = "train" ]; then
     echo "createTrainingFeatures.py"
