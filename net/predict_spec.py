@@ -21,16 +21,16 @@ def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=20, verb
     if winLen is None:
         winLen = model.input_shape[3]
 
-    feaStream, starts = fbank_wav_stream(wavFile, winLen, winShift, modelType)
+    logM = audioproc.wav2fbank(wavFile)
+    feaStream, starts = fbank_stream(logM, winLen, winShift, modelType)
     feaStream = (feaStream-7) / 12
 
     prob = model.predict_proba(feaStream, batch_size=128, verbose=verbose)
 
     return prob, starts
 
-def fbank_wav_stream(wavFile, winLen, winShift, modelType):
+def fbank_stream(logM, winLen, winShift, modelType):
 
-    logM = audioproc.wav2fbank(wavFile)
     nBands = logM.shape[0]
     nFrames = logM.shape[1]
 
@@ -172,9 +172,11 @@ if __name__ == '__main__':
         from loadEmbeddedFeatures import load_bin
         features = load_bin(inFile) # Todo: enable loading RNN formatted data
         features = (np.float32(features) + 80) / 140
-        features = features.reshape(1, 1, features.shape[0], features.shape[1])
+        winShift = 20
 
-        prob = model.predict_proba(features, batch_size=128, verbose=1)
+        feaStream, starts = fbank_stream(features, winLen, winShift, modelType)
+
+        prob = model.predict_proba(feaStream, batch_size=128, verbose=1)
 
         savemat(outFile, {'prob': prob})
 
