@@ -8,20 +8,19 @@
 #include "tinytensor_net.h"
 #include "tinytensor_tensor.h"
 
-#include "unit-test/data/model_may31_small_sigm.c"
+#include "unit-test/data/model_jun17_small_sigm.c"
 
 using namespace std;
 
 
 #define BUF_SIZE (1<<10)
-#define NUM_TIME_STEPS (199)
 
 extern "C" {
     void results_callback(void * context, int8_t * melbins);
 }
 
 typedef struct  {
-    int8_t buf[NUM_MEL_BINS][NUM_TIME_STEPS];
+    int8_t buf[NUM_MEL_BINS][MEL_FEAT_BUF_TIME_LEN];
     uint32_t bufidx;
     ConstSequentialNetwork_t net;
 } CallbackContext ;
@@ -39,7 +38,7 @@ void results_callback(void * context, int8_t * melbins) {
     }
     
     
-    if (++(p->bufidx) >= NUM_TIME_STEPS) {
+    if (++(p->bufidx) >= MEL_FEAT_BUF_TIME_LEN) {
         p->bufidx = 0;
     }
     
@@ -49,13 +48,13 @@ void results_callback(void * context, int8_t * melbins) {
         return;
     }
     
-    if (counter < NUM_TIME_STEPS) {
+    if (counter < MEL_FEAT_BUF_TIME_LEN) {
         return;
     }
    
      
     
-    const uint32_t dims[4] = {1,1,NUM_MEL_BINS,NUM_TIME_STEPS};
+    const uint32_t dims[4] = {1,1,NUM_MEL_BINS,MEL_FEAT_BUF_TIME_LEN};
     
     Tensor_t * tensor_in = tinytensor_create_new_tensor(dims);
     
@@ -63,10 +62,10 @@ void results_callback(void * context, int8_t * melbins) {
     for (uint32_t i = 0; i < NUM_MEL_BINS; i++ ) {
         uint32_t bufidx = p->bufidx;
 
-        for (uint32_t t = 0; t < NUM_TIME_STEPS; t++) {
+        for (uint32_t t = 0; t < MEL_FEAT_BUF_TIME_LEN; t++) {
             *px = p->buf[i][bufidx];
             
-            if (++bufidx >= NUM_TIME_STEPS) {
+            if (++bufidx >= MEL_FEAT_BUF_TIME_LEN) {
                 bufidx = 0;
             }
             

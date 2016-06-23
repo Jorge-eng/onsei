@@ -1,7 +1,7 @@
 #include "gtest/gtest.h"
 #include "../tinytensor_net.h"
 
-#include "data/model_jun17_small_sigm.c"
+#include "data/model_may31_small_sigm.c"
 #include "data/test_input_rand.c"
 #include "data/test_input.c"
 #include "data/kwClip_160517_02_1.c"

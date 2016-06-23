@@ -105,10 +105,9 @@ static int recordCallback(const void *inputBuffer, void *outputBuffer,
     return finished;
 }
 
-#define NUM_TIME_ELEMENTS (199)
 typedef struct {
     ConstSequentialNetwork_t net;
-    int8_t buf[NUM_MEL_BINS][NUM_TIME_ELEMENTS];
+    int8_t buf[NUM_MEL_BINS][MEL_FEAT_BUF_TIME_LEN];
     uint32_t bufidx;
 } FeatsCallbackContext;
 
@@ -121,7 +120,7 @@ static void feats_callback(void * context, int8_t * feats) {
     //desire to have the dims as 40 x 199
     //data comes in as 40 x 1 vectors, soo
     
-    const static uint32_t dims[4] = {1,1,NUM_MEL_BINS,NUM_TIME_ELEMENTS};
+    const static uint32_t dims[4] = {1,1,NUM_MEL_BINS,MEL_FEAT_BUF_TIME_LEN};
     int32_t temp32;
     //get feats
 
@@ -130,7 +129,7 @@ static void feats_callback(void * context, int8_t * feats) {
     }
     
     
-    if (++(p->bufidx) >= NUM_TIME_ELEMENTS) {
+    if (++(p->bufidx) >= MEL_FEAT_BUF_TIME_LEN) {
         p->bufidx = 0;
     }
     
@@ -142,7 +141,7 @@ static void feats_callback(void * context, int8_t * feats) {
         return;
     }
     
-    if (counter < NUM_TIME_ELEMENTS) {
+    if (counter < MEL_FEAT_BUF_TIME_LEN) {
         return;
     }
     
@@ -154,10 +153,10 @@ static void feats_callback(void * context, int8_t * feats) {
     for (uint32_t i = 0; i < NUM_MEL_BINS; i++ ) {
         uint32_t bufidx = p->bufidx;
         
-        for (uint32_t t = 0; t < NUM_TIME_ELEMENTS; t++) {
+        for (uint32_t t = 0; t < MEL_FEAT_BUF_TIME_LEN; t++) {
             *px = p->buf[i][bufidx];
             
-            if (++bufidx >= NUM_TIME_ELEMENTS) {
+            if (++bufidx >= MEL_FEAT_BUF_TIME_LEN) {
                 bufidx = 0;
             }
             
