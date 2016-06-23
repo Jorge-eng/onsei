@@ -50,13 +50,10 @@ def write_fixed_point_tensor(name,weights,f):
 def write_conv_weights(name,weights,f):
     
     w = copy.deepcopy(weights)
-    print w.shape
     for i in range(weights.shape[0]):
         for j in range(weights.shape[1]):
            w[i][j] = w[i][j][::-1,::-1]
 
-    print w.shape
-    print (w[0][0]*128).astype(int)
     weights_name,dims_name = write_fixed_point_tensor(name,w,f) 
 
     return weights_name,dims_name
@@ -344,4 +341,4 @@ def save_model_to_c(model,name):
     f.close()
 
 if __name__ == '__main__':
-    save_model_to_c_from_file('model_may31_small_sigm')
+    save_model_to_c_from_file('model_jun22_smaller_sigm')

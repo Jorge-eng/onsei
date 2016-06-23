@@ -82,7 +82,6 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         temp64 += (1 << (QFIXEDPOINT - 1));
         temp64 >>= QFIXEDPOINT;
         temp64 >>= layer->weights->scale;
-        temp64 >>= in->scale;
         
         if (temp64 > INT32_MAX) {
             temp64 = INT32_MAX;
@@ -92,8 +91,7 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
             temp64 = INT32_MIN;
         }
         
-        layer->activation(&temp_weight,&temp_scale,(int32_t)temp64,0);
-        assert(temp_scale == 0);
+        layer->activation(&temp_weight,&temp_scale,(int32_t)temp64,in->scale);
         
         *output = temp_weight;
         output++;
@@ -109,10 +107,11 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     }
     
 
-    out->scale = 0;
+    out->scale = temp_scale;
 
     
     //printf("max=%d\t\ts=%d\n",max,out->scale);
+    printf("%d\t",max); fflush(0);
 
 
 }

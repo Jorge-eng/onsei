@@ -200,10 +200,11 @@ TEST_F(TestConv,TestLargeConvLayerSingleImage) {
     
     uint32_t out_size = tensor_out->dims[0] * tensor_out->dims[1] * tensor_out->dims[2] * tensor_out->dims[3];
     ASSERT_TRUE(out_size == ref1_dims[0]*ref1_dims[1]*ref1_dims[2] * ref1_dims[3]);
-    
+    int out_scale = tensor_out->scale;
     for (uint32_t i = 0; i < out_size; i++) {
         int val1 = ref1_weights[i];
         
+        /*
         if (val1 > 127) {
             val1 = 127;
         }
@@ -211,17 +212,21 @@ TEST_F(TestConv,TestLargeConvLayerSingleImage) {
         if (val1 < -127) {
             val1 = -127;
         }
-
+*/
         
         int val2 = tensor_out->x[i];
         
-        if (tensor_out->scale > 0) {
-            val2 >>= tensor_out->scale;
+        if (out_scale < 0) {
+            val2 <<= -out_scale;
+        }
+        
+        if (out_scale> 0) {
+            val2 >>= out_scale;
         }
         
         int diff = val2 - val1;
         
-        if (abs(diff) > 5) {
+        if (abs(diff) > 8) {
             std::cout << "ref=" << val1 << " output=" << val2 << " at index " << i << std::endl;
             ASSERT_TRUE(false);
         }
