@@ -23,7 +23,7 @@
 #define OUTBUF_SUM_LEN (2)
 #define NET_RUN_PERIOD (20)
 #define MIN_FEAT (-80)
-#define FEAT_OFFSET (80)
+#define FEAT_OFFSET (0)
 #define MIN_FEAT_COUNT (200)
 #define SAMPLE_RATE  (16000)
 #define DETECTION_THRESHOLD (128)

@@ -30,7 +30,7 @@ void results_callback(void * context, int8_t * melbins) {
     CallbackContext * p = static_cast<CallbackContext *>(context);
 
     for (uint32_t i = 0; i < NUM_MEL_BINS; i++) {
-        int32_t temp32 = melbins[i] + 80;
+        int32_t temp32 = melbins[i] + 0;
         if (temp32 > MAX_WEIGHT) {
             temp32 = MAX_WEIGHT;
         }
