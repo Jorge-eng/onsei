@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     inType = sys.argv[1]
     inFile = sys.argv[2]
-    outFile = sys.argv[3]
+    outFile = sys.argv[3]+'.mat'
     modelTag = sys.argv[4]
 
     model, modelType, winLen = get_model(modelTag)
