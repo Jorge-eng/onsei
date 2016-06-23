@@ -135,8 +135,9 @@ def get_model(modelTag):
 
 if __name__ == '__main__':
     # Usage: 
-    # $ python predict_spec.py audio in.wav out.mat model_name
-    # $ python predict_spec.py features in.mat out.mat model_name
+    # $ python predict_spec.py audio in.wav out model_name
+    # $ python predict_spec.py features in.mat out model_name
+    # $ python predict_spec.py tinyfeats in.bin out model_name
 
     inType = sys.argv[1]
     inFile = sys.argv[2]
