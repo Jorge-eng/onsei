@@ -12,18 +12,23 @@ static void get_output_size(const void * context,uint32_t * dims) {
 //GATES SHOULD BE IN THIS ORDER
 typedef enum {
     forgetgate = 0,
+    forgetgate_i,
     cellgate,
+    cellgate_i,
     cellinput,
+    cellinput_i,
     outputgate,
+    outputgate_i,
+    NUM_GATES
 } Gates_t;
 
 static void lstm_time_step_forwards(int32_t * cell_state,
                                     Weight_t * output,
-                                    const Weight_t * input_vec,
-                                    const Weight_t * weights[4],
-                                    const Weight_t * biases[4],
-                                    const int8_t weights_scale[4],
-                                    const int8_t biases_scale[4],
+                                    const Weight_t * inputs[NUM_GATES],
+                                    const Weight_t * weights[NUM_GATES],
+                                    const Weight_t * biases[NUM_GATES],
+                                    const int8_t weights_scale[NUM_GATES],
+                                    const int8_t biases_scale[NUM_GATES],
                                     const uint32_t vec_size,
                                     const uint32_t num_cells,
                                     const int8_t input_scale,
@@ -41,25 +46,36 @@ static void lstm_time_step_forwards(int32_t * cell_state,
     int8_t tempscale;
     int32_t bias32;
     int8_t scale_diff;
-    const SquashFunc_t activation_funcs[4] = {tinytensor_sigmoid,tinytensor_sigmoid,tinytensor_tanh,tinytensor_sigmoid};
-    const Weight_t * weight_row_starts[4] = {&weights[0][0],&weights[1][0],&weights[2][0],&weights[3][0]};
-    const Weight_t * bias_row_starts[4] = {&biases[0][0],&biases[1][0],&biases[2][0],&biases[3][0]};
-    int8_t temp_scales[4];
-    int8_t bias_scale_diffs[4];
-    Weight_t activations[4];
 
-    for (i = 0; i < 4; i++) {
+    int8_t temp_scales[NUM_GATES];
+    int8_t bias_scale_diffs[NUM_GATES];
+    int32_t pre_activations[NUM_GATES];
+    const Weight_t * weight_row_starts[NUM_GATES];
+    const Weight_t * bias_row_starts[NUM_GATES];
+    
+    Weight_t activations[NUM_GATES/2];
+    const static SquashFunc_t activation_funcs[NUM_GATES/2] = {tinytensor_sigmoid,tinytensor_sigmoid,tinytensor_tanh,tinytensor_sigmoid};
+
+    for (i = 0; i < NUM_GATES; i++) {
+        //for each matmul + bias, set up the scale differences between bias and weights
         bias_scale_diffs[i] = weights_scale[i] + input_scale - biases_scale[i];
+
+        //set up row starts for all weights
+        weight_row_starts[i] = weights[i];
+        bias_row_starts[i] = bias_row_starts[i];
     }
+    
+
     
     for (icell = 0; icell < num_cells; icell++) {
 
-        for (igate = 0; igate < 4; igate++) {
+        for (igate = 0; igate < NUM_GATES; igate++) {
         
             accumulator32 = 0;
             const Weight_t * w = weight_row_starts[igate];
             const int8_t w_scale = weights_scale[igate];
-        
+            const Weight_t * input_vec = inputs[igate];
+
             for (ivec = 0; ivec < vec_size; ivec++) {
                 
                 //TODO optimize here
@@ -68,7 +84,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
             }
             
             scale_diff = bias_scale_diffs[igate];
-            bias32 = (*(bias_row_starts[igate]))  << QFIXEDPOINT; //to Q14 + QB FROM Q7 + QB
+            bias32 = (*(biases[igate]))  << QFIXEDPOINT; //to Q14 + QB FROM Q7 + QB
            
             //to Q14 + QW + QI
             if (scale_diff > 0) {
@@ -86,27 +102,35 @@ static void lstm_time_step_forwards(int32_t * cell_state,
             accumulator32 >>= QFIXEDPOINT;
             accumulator32 >>= w_scale;
 
+            pre_activations[igate] = accumulator32;
+            
             //update indices
             weight_row_starts[igate] += vec_size;
             bias_row_starts[igate]++;
             
-            
-            //activate!
-            activation_funcs[igate](&activations[igate],&temp_scales[igate],accumulator32,input_scale);
-        
         }
 
+        //perform activations, knowing that items 2N and 2N+1 are together
+        //again this comes from the ordering of the enums
+        for (igate = 0; igate < NUM_GATES/2; igate++) {
+            //activate!
+            temp32 = pre_activations[2*igate] + pre_activations[2*igate + 1];
+            
+            activation_funcs[igate](&activations[igate],&temp_scales[igate],temp32,input_scale);
+        }
 
+        
+        
         //now that we have our activations, process the gates
         
         
         //forget the cell -- so multiply it by the gate
         //this is Q7 * Q14
-        temp32 = activations[forgetgate] * cell_state[icell];
+        temp32 = activations[forgetgate/2] * cell_state[icell];
         temp32 >>= QFIXEDPOINT; //Q14 now
         
         //add cell input * gate (Q7 * Q7) = Q14
-        temp32 += activations[cellgate] * activations[cellinput];
+        temp32 += activations[cellgate/2] * activations[cellinput/2];
         cell_state[icell] = temp32; //save result
         
         //output hidden state
@@ -118,7 +142,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
         output_activation(&temp8,&tempscale,temp32,0);
         assert(tempscale == 0);
         //Q7 x Q7  = Q14
-        temp32 = temp8 * activations[outputgate];
+        temp32 = temp8 * activations[outputgate/2];
         temp32 >>= QFIXEDPOINT;
         
         if (temp32 > MAX_WEIGHT) {
@@ -168,32 +192,53 @@ static void eval(const void * context,Tensor_t * out,const Tensor_t * in) {
     const uint32_t num_hidden_units = lstm_layer->output_dims[3];
     const uint32_t total_input_vec_len = num_hidden_units + num_inputs;
     uint32_t t;
+    uint8_t i;
+    uint32_t icell;
     uint8_t current_gate = 0;
+    Weight_t * out_row = out->x;
+    const Weight_t * in_row = in->x;
+    const Weight_t * inputs[NUM_GATES];
     
     //arrange weights `n stuff
-    const Weight_t * weights[4] = {
+    const Weight_t * weights[NUM_GATES] = {
         lstm_layer->weights_forget_gate->x,
+        lstm_layer->weights_forget_gate_i->x,
         lstm_layer->weights_cell_gate->x,
+        lstm_layer->weights_cell_gate_i->x,
         lstm_layer->weights_cell_input->x,
-        lstm_layer->weights_output_gate->x};
+        lstm_layer->weights_cell_input_i->x,
+        lstm_layer->weights_output_gate->x,
+        lstm_layer->weights_output_gate_i->x};
     
-    const int8_t weight_scales[4] = {
+    const int8_t weight_scales[NUM_GATES] = {
         lstm_layer->weights_forget_gate->scale,
+        lstm_layer->weights_forget_gate_i->scale,
         lstm_layer->weights_cell_gate->scale,
+        lstm_layer->weights_cell_gate_i->scale,
         lstm_layer->weights_cell_input->scale,
-        lstm_layer->weights_output_gate->scale};
+        lstm_layer->weights_cell_input_i->scale,
+        lstm_layer->weights_output_gate->scale,
+        lstm_layer->weights_output_gate_i->scale};
 
     
-    const Weight_t * biases[4] = {
+    const Weight_t * biases[NUM_GATES] = {
+        lstm_layer->biases_forget_gate->x,
         lstm_layer->biases_forget_gate->x,
         lstm_layer->biases_cell_gate->x,
+        lstm_layer->biases_cell_gate->x,
         lstm_layer->biases_cell_input->x,
+        lstm_layer->biases_cell_input->x,
+        lstm_layer->biases_output_gate->x,
         lstm_layer->biases_output_gate->x};
     
-    const int8_t bias_scales[4] = {
+    const int8_t bias_scales[NUM_GATES] = {
+        lstm_layer->biases_forget_gate->scale,
         lstm_layer->biases_forget_gate->scale,
         lstm_layer->biases_cell_gate->scale,
+        lstm_layer->biases_cell_gate->scale,
         lstm_layer->biases_cell_input->scale,
+        lstm_layer->biases_cell_input->scale,
+        lstm_layer->biases_output_gate->scale,
         lstm_layer->biases_output_gate->scale};
     
     
@@ -201,12 +246,30 @@ static void eval(const void * context,Tensor_t * out,const Tensor_t * in) {
     MEMSET(output1,0,sizeof(output1));
     
     for (t = 0; t < time_length; t++) {
-        Weight_t * output = outputs[current_gate & 0x01];
-        Weight_t * input = outputs[ (current_gate + 1) & 0x01];
+        Weight_t * prev_output = outputs[current_gate & 0x01];
+        Weight_t * output = outputs[ (current_gate + 1) & 0x01];
         
-        lstm_time_step_forwards(cell_state,output,input,weights,biases,weight_scales,bias_scales,total_input_vec_len,num_hidden_units,in->scale,lstm_layer->output_activation);
+        //setup inputs, knowing that the gates
+        //enums are set up as "from prev hidden, from input, from prev hidden ..."
+        for (i = 0; i < NUM_GATES; i++) {
+            if (i & 0x01) {
+                inputs[i] = in_row;
+            }
+            else {
+                inputs[i] = prev_output;
+            }
+        }
+        
+        lstm_time_step_forwards(cell_state,output,inputs,weights,biases,weight_scales,bias_scales,total_input_vec_len,num_hidden_units,in->scale,lstm_layer->output_activation);
+     
+        
+        for (icell = 0; icell < num_hidden_units; icell++) {
+            out_row[icell] = output[icell];
+        }
         
         current_gate++;
+        out_row += num_hidden_units;
+        in_row += num_inputs;
     }
     
     

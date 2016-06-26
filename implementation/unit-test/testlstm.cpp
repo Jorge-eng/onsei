@@ -29,10 +29,12 @@ protected:
     
 };
 
-class DISABLED_Test1 : public TestLstm {};
+class DISABLED_TestLstm : public TestLstm {};
 
 
-TEST_F(TestLstm, TestFOO) {
-  //  tinytensor_convolve3d_direct(
+TEST_F(TestLstm, TestSingleSimpleEvaluation) {
+    
+    
+    
 }
 
