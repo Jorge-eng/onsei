@@ -94,7 +94,7 @@ def detect_online(wav,prob_prev,model,modelType,winLen=None,offset=0.,scale=1.,d
 
     return detect, prob, waitCount, waiting
 
-def wav2detect(wavFile,model,modelType,winLen,offset=0.,scale=1.,winLen_s=2.0,winShift_s=0.2,detWait_s=2.0,detTh=1.5):
+def wav2detect(wavFile,model,modelType,winLen,offset=0.,scale=1.,winLen_s=1.6,winShift_s=0.2,detWait_s=2.0,detTh=1.5):
 
     (fs, wav) = wavfile.read(wavFile)
     assert fs == 16000
@@ -161,7 +161,7 @@ if __name__ == '__main__':
         detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
 
         # Online sequence detection
-        #detect = wav2detect(inFile, model, modelType, winLen, offset, scale, winLen_s=2.0, winShift_s=0.2, detTh=1.5)
+        #detect = wav2detect(inFile, model, modelType, winLen, offset, scale, winLen_s=1.6, winShift_s=0.2, detTh=1.5)
 
         savemat(outFile, {'prob': prob, 'startTimes': startTimes, 'detect': detect})
 
