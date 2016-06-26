@@ -58,11 +58,9 @@ if __name__ == '__main__':
 
     # Positive examples
     features = load_features(dirName, posMatchers)
-    features = ((np.float32(features) + 80) / 140 * 12) + 7
     savemat('spec_pos.mat',{'features': features})
 
     # Negative examples
     features = load_features(dirName, negMatchers)
-    features = ((np.float32(features) + 80) / 140 * 12) + 7
     savemat('spec_neg.mat',{'features': features})
 

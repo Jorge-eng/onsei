@@ -18,10 +18,8 @@ idMatch = ['160517_07','160517_08','160606_03','160606_04']
 
 if len(glob.glob(os.path.join(dirName,'*.wav'))) > 0:
     load_features = load_features_python
-    normalizer = lambda x: (x - 7) / 12
 elif len(glob.glob(os.path.join(dirName,'*.bin'))) > 0:
     load_features = load_features_tinyfeats
-    normalizer = lambda x: (np.float32(x) + 80) / 140 
 
 identity = []
 sampleType = []
@@ -36,16 +34,6 @@ for i in idMatch:
             features = fea
         else:
             features = np.append(features, fea, axis=2)
-
-if False:
-    # Positive examples
-    trainPos = load_features('/home/dklein/Dropbox/Data/keyword/trainingWavsNoiseJitter', pos)
-    pdb.set_trace()
-    tilt = tilt_compensation(trainPos)
-    features = features - tilt[:,np.newaxis,np.newaxis]
-
-# Normalization (Todo...)
-features = normalizer(features)
 
 savemat(outName, {'features': features, 'identity': identity, 'sampleType': sampleType,
                   'idMatch': idMatch, 'condMatch': condMatch})

@@ -10,20 +10,22 @@ from scipy.io import wavfile
 import audioproc
 import numpy as np
 import pdb
+
 try: # pyplot throws errors on ec2
     import matplotlib.pyplot as plt
 except:
     print('Warning: pyplot failed to import')
     pass
 
-def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=20, verbose=0):
+def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=20, offset=0., scale=1., verbose=0):
 
     if winLen is None:
         winLen = model.input_shape[3]
 
     logM = audioproc.wav2fbank(wavFile)
+
     feaStream, starts = fbank_stream(logM, winLen, winShift, modelType)
-    feaStream = (feaStream-7) / 12
+    feaStream = data.apply_norm(feaStream, offset, scale)
 
     prob = model.predict_proba(feaStream, batch_size=128, verbose=verbose)
 
@@ -73,9 +75,9 @@ def detect_events(prob, detWinLen=2, detWait=10, detTh=1.5):
 
     return detect
 
-def detect_online(wav, prob_prev, model, modelType, winLen=None, detWait=10, detTh=1.5, waitCount=0, waiting=False):
+def detect_online(wav,prob_prev,model,modelType,winLen=None,offset=0.,scale=1.,detWait=10,detTh=1.5,waitCount=0,waiting=False):
 
-    prob, starts = predict_wav_stream(wav, model, modelType, winLen, verbose=0)
+    prob, starts = predict_wav_stream(wav, model, modelType, winLen, offset=offset, scale=scale, verbose=0)
     prob = prob[0, 1]
 
     detect = np.float32(0)
@@ -92,7 +94,7 @@ def detect_online(wav, prob_prev, model, modelType, winLen=None, detWait=10, det
 
     return detect, prob, waitCount, waiting
 
-def wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, detWait_s=2.0, detTh=1.5):
+def wav2detect(wavFile,model,modelType,winLen,offset=0.,scale=1.,winLen_s=2.0,winShift_s=0.2,detWait_s=2.0,detTh=1.5):
 
     (fs, wav) = wavfile.read(wavFile)
     assert fs == 16000
@@ -110,7 +112,7 @@ def wav2detect(wavFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, 
         wav_buffer = wav[range(startIdx,startIdx+winSamples),:]
 
         ans, prob_prev, waitCount, waiting = detect_online(
-                wav_buffer, prob_prev, model, modelType, winLen, detWait, detTh, waitCount, waiting)
+                wav_buffer, prob_prev, model, modelType, winLen, offset, scale, detWait, detTh, waitCount, waiting)
 
         detect = np.append(detect, ans)
         startIdx += shiftSamples
@@ -127,10 +129,12 @@ def get_model(modelTag):
     modelWeights = info['modelWeights'][0]
     modelType = info['modelType'][0]
     winLen = int(info['winLen'][0])
+    offset = info['offset'][0]
+    scale = info['scale'][0]
 
     model = data.load_model(modelDef, modelWeights)
 
-    return model, modelType, winLen
+    return model, modelType, winLen, offset, scale
  
 
 if __name__ == '__main__':
@@ -144,17 +148,20 @@ if __name__ == '__main__':
     outFile = sys.argv[3]+'.mat'
     modelTag = sys.argv[4]
 
-    model, modelType, winLen = get_model(modelTag)
+    if not os.path.isfile(inFile):
+        raise ValueError('Input file '+inFile+' does not exist')
+
+    model, modelType, winLen, offset, scale = get_model(modelTag)
 
     if inType == 'audio':
 
-        prob, startTimes = predict_wav_stream(inFile, model, modelType, winLen=winLen)
+        prob, startTimes = predict_wav_stream(inFile, model, modelType, winLen=winLen, offset=offset, scale=scale)
 
         # Batch sequence detection
         detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
 
         # Online sequence detection
-        #detect = wav2detect(inFile, model, modelType, winLen, winLen_s=2.0, winShift_s=0.2, detTh=1.5)
+        #detect = wav2detect(inFile, model, modelType, winLen, offset, scale, winLen_s=2.0, winShift_s=0.2, detTh=1.5)
 
         savemat(outFile, {'prob': prob, 'startTimes': startTimes, 'detect': detect})
 
@@ -163,6 +170,7 @@ if __name__ == '__main__':
         data_loader = data.get_data_loader(modelType)
         
         features = data_loader(inFile, var='features')
+        features = data.apply_norm(features, offset, scale)
 
         prob = model.predict_proba(features, batch_size=128, verbose=1)
 
@@ -171,8 +179,9 @@ if __name__ == '__main__':
     elif inType == 'tinyfeats':
 
         from loadEmbeddedFeatures import load_bin
-        features = load_bin(inFile) # Todo: enable loading RNN formatted data
-        features = (np.float32(features) + 80) / 140
+        features = load_bin(inFile) 
+        features = data.apply_norm(features, offset, scale)
+
         winShift = 20
 
         feaStream, starts = fbank_stream(features, winLen, winShift, modelType)
