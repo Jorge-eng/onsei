@@ -11,12 +11,16 @@ extern "C" {
 #define LSTM_MAX_HIDDEN_UNITS (128)
     
 typedef struct {
+    const ConstTensor_t * weights_forget_gate_i;
     const ConstTensor_t * weights_forget_gate;
     const ConstTensor_t * biases_forget_gate;
+    const ConstTensor_t * weights_cell_gate_i;
     const ConstTensor_t * weights_cell_gate;
     const ConstTensor_t * biases_cell_gate;
+    const ConstTensor_t * weights_cell_input_i;
     const ConstTensor_t * weights_cell_input;
     const ConstTensor_t * biases_cell_input;
+    const ConstTensor_t * weights_output_gate_i;
     const ConstTensor_t * weights_output_gate;
     const ConstTensor_t * biases_output_gate;
     const uint32_t * output_dims;
