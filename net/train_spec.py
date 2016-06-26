@@ -17,7 +17,7 @@ modelName = sys.argv[1]
 modelType = sys.argv[2]
 
 batchSize = 8
-numEpoch = 40
+numEpoch = 100
 
 # the data, shuffled and split between train and test sets
 inFiles = ('spec_pos.mat',
@@ -27,10 +27,10 @@ modelDef = 'models/'+modelName+'.json'
 modelWeights = 'models/'+modelName+'.h5'
 modelInfo = 'models/'+modelName+'.mat'
 
-(feaTrain, labelTrain), (feaTest, labelTest) = data.load_training(
+(feaTrain, labelTrain), (feaTest, labelTest), (offset, scale) = data.load_training(
 	inFiles, 'features', modelType,
 	negRatioTrain=10, negRatioTest=10,
-	permuteBeforeSplit=(False,True), testSplit=0.2, normalize=False)
+	permuteBeforeSplit=(True,True), testSplit=0.2, normalize=True)
 
 print('feaTrain shape:', feaTrain.shape)
 print(feaTrain.shape[0], 'train samples')
@@ -65,7 +65,8 @@ elif modelType == 'rnn':
 
 print('Saving to '+modelInfo)
 savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights,
-                    'modelType': modelType,'winLen': winLen})
+                    'modelType': modelType,'winLen': winLen,
+                    'offset': offset,'scale': scale})
 
 # Write model definition to file
 open(modelDef, 'w').write(model.to_json())

@@ -55,6 +55,26 @@ def split_pair(X, y, testSplit):
 
     return feaTrain, labelTrain, feaTest, labelTest
 
+def get_norm(fea):
+
+    # normalization
+    if False:
+        fea = np.float64(fea)
+
+        offset = np.mean(fea)
+        scale = np.max(np.abs(np.float32(fea-offset)))
+    else:
+        offset = np.float64(7)
+        scale = np.float32(12)
+
+    return offset, scale
+
+def apply_norm(fea, offset, scale):
+    
+    fea = np.float32(np.float64(fea) - offset) / scale
+
+    return fea
+ 
 def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=False, permuteBeforeSplit=(True,True)):
 
     data_loader = get_data_loader(modelType)
@@ -104,21 +124,13 @@ def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, 
 
     # normalization
     if normalize:
-        feaTrain = np.float64(feaTrain)
-
-        feaMean = np.mean(feaTrain)
-        feaTrain -= feaMean
-        feaTrain = np.float32(feaTrain)
-        feaMax = np.max(np.abs(feaTrain))
-        feaTrain /= feaMax
-
-        feaTest = np.float64(feaTest)
-        feaTest -= feaMean
-        feaTest = np.float32(feaTest)
-        feaTest /= feaMax
+        offset, scale = get_norm(feaTrain)
+        
+        feaTrain = apply_norm(feaTrain, offset, scale)
+        feaTest = apply_norm(feaTest, offset, scale)
     else:
-        feaTrain = (np.float32(feaTrain)-7)/12# / 255
-        feaTest = (np.float32(feaTest)-7)/12# / 255
+        offset = np.float64(0)
+        scale = np.float32(1)
 
-    return (feaTrain, labelTrain), (feaTest, labelTest)
+    return (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale)
 
