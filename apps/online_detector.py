@@ -90,7 +90,9 @@ class Detector(object):
         self.model = getdata.load_model(modelDef, modelWeights)
         self.modelType = info['modelType'][0]
         self.winLen = info['winLen'][0]
-        self.winLen_s = 2.0
+        self.offset = info['offset'][0]
+        self.scale = info['scale'][0]
+        self.winLen_s = 1.6
         self.detWait = 10
         self.audioGain = audio_gain
         self.detTh = detTh
@@ -138,6 +140,7 @@ class Detector(object):
                 flag, self.prob_prev, self.waitCount, self.waiting = detect_online(data_numeric,
                         self.prob_prev,
                         self.model, self.modelType, self.winLen,
+                        self.offset, self.scale,
                         self.detWait, self.detTh,
                         self.waitCount, self.waiting)
             else:
