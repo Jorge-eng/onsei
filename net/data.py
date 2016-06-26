@@ -57,7 +57,6 @@ def split_pair(X, y, testSplit):
 
 def get_norm(fea):
 
-    # normalization
     if False:
         fea = np.float64(fea)
 
@@ -70,11 +69,11 @@ def get_norm(fea):
     return offset, scale
 
 def apply_norm(fea, offset, scale):
-    
+
     fea = np.float32(np.float64(fea) - offset) / scale
 
     return fea
- 
+
 def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=False, permuteBeforeSplit=(True,True)):
 
     data_loader = get_data_loader(modelType)
@@ -125,7 +124,7 @@ def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, 
     # normalization
     if normalize:
         offset, scale = get_norm(feaTrain)
-        
+
         feaTrain = apply_norm(feaTrain, offset, scale)
         feaTest = apply_norm(feaTest, offset, scale)
     else:
