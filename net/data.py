@@ -141,12 +141,12 @@ def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, 
     # normalization
     if normalize is not None:
         offset, scale = get_norm(feaTrain, normalize)
-
-        feaTrain = apply_norm(feaTrain, offset, scale)
-        feaTest = apply_norm(feaTest, offset, scale)
     else:
         offset = np.float64(0)
         scale = np.float32(1)
+
+    feaTrain = apply_norm(feaTrain, offset, scale)
+    feaTest = apply_norm(feaTest, offset, scale)
 
     return (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale)
 
