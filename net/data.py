@@ -55,13 +55,30 @@ def split_pair(X, y, testSplit):
 
     return feaTrain, labelTrain, feaTest, labelTest
 
-def get_norm(fea):
+def get_tilt(fea):
 
-    if False:
+    nFr = fea.shape[0]
+
+    # todo: only use VAD frames
+    meanSpec = fea.mean(axis=2).mean(axis=1)
+    pLin = np.poly1d(np.polyfit(np.arange(nFr), meanSpec, 1))
+    tilt = pLin(np.arange(nFr))
+    tilt = tilt - tilt.mean()
+
+    return tilt
+
+def get_norm(fea, compensateTilt=False):
+
+    if True:
         fea = np.float64(fea)
 
         offset = np.mean(fea)
-        scale = np.max(np.abs(np.float32(fea-offset)))
+        if compensateTilt:
+            offset = offset + get_tilt(fea) 
+        else
+            offset = np.tile(offset,fea.shape[0])
+
+        scale = np.max(np.abs(np.float32(fea-offset[:,np.newaxis,np.newaxis])))
     else:
         offset = np.float64(7)
         scale = np.float32(12)
@@ -70,11 +87,11 @@ def get_norm(fea):
 
 def apply_norm(fea, offset, scale):
 
-    fea = np.float32(np.float64(fea) - offset) / scale
+    fea = np.float32(np.float64(fea) - offset[:,np.newaxis,np.newaxis]) / scale
 
     return fea
 
-def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=False, permuteBeforeSplit=(True,True)):
+def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=None, permuteBeforeSplit=(True,True)):
 
     data_loader = get_data_loader(modelType)
 
@@ -122,8 +139,8 @@ def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, 
     labelTest = np_utils.to_categorical(labelTest, 2)
 
     # normalization
-    if normalize:
-        offset, scale = get_norm(feaTrain)
+    if normalize is not None:
+        offset, scale = get_norm(feaTrain, normalize)
 
         feaTrain = apply_norm(feaTrain, offset, scale)
         feaTest = apply_norm(feaTest, offset, scale)
