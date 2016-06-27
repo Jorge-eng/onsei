@@ -6,10 +6,15 @@ from keras.models import Sequential
 from collections import defaultdict
 from keras.optimizers import Adam
 
+default_image_len = 199
 
-k_activation_func_map = {'relu' : 'tinytensor_relu', 'sigmoid' : 'tinytensor_sigmoid', 'linear' :'tinytensor_linear'}
+k_activation_func_map = {'relu' : 'tinytensor_relu',
+                         'sigmoid' : 'tinytensor_sigmoid',
+                         'linear' :'tinytensor_linear',
+                         'softmax' : 'tinytensor_softmax'}
 
 def write_header(f):
+    f.write('#include "tinytensor_lstm_layer.h"\n')    
     f.write('#include "tinytensor_conv_layer.h"\n')    
     f.write('#include "tinytensor_fullyconnected_layer.h"\n')    
     f.write('#include "tinytensor_math.h"\n')
@@ -25,13 +30,12 @@ def write_fixed_point_tensor(name,weights,f):
     if the_max > 0:
         scale = -int(np.ceil(np.log2(the_max)))
 
-    if scale < 0:
-        scale = 0
+    if scale < -8:
+        scale = -8
 
     if scale > 8:
         scale = 8
 
-    print 'scale=%d' % scale   
     vec = (weights.flatten() * (2**(7+scale))).astype(int).tolist()
     vecstr = ['%d' % v for v in vec]
     weights_name = '%s_x' % name
@@ -191,8 +195,62 @@ class Dense(Layer):
     def get_num_weights(self):
         return 2
 
+class Lstm(Layer):
+    def write(self,input_shape,f):
+        nhidden = self.weights[1].shape[1]
+        T = input_shape[2]
+        output_shape = (1,1,T,nhidden)
 
-layer_map = {'Dense' : Dense, 'Convolution2D' : ConvLayer}
+        input_name,output_name = write_dims(input_shape,output_shape,self.name,f)
+
+        
+        gates = ['forget_gate','cell_gate','cell_input','output_gate']
+        w = self.weights
+        names = []
+        for i in range(4):
+            gatenamei = self.name + '_weights_' + gates[i] + '_i'
+            gatename = self.name + '_weights_' + gates[i]
+            biasname = self.name + '_biases_' + gates[i]
+
+            idx = 3*i
+            
+            gi = w[idx]
+            gi = gi.reshape((1,1,gi.shape[0],gi.shape[1]))
+                            
+            gr = w[idx + 1]
+            gr = gr.reshape((1,1,gr.shape[0],gr.shape[1]))
+            
+            b = w[idx + 2]
+            b = b.reshape((1,1,1,b.shape[0]))
+
+            write_fixed_point_tensor(gatenamei,gi,f)
+            write_fixed_point_tensor(gatename,gr,f)
+            write_fixed_point_tensor(biasname,b,f)
+
+            names.extend([gatenamei,gatename,biasname])
+
+        objname = self.name.lower()
+        activation = self.get_activation()
+        activation_function = k_activation_func_map[activation]
+
+        gates_names_ptrs = []
+        for g in names:
+            gates_names_ptrs.append('&' + g)
+            
+        gates_names = ','.join(gates_names_ptrs)
+        f.write('const static LstmLayer_t %s = {%s,%s,%s,TOFIX(%f),%s};\n\n\n' % (objname,gates_names,output_name,input_name,self.dropout,activation_function))
+        return output_shape
+
+    def write_creation(self,f):
+        objname = self.name.lower()
+        f.write('tinytensor_create_lstm_layer(&%s)' % (objname))
+
+
+    def get_num_weights(self):
+        return 12
+
+
+layer_map = {'Dense' : Dense, 'Convolution2D' : ConvLayer, 'LSTM' : Lstm}
 
 def create_layer_objects(organized_layers):
     layer_counts = defaultdict(int)
@@ -238,8 +296,14 @@ def write_sequential_network(layerobjs,model,f):
         print '-----'
 
     write_header(f)
-    input_shape = layerobjs[0].layers[0]['input_shape']
-    input_shape = (1,input_shape[0],input_shape[1],input_shape[2])
+    layer_input_shape = layerobjs[0].layers[0]['input_shape']
+
+    if len(layer_input_shape) == 2 and layer_input_shape[0] == None:
+        input_shape = (1,1,default_image_len,layer_input_shape[1])
+    else:
+        input_shape = (1,layer_input_shape[0],layer_input_shape[1],layer_input_shape[2])
+
+        
     original_input_shape = input_shape
     for obj in layerobjs:
         print 'name=%s, dropout=%f' %(obj.name,obj.dropout)
@@ -328,17 +392,8 @@ def save_model_to_c(model,name):
     print 'writing to %s' % outname
     f = open(outname,'w')
 
-    input_shape = write_sequential_network(layerobjs,model,f)
-
-    N = len(layerobjs[0].layers)
-    m2 = Sequential()
-    for i in range(N):
-        m2.add(model.layers[i])
-
-    m2.compile(Adam(),'mse')
-    scale1 = get_model_scaling(m2,input_shape)
-    print scale1
+    write_sequential_network(layerobjs,model,f)
     f.close()
 
 if __name__ == '__main__':
-    save_model_to_c_from_file('model_jun22_smaller_sigm')
+    save_model_to_c_from_file('model_may25_lstm_large')
