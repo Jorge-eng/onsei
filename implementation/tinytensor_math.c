@@ -89,6 +89,37 @@ void tinytensor_sigmoid(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_sc
     *out_scale = 0;
 }
 
+/*
+ slope = tensor.constant(0.2, dtype=out_dtype)
+ shift = tensor.constant(0.5, dtype=out_dtype)
+ x = (x * slope) + shift
+ x = tensor.clip(x, 0, 1)
+ i.e. it is max(0, min(1, x*0.2 + 0.5))
+ 
+
+ */
+
+void tinytensor_hard_sigmoid(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale) {
+
+    int32_t temp32 = x * 6553;
+    
+    if (in_scale > 0) {
+        temp32 >>= in_scale;
+    }
+    else if (in_scale < 0) {
+        temp32 <<= -in_scale;
+    }
+
+    temp32 += 2097152;
+    temp32 >>= 15;
+    
+    temp32 = temp32 > 127 ? 127 : temp32;
+    temp32 = temp32 < 0 ? 0 : temp32;
+    
+    *y = temp32;
+    *out_scale = 0;
+    
+}
 void tinytensor_linear(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale) {
     
     if (x > MAX_WEIGHT) {
