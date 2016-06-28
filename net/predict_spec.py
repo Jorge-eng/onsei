@@ -135,10 +135,10 @@ def get_model(modelTag):
     model = data.load_model(modelDef, modelWeights)
 
     return model, modelType, winLen, offset, scale
- 
+
 
 if __name__ == '__main__':
-    # Usage: 
+    # Usage:
     # $ python predict_spec.py audio in.wav out model_name
     # $ python predict_spec.py features in.mat out model_name
     # $ python predict_spec.py tinyfeats in.bin out model_name
@@ -167,10 +167,9 @@ if __name__ == '__main__':
 
     elif inType == 'features':
 
-        data_loader = data.get_data_loader(modelType)
-        
-        features = data_loader(inFile, var='features')
+        features = data.load_batch(inFile, var='features')
         features = data.apply_norm(features, offset, scale)
+        features = data.reshape_for_model(features, modelType)
 
         prob = model.predict_proba(features, batch_size=128, verbose=1)
 
@@ -179,7 +178,7 @@ if __name__ == '__main__':
     elif inType == 'tinyfeats':
 
         from loadEmbeddedFeatures import load_bin
-        features = load_bin(inFile) 
+        features = load_bin(inFile)
         features = data.apply_norm(features, offset, scale)
 
         winShift = 20

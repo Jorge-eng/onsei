@@ -18,26 +18,17 @@ def load_batch(filePath, var='mfc'):
     data = loadmat(filePath)
     data = data[var]
     data = np.rollaxis(data, 2)
-    data = data.reshape(data.shape[0], 1, data.shape[1], data.shape[2])
 
     return data
 
-def load_sequence_batch(filePath, var='features'):
-    data = loadmat(filePath)
-    data = data[var]
-    data = np.rollaxis(data, 2)
-    data = np.swapaxes(data, 1, 2)
-
-    return data
-
-def get_data_loader(modelType):
+def reshape_for_model(data, modelType='cnn'):
 
     if modelType=='cnn':
-        data_loader = load_batch
+        data = data.reshape(data.shape[0], 1, data.shape[1], data.shape[2])
     elif modelType=='rnn':
-        data_loader = load_sequence_batch
+        data = np.swapaxis(data, 1, 2)
 
-    return data_loader
+    return data
 
 def permute_pair(X, y):
 
@@ -57,10 +48,10 @@ def split_pair(X, y, testSplit):
 
 def get_tilt(fea):
 
-    nFr = fea.shape[0]
+    nFr = fea.shape[1]
 
     # todo: only use VAD frames
-    meanSpec = fea.mean(axis=2).mean(axis=1)
+    meanSpec = fea.mean(axis=0).mean(axis=1)
     pLin = np.poly1d(np.polyfit(np.arange(nFr), meanSpec, 1))
     tilt = pLin(np.arange(nFr))
     tilt = tilt - tilt.mean()
@@ -74,11 +65,11 @@ def get_norm(fea, compensateTilt=False):
 
         offset = np.mean(fea)
         if compensateTilt:
-            offset = offset + get_tilt(fea) 
-        else
+            offset = offset + get_tilt(fea)
+        else:
             offset = np.tile(offset,fea.shape[0])
 
-        scale = np.max(np.abs(np.float32(fea-offset[:,np.newaxis,np.newaxis])))
+        scale = np.max(np.abs(np.float32(fea-offset[np.newaxis,:,np.newaxis])))
     else:
         offset = np.float64(7)
         scale = np.float32(12)
@@ -87,20 +78,18 @@ def get_norm(fea, compensateTilt=False):
 
 def apply_norm(fea, offset, scale):
 
-    fea = np.float32(np.float64(fea) - offset[:,np.newaxis,np.newaxis]) / scale
+    fea = np.float32(np.float64(fea) - offset[np.newaxis,:,np.newaxis]) / scale
 
     return fea
 
 def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=None, permuteBeforeSplit=(True,True)):
 
-    data_loader = get_data_loader(modelType)
-
     # pos
-    feaTrainPos = data_loader(inFiles[0], dataVar)
+    feaTrainPos = load_batch(inFiles[0], dataVar)
     labelTrainPos = np.ones((feaTrainPos.shape[0],), dtype='uint8')
 
     # neg
-    feaTrainNeg = data_loader(inFiles[1], dataVar)
+    feaTrainNeg = load_batch(inFiles[1], dataVar)
     labelTrainNeg = np.zeros((feaTrainNeg.shape[0],), dtype='uint8')
 
     # permute before split
@@ -147,6 +136,9 @@ def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, 
 
     feaTrain = apply_norm(feaTrain, offset, scale)
     feaTest = apply_norm(feaTest, offset, scale)
+
+    feaTrain = reshape_for_model(feaTrain, modelType)
+    feaTest = reshape_for_model(feaTest, modelType)
 
     return (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale)
 
