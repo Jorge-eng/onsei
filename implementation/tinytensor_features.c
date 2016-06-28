@@ -24,7 +24,7 @@
 #define NOISE_FLOOR (2)
 
 #define MOVING_AVG_COEFF (0.995f)
-#define MOVING_AVG_COEFF2 (0.999f)
+#define MOVING_AVG_COEFF2 (0.99f)
 
 #define SCALE_TO_8_BITS (7)
 
