@@ -67,7 +67,7 @@ def get_norm(fea, tilt=None):
         if tilt is not None:
             offset = offset + tilt
         else:
-            offset = np.tile(offset,fea.shape[0])
+            offset = np.tile(offset,fea.shape[1])
 
         scale = np.max(np.abs(np.float32(fea-offset[np.newaxis,:,np.newaxis])))
     else:
@@ -135,8 +135,11 @@ def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, 
             tilt = None
         offset, scale = get_norm(feaTrain, tilt)
     else:
-        offset = np.float64(0)
-        scale = np.float32(1)
+        offset = np.tile(np.float64(0),feaTrain.shape[1])
+        if feaTrain.dtype.kind == 'i':
+            scale = np.float32(np.power(2, 8*feaTrain.itemsize-1))
+        else:
+            scale = np.float32(1)
 
     feaTrain = apply_norm(feaTrain, offset, scale)
     feaTest = apply_norm(feaTest, offset, scale)
