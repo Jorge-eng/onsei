@@ -95,15 +95,24 @@ TEST_F(TestFull, TestBig) {
     
     
     for (int i = 0; i < 512; i++) {
-        int val = tensor_out->x[i] >> tensor_out->scale;
+        
+        int val = tensor_out->x[i];
         int refval = big_full_output_x[i];
         
-        refval = refval > 127 ? 127 : refval;
-        refval = refval < -127 ? -127 : refval;
+        if (tensor_out->scale > 0) {
+            val >>= tensor_out->scale;
+        }
+        else {
+            val <<= -tensor_out->scale;
+        }
+        
         
         idx = i;
         
-        ASSERT_NEAR( refval , val,8);
+        int tol = refval * 0.1;
+        tol = tol < 8 ? 8 : tol;
+        
+        ASSERT_NEAR( refval , val,tol);
     }
     
     idx = -1;

@@ -44,7 +44,7 @@ void results_callback(void * context, int8_t * melbins) {
     
     
     
-    if (++counter % 20) {
+    if (++counter % 10) {
         return;
     }
     

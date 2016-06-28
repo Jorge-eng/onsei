@@ -34,10 +34,13 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     const int16_t dropout_weight = (1 << QFIXEDPOINT) - layer->incoming_dropout;
     //const int16_t dropout_weight = 128;
     uint32_t iweightrow,iweightcol;
-    int64_t accumulator;
-    int64_t temp64;
+    int32_t accumulator;
+    int32_t temp32;
     int32_t bias32;
     int8_t bias_scaling_diff;
+    int8_t delta_descale;
+    int8_t descale = 0;
+    Weight_t * p;
     int32_t max = 0x80000000; //assumes two complement
     assert(layer->activation);
     
@@ -57,8 +60,8 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         
 
         //dropout
-        temp64 = accumulator * dropout_weight;
-        temp64 >>= QFIXEDPOINT;
+        temp32 = accumulator * dropout_weight;
+        temp32 >>= QFIXEDPOINT;
         
         //compensate for weight scaling
         bias_scaling_diff =  layer->weights->scale + in->scale - layer->biases->scale;
@@ -67,7 +70,6 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         bias32 <<= QFIXEDPOINT;
         
         if (bias_scaling_diff > 0) {
-            //bias is bigger!
             bias32 <<= bias_scaling_diff;
         }
         else {
@@ -76,22 +78,39 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         
         
         //add bias
-        temp64 += bias32;
+        temp32 += bias32;
         
         //rounding
-        temp64 += (1 << (QFIXEDPOINT - 1));
-        temp64 >>= QFIXEDPOINT;
-        temp64 >>= layer->weights->scale;
+        temp32 += (1 << (QFIXEDPOINT - 1));
+        temp32 >>= QFIXEDPOINT;
         
-        if (temp64 > INT32_MAX) {
-            temp64 = INT32_MAX;
+        if (layer->weights->scale > 0) {
+            temp32 >>= layer->weights->scale;
+        }
+        else if (layer->weights->scale < 0) {
+            temp32 <<= -layer->weights->scale;
         }
         
-        if (temp64 < INT32_MIN) {
-            temp64 = INT32_MIN;
-        }
+      
+        temp32 >>= descale;
         
-        layer->activation(&temp_weight,&temp_scale,(int32_t)temp64,in->scale);
+        //descaling madness
+        delta_descale = tiny_tensor_get_descaling(temp32);
+        
+        if (delta_descale) {
+            temp32 >>= delta_descale; //update current temp value
+            descale += delta_descale; //update descale
+            
+            //backtrack -- right shift all previous by delta_scale
+            //so fucking inefficient.
+            for (p = out->x; p < output; p++) {
+                *p >>= delta_descale;
+            }
+        }
+
+        
+        
+        layer->activation(&temp_weight,&temp_scale,temp32,in->scale - descale);
         
         *output = temp_weight;
         output++;
