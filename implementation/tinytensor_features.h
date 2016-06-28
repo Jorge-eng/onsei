@@ -12,7 +12,7 @@ extern "C" {
 #define FFT_UNPADDED_SIZE (400)
 #define BUF_SIZE_IN_SAMPLES (600)
 #define NUM_MEL_BINS (40)
-#define MEL_FEAT_BUF_TIME_LEN (199)
+#define MEL_FEAT_BUF_TIME_LEN (157)
     
 typedef void(*tinytensor_audio_feat_callback_t)(void * context, int8_t * feats);
     

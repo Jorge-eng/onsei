@@ -16,7 +16,7 @@
 
 
 #if HAVE_NET
-#include "unit-test/data/model_jun17_small_sigm.c"
+#include "unit-test/data/model_jun22_smaller_sigm.c"
 #endif 
 
 #define MIN_PROB_TO_USE_FOR_SUM (40)

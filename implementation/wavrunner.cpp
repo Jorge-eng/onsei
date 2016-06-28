@@ -8,7 +8,7 @@
 #include "tinytensor_net.h"
 #include "tinytensor_tensor.h"
 
-#include "unit-test/data/model_jun17_small_sigm.c"
+#include "unit-test/data/model_jun22_smaller_sigm.c"
 
 using namespace std;
 

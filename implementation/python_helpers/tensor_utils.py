@@ -401,4 +401,4 @@ def save_model_to_c(model,name):
     f.close()
 
 if __name__ == '__main__':
-    save_model_to_c_from_file('model_may25_lstm_large')
+    save_model_to_c_from_file('model_jun22_smaller_sigm')
