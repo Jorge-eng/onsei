@@ -58,14 +58,14 @@ def get_tilt(fea):
 
     return tilt
 
-def get_norm(fea, compensateTilt=False):
+def get_norm(fea, tilt=None):
 
     if True:
         fea = np.float64(fea)
 
         offset = np.mean(fea)
-        if compensateTilt:
-            offset = offset + get_tilt(fea)
+        if tilt is not None:
+            offset = offset + tilt
         else:
             offset = np.tile(offset,fea.shape[0])
 
@@ -129,7 +129,11 @@ def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, 
 
     # normalization
     if normalize is not None:
-        offset, scale = get_norm(feaTrain, normalize)
+        if normalize:
+            tilt = get_tilt(feaTrainPos[:,:,-100:])
+        else:
+            tilt = None
+        offset, scale = get_norm(feaTrain, tilt)
     else:
         offset = np.float64(0)
         scale = np.float32(1)
