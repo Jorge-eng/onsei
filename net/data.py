@@ -26,7 +26,7 @@ def reshape_for_model(data, modelType='cnn'):
     if modelType=='cnn':
         data = data.reshape(data.shape[0], 1, data.shape[1], data.shape[2])
     elif modelType=='rnn':
-        data = np.swapaxis(data, 1, 2)
+        data = np.swapaxes(data, 1, 2)
 
     return data
 
