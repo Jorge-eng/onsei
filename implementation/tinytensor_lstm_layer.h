@@ -9,20 +9,30 @@ extern "C" {
     
     
 #define LSTM_MAX_HIDDEN_UNITS (128)
-    
+    /*
+     i = self.inner_activation(z0)
+     f = self.inner_activation(z1)
+     c = f * c_tm1 + i * self.activation(z2)
+     o = self.inner_activation(z3)
+     
+     h = o * self.activation(c)
+     return h, [h, c]
+     
+     */
+
 typedef struct {
-    const ConstTensor_t * weights_forget_gate_i;
-    const ConstTensor_t * weights_forget_gate;
-    const ConstTensor_t * biases_forget_gate;
-    const ConstTensor_t * weights_cell_gate_i;
-    const ConstTensor_t * weights_cell_gate;
-    const ConstTensor_t * biases_cell_gate;
-    const ConstTensor_t * weights_cell_input_i;
-    const ConstTensor_t * weights_cell_input;
-    const ConstTensor_t * biases_cell_input;
-    const ConstTensor_t * weights_output_gate_i;
     const ConstTensor_t * weights_output_gate;
     const ConstTensor_t * biases_output_gate;
+
+    const ConstTensor_t * weights_cell;
+    const ConstTensor_t * biases_cell;
+    
+    const ConstTensor_t * weights_forget_gate;
+    const ConstTensor_t * biases_forget_gate;
+
+    const ConstTensor_t * weights_input_gate;
+    const ConstTensor_t * biases_input_gate;
+    
     const uint32_t * output_dims;
     const uint32_t * input_dims;
     const Weight_t incoming_dropout;

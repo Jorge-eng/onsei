@@ -8,6 +8,7 @@ from keras.optimizers import Adam
 
 default_image_len = 199
 
+
 k_activation_func_map = {'relu' : 'tinytensor_relu',
                          'sigmoid' : 'tinytensor_sigmoid',
                          'linear' :'tinytensor_linear',
@@ -28,7 +29,7 @@ def write_fixed_point_tensor(name,weights,f):
 
     scale = 0
     if the_max > 0:
-        scale = -int(np.ceil(np.log2(the_max)))
+        scale = -int(np.ceil(np.log2(the_max + 1.0/128.0)))
 
     if scale < -8:
         scale = -8
@@ -36,7 +37,7 @@ def write_fixed_point_tensor(name,weights,f):
     if scale > 8:
         scale = 8
 
-    vec = (weights.flatten() * (2**(7+scale))).astype(int).tolist()
+    vec = (weights.flatten() * (2**(QFIXEDPOINT+scale))).astype(int).tolist()
     vecstr = ['%d' % v for v in vec]
     weights_name = '%s_x' % name
     dims_name = '%s_dims' % name
@@ -204,30 +205,32 @@ class Lstm(Layer):
         input_name,output_name = write_dims(input_shape,output_shape,self.name,f)
 
         
-        gates = ['forget_gate','cell_gate','cell_input','output_gate']
+#        gates = ['input_gate','forget_gate','cell','output_gate']
+        gates = ['output_gate','cell','forget_gate','input_gate']
+
         w = self.weights
         names = []
         for i in range(4):
-            gatenamei = self.name + '_weights_' + gates[i] + '_i'
             gatename = self.name + '_weights_' + gates[i]
             biasname = self.name + '_biases_' + gates[i]
 
             idx = 3*i
             
             gi = w[idx]
-            gi = gi.reshape((1,1,gi.shape[0],gi.shape[1]))
-                            
             gr = w[idx + 1]
-            gr = gr.reshape((1,1,gr.shape[0],gr.shape[1]))
-            
+
+            g = np.concatenate((gi,gr),axis=0)
+            g = g.transpose()
+            g = g.reshape((1,1,g.shape[0],g.shape[1]))
+
+                        
             b = w[idx + 2]
             b = b.reshape((1,1,1,b.shape[0]))
 
-            write_fixed_point_tensor(gatenamei,gi,f)
-            write_fixed_point_tensor(gatename,gr,f)
+            write_fixed_point_tensor(gatename,g,f)
             write_fixed_point_tensor(biasname,b,f)
 
-            names.extend([gatenamei,gatename,biasname])
+            names.extend([gatename,biasname])
 
         objname = self.name.lower()
         activation = self.get_activation()
@@ -298,7 +301,7 @@ def write_sequential_network(layerobjs,model,f):
     write_header(f)
     layer_input_shape = layerobjs[0].layers[0]['input_shape']
 
-    if len(layer_input_shape) == 2 and layer_input_shape[0] == None:
+    if len(layer_input_shape) == 2:
         input_shape = (1,1,default_image_len,layer_input_shape[1])
     else:
         input_shape = (1,layer_input_shape[0],layer_input_shape[1],layer_input_shape[2])
