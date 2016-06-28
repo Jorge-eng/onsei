@@ -1,7 +1,7 @@
 import numpy as np
 from createTrainingFeatures import load_features as load_features_python
 from loadEmbeddedFeatures import load_features as load_features_tinyfeats
-from createTrainingFeatures import get_conditions, tilt_compensation
+from createTrainingFeatures import get_conditions
 import sys, os
 import glob
 from scipy.io import savemat
