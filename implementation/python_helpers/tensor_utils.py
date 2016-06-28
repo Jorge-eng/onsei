@@ -13,7 +13,8 @@ QFIXEDPOINT = 7
 k_activation_func_map = {'relu' : 'tinytensor_relu',
                          'sigmoid' : 'tinytensor_sigmoid',
                          'linear' :'tinytensor_linear',
-                         'softmax' : 'tinytensor_softmax'}
+                         'softmax' : 'tinytensor_softmax',
+                         'tanh' : 'tinytensor_tanh'}
 
 def write_header(f):
     f.write('#include "tinytensor_lstm_layer.h"\n')    
@@ -38,7 +39,7 @@ def write_fixed_point_tensor(name,weights,f):
     if scale > 8:
         scale = 8
 
-    vec = (weights.flatten() * (2**(QFIXEDPOINT+scale))).astype(int).tolist()
+    vec = np.round((weights.flatten() * (2**(QFIXEDPOINT+scale)))).astype(int).tolist()
     vecstr = ['%d' % v for v in vec]
     weights_name = '%s_x' % name
     dims_name = '%s_dims' % name
@@ -89,7 +90,7 @@ class Layer(object):
         return p
 
     def get_activation(self):
-        activation = 'linear'
+        activation = self.layers[0]['activation']
         names = [layer['name'] for layer in self.layers]
         
         if 'Activation' in names:
@@ -234,6 +235,7 @@ class Lstm(Layer):
 
         objname = self.name.lower()
         activation = self.get_activation()
+        
         activation_function = k_activation_func_map[activation]
 
         gates_names_ptrs = []
