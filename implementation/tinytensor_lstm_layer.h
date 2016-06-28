@@ -21,17 +21,18 @@ extern "C" {
      */
 
 typedef struct {
-    const ConstTensor_t * weights_output_gate;
-    const ConstTensor_t * biases_output_gate;
-
+    
+    const ConstTensor_t * weights_input_gate;
+    const ConstTensor_t * biases_input_gate;
+    
     const ConstTensor_t * weights_cell;
     const ConstTensor_t * biases_cell;
     
     const ConstTensor_t * weights_forget_gate;
     const ConstTensor_t * biases_forget_gate;
 
-    const ConstTensor_t * weights_input_gate;
-    const ConstTensor_t * biases_input_gate;
+    const ConstTensor_t * weights_output_gate;
+    const ConstTensor_t * biases_output_gate;
     
     const uint32_t * output_dims;
     const uint32_t * input_dims;

@@ -8,6 +8,7 @@ from keras.optimizers import Adam
 
 default_image_len = 199
 
+QFIXEDPOINT = 7
 
 k_activation_func_map = {'relu' : 'tinytensor_relu',
                          'sigmoid' : 'tinytensor_sigmoid',
@@ -204,9 +205,8 @@ class Lstm(Layer):
 
         input_name,output_name = write_dims(input_shape,output_shape,self.name,f)
 
-        
-#        gates = ['input_gate','forget_gate','cell','output_gate']
-        gates = ['output_gate','cell','forget_gate','input_gate']
+
+        gates = ['input_gate','cell','forget_gate','output_gate'] #in order of params seen in layer.get_params()
 
         w = self.weights
         names = []
