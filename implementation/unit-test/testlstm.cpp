@@ -43,9 +43,9 @@ protected:
 class DISABLED_TestLstm : public TestLstm {};
 
 
-TEST_F(DISABLED_TestLstm, TestZeros) {
+TEST_F(TestLstm, TestZeros) {
     
-    ConstLayer_t lstm_layer = tinytensor_create_lstm_layer(&lstm_01);
+    ConstLayer_t lstm_layer = tinytensor_create_lstm_layer(&LSTM2_01);
     
     tensor_in = tinytensor_clone_new_tensor(&lstm1_input_zeros);
     
@@ -74,7 +74,7 @@ TEST_F(DISABLED_TestLstm, TestZeros) {
 
 TEST_F(TestLstm, TestRandInput) {
     
-    ConstLayer_t lstm_layer = tinytensor_create_lstm_layer(&lstm_01);
+    ConstLayer_t lstm_layer = tinytensor_create_lstm_layer(&LSTM2_01);
     
     tensor_in = tinytensor_clone_new_tensor(&lstm1_input);
     
