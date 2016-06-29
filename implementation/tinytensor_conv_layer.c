@@ -333,7 +333,7 @@ int8_t tinytensor_convolve3d_direct_maxpooling(int8_t * descale,
 }
 
 
-static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_t * in) {
+static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
     const ConvLayer2D_t * layer = (ConvLayer2D_t *)context;
     
     uint32_t iout;
@@ -425,7 +425,7 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
 }
 
 ConstLayer_t tinytensor_create_conv_layer(const ConvLayer2D_t * static_def) {
-    ConstLayer_t layer = {eval_conv2d_direct,get_conv2d_output_size,static_def};
+    ConstLayer_t layer = {eval_conv2d_direct,get_conv2d_output_size,conv_layer,static_def};
     return layer;
 }
 

@@ -9,6 +9,7 @@
 #include "tinytensor_tensor.h"
 
 #include "unit-test/data/model_jun22_smaller_sigm.c"
+//#include "unit-test/data/model_may25_lstm_large.c"
 
 using namespace std;
 
@@ -74,11 +75,20 @@ void results_callback(void * context, int8_t * melbins) {
     }
         
     
+    
+    /*
+     Tensor_t * transposed = tinytensor_create_new_transposed_tensor(tensor_in);
+     
+     if (tensor_in) {
+        tensor_in->delete_me(tensor_in);
+     }
+     */
+
     Tensor_t * tensor_out = eval_net(&(p->net),tensor_in);
     
     std::cout << (int32_t)tensor_out->x[0] << "," << (int32_t)tensor_out->x[1] << std::endl;
     
-    
+  
     if (tensor_out) {
         tensor_out->delete_me(tensor_out);
     }

@@ -11,6 +11,7 @@ Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input) {
     Tensor_t * current_input = input;
     Tensor_t * current_output = 0;
     uint32_t ilayer;
+    ELayer_t prev_layer = input_layer;
 
     for (ilayer = 0; ilayer < net->num_layers; ilayer++) {
         const ConstLayer_t * const layer = &net->layers[ilayer];
@@ -22,7 +23,7 @@ Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input) {
         current_output = tinytensor_create_new_tensor(output_dims);
 
         //perform evaluation
-        layer->eval(layer->context,current_output,current_input);
+        layer->eval(layer->context,current_output,current_input,prev_layer);
         
         //output becomes new input --- so delete input if we can
         if (current_input->delete_me && current_input != input) {
@@ -30,6 +31,8 @@ Tensor_t * eval_net(const ConstSequentialNetwork_t * net,Tensor_t * input) {
         }
 
         current_input = current_output;
+        prev_layer = layer->layer_type;
+
     }
     
     //whomever received this object must delete it
@@ -44,6 +47,7 @@ Tensor_t * eval_partial_net(const ConstSequentialNetwork_t * net,Tensor_t * inpu
     Tensor_t * current_output = 0;
     uint32_t ilayer;
     uint32_t end = net->num_layers < stop_layer ? net->num_layers : stop_layer;
+    ELayer_t prev_layer = input_layer;
     
     for (ilayer = 0; ilayer < end; ilayer++) {
         const ConstLayer_t * const layer = &net->layers[ilayer];
@@ -55,7 +59,7 @@ Tensor_t * eval_partial_net(const ConstSequentialNetwork_t * net,Tensor_t * inpu
         current_output = tinytensor_create_new_tensor(output_dims);
         
         //perform evaluation
-        layer->eval(layer->context,current_output,current_input);
+        layer->eval(layer->context,current_output,current_input,prev_layer);
         
         //output becomes new input --- so delete input if we can
         if (current_input->delete_me && current_input != input) {
@@ -63,6 +67,7 @@ Tensor_t * eval_partial_net(const ConstSequentialNetwork_t * net,Tensor_t * inpu
         }
         
         current_input = current_output;
+        prev_layer = layer->layer_type;
     }
     
     //whomever received this object must delete it

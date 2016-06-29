@@ -38,13 +38,22 @@ typedef struct{
 /*
       LAYER DEFS
  */
-typedef void (*ConstLayerEval_t)(const void * context,Tensor_t * out,const Tensor_t * in);
+    
+typedef enum {
+    input_layer,
+    lstm_layer,
+    full_layer,
+    conv_layer
+} ELayer_t;
+    
+typedef void (*ConstLayerEval_t)(const void * context,Tensor_t * out,const Tensor_t * in, ELayer_t prev_layer_type);
 
 typedef void (*ConstLayerDims_t)(const void * context,uint32_t * dims);
 
 typedef struct {
     ConstLayerEval_t eval;
     ConstLayerDims_t get_output_dims;
+    ELayer_t layer_type;
     const void * context;
 } ConstLayer_t;
 

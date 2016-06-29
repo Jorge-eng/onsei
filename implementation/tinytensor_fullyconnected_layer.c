@@ -13,9 +13,8 @@ static void get_fullyconnectged_output_size(const void * context,uint32_t * dims
     
 }
 
-static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor_t * in) {
+static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
     const FullyConnectedLayer_t * layer = (const FullyConnectedLayer_t *)context;
-    const uint32_t n_in = in->dims[0]*in->dims[1]*in->dims[2]*in->dims[3];
     const uint32_t n_out = layer->output_dims[3];
     const uint32_t num_weight_cols = layer->weights->dims[3];
     
@@ -23,7 +22,7 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     const Weight_t * weights;
     const Weight_t * bias = layer->biases->x;
     const Weight_t * const input_start = in->x;
-    const Weight_t * input = in->x;
+    const Weight_t * input;
     Weight_t * output = out->x;
     const uint32_t out_len = out->dims[0] * out->dims[1] * out->dims[2] * out->dims[3];
     
@@ -42,8 +41,30 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     int8_t descale = 0;
     Weight_t * p;
     int32_t max = 0x80000000; //assumes two complement
-    assert(layer->activation);
     
+    uint32_t n_in = 0;
+    
+    switch (prev_layer_type) {
+        case conv_layer:
+            //flatten
+            n_in = in->dims[0]*in->dims[1]*in->dims[2]*in->dims[3];
+            input = in->x;
+            break;
+            
+        case lstm_layer:
+            //pick off last vector
+            n_in = in->dims[3];
+            input = in->x + (in->dims[2] - 1) * in->dims[3];
+            break;
+        
+        default:
+            n_in = in->dims[3];
+            input = in->x;
+    }
+
+    
+    assert(layer->activation);
+    assert(n_in == layer->weights->dims[2]);
     
     for (iweightcol = 0; iweightcol < n_out; iweightcol++) {
         weights = weights_start + iweightcol;
@@ -140,6 +161,6 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
  */
 
 ConstLayer_t tinytensor_create_fullyconnected_layer(const FullyConnectedLayer_t * static_def) {
-    ConstLayer_t layer = {eval_fullyconnected,get_fullyconnectged_output_size,static_def};
+    ConstLayer_t layer = {eval_fullyconnected,get_fullyconnectged_output_size,full_layer,static_def};
     return layer;
 }

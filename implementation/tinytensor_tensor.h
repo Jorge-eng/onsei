@@ -28,6 +28,7 @@ Tensor_t * tinytensor_clone_new_tensor(const ConstTensor_t * in);
 
 void tinytensor_zero_out_tensor(Tensor_t * tensor);
 
+Tensor_t * tinytensor_create_new_transposed_tensor(const Tensor_t * in);
 
 
 #ifdef __cplusplus

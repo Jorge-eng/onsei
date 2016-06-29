@@ -1,6 +1,8 @@
 #include "tinytensor_tensor.h"
 #include "tinytensor_memory.h"
 
+#include <assert.h>
+
 void delete_tensor(void * context) {
     Tensor_t * p = (Tensor_t *) context;
     
@@ -47,3 +49,34 @@ Tensor_t * tinytensor_clone_new_tensor(const ConstTensor_t * in) {
     return tensor;
 }
 
+
+Tensor_t * tinytensor_create_new_transposed_tensor(const Tensor_t * in) {
+    uint32_t dims[4];
+    uint32_t i,j;
+    Tensor_t * out;
+    Weight_t * po;
+    Weight_t * pi;
+   
+    
+    //get transposed dims
+    dims[0] = in->dims[0];
+    dims[1] = in->dims[1];
+    dims[2] = in->dims[3];
+    dims[3] = in->dims[2];
+    
+    assert(dims[0] == 1 && dims[1] == 1);
+    
+    out = tinytensor_create_new_tensor(dims);
+
+    po = out->x;
+    for (i = 0; i < in->dims[3]; i++) {
+        pi = in->x + i;
+        for (j = 0; j < in->dims[2]; j++) {
+            *po = *pi;
+            po++;
+            pi += in->dims[3];
+        }
+    }
+    
+    return out;
+}

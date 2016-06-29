@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import sys
 import numpy as np
 import copy
 from keras.models import model_from_json
@@ -401,4 +402,4 @@ def save_model_to_c(model,name):
     f.close()
 
 if __name__ == '__main__':
-    save_model_to_c_from_file('model_jun22_smaller_sigm')
+    save_model_to_c_from_file(sys.argv[1])

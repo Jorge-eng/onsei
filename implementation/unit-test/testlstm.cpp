@@ -7,8 +7,8 @@
 
 #include "data/lstm1.c"
 #include "data/lstm1_input.c"
-//#include "data/model_may25_lstm_large.c"
-//#include "data/kwClip_160517_02_1.c"
+#include "data/model_may25_lstm_large.c"
+#include "data/kwClip_160517_02_1_lstm.c"
 
 class TestLstm : public ::testing::Test {
 protected:
@@ -54,7 +54,7 @@ TEST_F(DISABLED_TestLstm, TestZeros) {
     
     tensor_out = tinytensor_create_new_tensor(dims);
     
-    lstm_layer.eval(lstm_layer.context,tensor_out,tensor_in);
+    lstm_layer.eval(lstm_layer.context,tensor_out,tensor_in,input_layer);
     
     
     
@@ -83,7 +83,7 @@ TEST_F(TestLstm, TestRandInput) {
     
     tensor_out = tinytensor_create_new_tensor(dims);
     
-    lstm_layer.eval(lstm_layer.context,tensor_out,tensor_in);
+    lstm_layer.eval(lstm_layer.context,tensor_out,tensor_in,input_layer);
     
     
     
@@ -99,5 +99,32 @@ TEST_F(TestLstm, TestRandInput) {
     
     int foo = 3;
     foo++;
+}
+
+TEST_F(TestLstm, kwClip_160517_02_1) {
+    
+    tensor_in = tinytensor_clone_new_tensor(&kwClip_160517_02_1_lstm);
+    
+    ConstSequentialNetwork_t net = initialize_network();
+    tensor_out = eval_partial_net(&net,tensor_in,3);
+    
+    Weight_t * p = tensor_out->x;
+    for (int j = 0; j < tensor_out->dims[2]; j++) {
+        for (int i = 0; i < tensor_out->dims[3]; i++) {
+            if (i!=0) std::cout << ",";
+            std::cout << (int)(*p++);
+        }
+        std::cout << std::endl;
+    }
+    
+    int foo = 3;
+    foo++;
+
+    
+  //  printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
+    
+  //  ASSERT_NEAR(tensor_out->x[1],90,20); //relaxing our standards mightily here.  Why? agh.
+    
+    
 }
 
