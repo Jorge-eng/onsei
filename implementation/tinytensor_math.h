@@ -21,7 +21,6 @@ extern "C" {
 /* INPUTS ARE EXPECTED TO BE IN Q7, JUST POTENTIALLY VERY LARGE IN MAGNITUDE */
 void tinytensor_tanh(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
 void tinytensor_sigmoid(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
-void tinytensor_hard_sigmoid(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
 void tinytensor_linear(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
 void tinytensor_relu(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
 

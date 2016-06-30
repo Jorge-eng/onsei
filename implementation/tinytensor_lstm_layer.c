@@ -31,6 +31,28 @@ typedef enum {
     NUM_GATES
 } Gates_t;
 
+
+static int16_t hard_sigmoid(int32_t x,int8_t in_scale) {
+    
+    int32_t temp32 = x * 6554; //0.2 Q15 * x Q7 = 0.2x Q22
+    
+    if (in_scale > 0) {
+        temp32 >>= in_scale;
+    }
+    else if (in_scale < 0) {
+        temp32 <<= -in_scale;
+    }
+    
+    temp32 += 2097152; //0.5 in Q22
+    temp32 += 16384;//round
+    temp32 >>= 15; //back to Q7
+    
+    temp32 = temp32 > (1 << QFIXEDPOINT) ? (1 << QFIXEDPOINT) : temp32;
+    temp32 = temp32 < 0 ? 0 : temp32;
+    
+    return (int16_t) temp32;
+}
+
 static void lstm_time_step_forwards(int32_t * cell_state,
                                     Weight_t * output,
                                     const Weight_t * input_vec,
@@ -60,20 +82,26 @@ static void lstm_time_step_forwards(int32_t * cell_state,
     const Weight_t * bias_row_starts[NUM_GATES];
     const uint32_t total_len = num_cells + num_inputs;
     int32_t pre_activations[NUM_GATES];
-    Weight_t activations[NUM_GATES];
+
+    int16_t activation_forget_gate;
+    int16_t activation_input_gate;
+    int16_t activation_output_gate;
+    int8_t activation_cell;
     
-    const static SquashFunc_t internal_activation = tinytensor_hard_sigmoid;
-
-    for (i = 0; i < NUM_GATES; i++) {
+    for (igate = 0; igate < NUM_GATES; igate++) {
         //set up row starts for all weights
-        weight_row_starts[i] = weights[i];
-        bias_row_starts[i] = biases[i];
-
+        weight_row_starts[igate] = weights[igate];
+        bias_row_starts[igate] = biases[igate];
     }
     
     
     for (icell = 0; icell < num_cells; icell++) {
 //        printf("cell=%d\n",icell);
+        
+        if (icell == 3) {
+            int foo = 3;
+            foo++;
+        }
 
         for (igate = 0; igate < NUM_GATES; igate++) {
 
@@ -83,12 +111,14 @@ static void lstm_time_step_forwards(int32_t * cell_state,
             const int8_t w_scale = weights_scale[igate];
             const int8_t b_scale = biases_scale[igate];
             
+            //MATMUL MATMUL MATMUL dumbass.
             for (ivec = 0; ivec < total_len; ivec++) {
                 accumulator32 += w[ivec] * input_vec[ivec];
             }
             
-            bias32 = b[igate]  << QFIXEDPOINT; //to Q14 + QB FROM Q7 + QB
-
+            
+            bias32 = *b << QFIXEDPOINT; //to Q14 + QB FROM Q7 + QB
+            
             temp8 = b_scale - input_scale - w_scale;
             
             if (temp8 > 0) {
@@ -107,46 +137,34 @@ static void lstm_time_step_forwards(int32_t * cell_state,
                 accumulator32 <<= -w_scale;
             }
             
-            //Q14 + QI
-            pre_activations[igate] = accumulator32 >> QFIXEDPOINT;
+            //Q14 + QI ---> Q7 + QI
+            accumulator32 += (1 << (QFIXEDPOINT - 1));
+            accumulator32 >>= QFIXEDPOINT;
+            pre_activations[igate] = accumulator32;
             
             //update indices
             weight_row_starts[igate] += total_len;
-            bias_row_starts[igate]++;
+            bias_row_starts[igate] += 1;
 
         }
         
 
         //now that we have our activations, process the gates
-        internal_activation(&activations[forgetgate],&tempscale,pre_activations[forgetgate],input_scale);
-        internal_activation(&activations[inputgate],&tempscale,pre_activations[inputgate],input_scale);
-        internal_activation(&activations[outputgate],&tempscale,pre_activations[outputgate],input_scale);
-        output_activation(&activations[celloutput],&tempscale,pre_activations[celloutput],input_scale);
-
+        activation_forget_gate = hard_sigmoid(pre_activations[forgetgate],input_scale);
+        activation_input_gate = hard_sigmoid(pre_activations[inputgate],input_scale);
+        activation_output_gate = hard_sigmoid(pre_activations[outputgate],input_scale);
+        
+        output_activation(&activation_cell,&tempscale,pre_activations[celloutput],input_scale);
         assert(tempscale == 0);
 
         
-        
-        /*
-         i = self.inner_activation(z0)
-         f = self.inner_activation(z1)
-         c = f * c_tm1 + i * self.activation(z2)
-         o = self.inner_activation(z3)
-         
-         h = o * self.activation(c)
-         return h, [h, c]
-         
-         */
-        
-        
         //apply forget gate to prev cell state
-        temp32 = activations[forgetgate] * cell_state[icell]; //Q7 x Q14 ---> Q21
+        temp32 = activation_forget_gate * cell_state[icell]; //Q7 x Q14 ---> Q21
         temp32 >>= QFIXEDPOINT; //Q14
         
         //and add gated cell input
-        temp32 += (int32_t)activations[inputgate] * (int32_t)activations[celloutput]; //Q7 * Q7 --->Q14
+        temp32 += (int32_t)activation_input_gate * (int32_t)activation_cell; //Q7 * Q7 --->Q14
         
-        //"c"
         cell_state[icell] = temp32; //save result
         
         ///////////////////
@@ -159,7 +177,8 @@ static void lstm_time_step_forwards(int32_t * cell_state,
         output_activation(&h,&tempscale,temp32,0);
         assert(tempscale == 0);
         //Q7 x Q7  = Q14
-        temp32 = (int16_t)h * (int16_t)activations[outputgate];
+        temp32 = (int16_t)h * (int16_t)activation_output_gate;
+        
         temp32 >>= QFIXEDPOINT;
         
         if (temp32 > MAX_WEIGHT) {
@@ -172,9 +191,12 @@ static void lstm_time_step_forwards(int32_t * cell_state,
         
         
         output[icell] = (Weight_t)temp32;
+        
+    
     }
 
 
+   
 }
 
 
@@ -246,7 +268,6 @@ static void eval(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_
     MEMSET(cell_state,0,sizeof(cell_state));
     MEMSET(input,0,sizeof(input));
     MEMSET(output,0,sizeof(output));
-
 
     for (t = 0; t < time_length; t++) {
 

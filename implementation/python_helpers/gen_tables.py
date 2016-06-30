@@ -20,7 +20,7 @@ def gen_tanh_table():
 
     table = []
     for i in range(xmax):
-        y = int((np.tanh(i / float(2**Q)) * (2**Q)))
+        y = int((np.tanh( (i + 0.5) / float(2**Q)) * (2**Q)))
         table.append(str(y))
 
     write('const static int8_t tanh_table[%d] = {' % (xmax))

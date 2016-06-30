@@ -7,8 +7,10 @@
 
 #include "data/lstm1.c"
 #include "data/lstm1_input.c"
-#include "data/model_may25_lstm_large.c"
-#include "data/kwClip_160517_02_1_lstm.c"
+#include "data/lstm1_ref.c"
+
+//#include "data/model_may25_lstm_large.c"
+//#include "data/kwClip_160517_02_1_lstm.c"
 
 class TestLstm : public ::testing::Test {
 protected:
@@ -56,20 +58,14 @@ TEST_F(TestLstm, TestZeros) {
     
     lstm_layer.eval(lstm_layer.context,tensor_out,tensor_in,input_layer);
     
+   
+    uint32_t * d = tensor_out->dims;
+    int n = d[0] * d[1] * d[2] * d[3];
     
-    
-    
-    Weight_t * p = tensor_out->x;
-    for (int j = 0; j < 8; j++) {
-        for (int i = 0; i < tensor_out->dims[3]; i++) {
-            if (i!=0) std::cout << ",";
-            std::cout << (int)(*p++);
-        }
-        std::cout << std::endl;
+    for (int i = 0; i < n; i++) {
+        ASSERT_NEAR(tensor_out->x[i],0,1);
     }
     
-    int foo = 3;
-    foo++;
 }
 
 TEST_F(TestLstm, TestRandInput) {
@@ -86,8 +82,18 @@ TEST_F(TestLstm, TestRandInput) {
     lstm_layer.eval(lstm_layer.context,tensor_out,tensor_in,input_layer);
     
     
+    const uint32_t * d = lstm1_ref.dims;
+    int n = d[0] * d[1] * d[2] * d[3];
     
+    for (int i = 0; i < n; i++) {
+        int x1 = tensor_out->x[i] >> tensor_out->scale;
+        int x2 = lstm1_ref_x[i] >> lstm1_ref.scale;
+        
+        ASSERT_NEAR(x1,x2,2);
+    }
+
     
+    /*
     Weight_t * p = tensor_out->x;
     for (int j = 0; j < 8; j++) {
         for (int i = 0; i < tensor_out->dims[3]; i++) {
@@ -99,8 +105,10 @@ TEST_F(TestLstm, TestRandInput) {
     
     int foo = 3;
     foo++;
+     */
 }
 
+/*
 TEST_F(TestLstm, kwClip_160517_02_1) {
     
     tensor_in = tinytensor_clone_new_tensor(&kwClip_160517_02_1_lstm);
@@ -127,4 +135,5 @@ TEST_F(TestLstm, kwClip_160517_02_1) {
     
     
 }
+ */
 
