@@ -8,6 +8,8 @@
 #include "data/lstm1.c"
 #include "data/lstm1_input.c"
 #include "data/lstm1_ref.c"
+#include "data/lstm3.c"
+#include "data/lstm3_ref.c"
 
 //#include "data/model_may25_lstm_large.c"
 //#include "data/kwClip_160517_02_1_lstm.c"
@@ -107,6 +109,25 @@ TEST_F(TestLstm, TestRandInput) {
     foo++;
      */
 }
+
+TEST_F(TestLstm, TwoLayers) {
+    tensor_in = tinytensor_clone_new_tensor(&lstm1_input);
+    
+    ConstSequentialNetwork_t net = initialize_network03();
+    tensor_out = eval_partial_net(&net,tensor_in,3);
+
+    const uint32_t * d = lstm3_ref.dims;
+    int n = d[0] * d[1] * d[2] * d[3];
+    
+    for (int i = 0; i < n; i++) {
+        int x1 = tensor_out->x[i] >> tensor_out->scale;
+        int x2 = lstm3_ref_x[i] >> lstm3_ref.scale;
+        
+        ASSERT_NEAR(x1,x2,2);
+    }
+
+}
+
 
 /*
 TEST_F(TestLstm, kwClip_160517_02_1) {
