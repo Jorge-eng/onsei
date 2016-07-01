@@ -21,8 +21,8 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
     const Weight_t * const weights_start = layer->weights->x;
     const Weight_t * weights;
     const Weight_t * bias = layer->biases->x;
-    const Weight_t * const input_start = in->x;
     const Weight_t * input;
+    const Weight_t * input_start;
     Weight_t * output = out->x;
     const uint32_t out_len = out->dims[0] * out->dims[1] * out->dims[2] * out->dims[3];
     
@@ -48,18 +48,18 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
         case conv_layer:
             //flatten
             n_in = in->dims[0]*in->dims[1]*in->dims[2]*in->dims[3];
-            input = in->x;
+            input_start = in->x;
             break;
             
         case lstm_layer:
             //pick off last vector
             n_in = in->dims[3];
-            input = in->x + (in->dims[2] - 1) * in->dims[3];
+            input_start = in->x + (in->dims[2] - 1) * in->dims[3];
             break;
         
         default:
             n_in = in->dims[3];
-            input = in->x;
+            input_start = in->x;
     }
 
     

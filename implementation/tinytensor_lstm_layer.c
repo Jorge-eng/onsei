@@ -262,8 +262,9 @@ static void eval(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_
         lstm_layer->biases_cell->scale,
         lstm_layer->biases_output_gate->scale};
     
-    
-    assert(num_inputs + num_hidden_units == lstm_layer->weights_forget_gate->dims[3]);
+    const uint32_t expected_num_input_units = lstm_layer->weights_forget_gate->dims[3];
+    const uint32_t actual_num_input_units = num_inputs + num_hidden_units;
+    assert(actual_num_input_units == expected_num_input_units);
     
     MEMSET(cell_state,0,sizeof(cell_state));
     MEMSET(input,0,sizeof(input));
