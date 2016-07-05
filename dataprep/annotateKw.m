@@ -29,13 +29,6 @@ while 1
 end
 fclose(fid);
 
-Fs = 48000;
-windowLen = Fs * 0.032;
-WINDOW = hann(windowLen);
-NFFT = 2^nextpow2(windowLen);
-NOVERLAP = windowLen / 2;
-frameRate = Fs / NOVERLAP;
-
 fid = fopen('temp.csv', 'w');
 
 % Write out further annotated keywords
@@ -49,9 +42,15 @@ for j = 1:length(ii)
     cs = clipStart(idx);
     ce = clipEnd(idx);
     
-    wav = audioread(fn, [cs+1 ce]);
-    
-    S = spectrogram(wav(:,2),WINDOW,NOVERLAP,NFFT,Fs);
+    [wav, Fs] = audioread(fn, [cs+1 ce]);
+
+    windowLen = round(Fs * 0.032);
+    WINDOW = hann(windowLen);
+    NFFT = 2^nextpow2(windowLen);
+    NOVERLAP = round(windowLen / 2);
+    frameRate = Fs / NOVERLAP;
+
+    S = spectrogram(wav(:,1),WINDOW,NOVERLAP,NFFT,Fs);
 
     clf
     axes('position',[0.1300    0.2872    0.7750    0.6378])

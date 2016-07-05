@@ -8,13 +8,13 @@ if length(wav)/Fs > maxLen_s
     wav = wav(1:maxLen_s*Fs,:);
 end
 
-windowLen = Fs * 0.032;
+windowLen = round(Fs * 0.032);
 WINDOW = hann(windowLen);
 NFFT = 2^nextpow2(windowLen);
-NOVERLAP = windowLen / 2;
+NOVERLAP = round(windowLen / 2);
 frameRate = Fs / NOVERLAP;
 
-S = spectrogram(wav(:,2),WINDOW,NOVERLAP,NFFT,Fs);
+S = spectrogram(wav(:,1),WINDOW,NOVERLAP,NFFT,Fs);
 
 clf
 axes('position',[0.1300    0.2872    0.7750    0.6378])
