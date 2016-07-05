@@ -11,10 +11,10 @@ if ~exist('frameShift_s','var')
     frameShift_s = 0.010;
 end
 
-windowLen = Fs * windowLen_s;
+windowLen = round(Fs * windowLen_s);
 WINDOW = hann(windowLen);
 NFFT = 2^nextpow2(windowLen);
-NOVERLAP = windowLen - (Fs * frameShift_s);
+NOVERLAP = windowLen - (round(Fs * frameShift_s));
 frameRate = Fs / NOVERLAP;
 
 [S,F] = spectrogram(wav(:,1),WINDOW,NOVERLAP,NFFT,Fs);
