@@ -57,9 +57,11 @@ for j = 1:length(fileNames)
     fileLoc = find(strcmp(fileName, fileNames{j}));
     fn = fullfile(dirName, fileNames{j});
     auInfo = audioinfo(fn);
-    Fs = auInfo.SampleRate;
-    nCh = auInfo.NumChannels;
-    clipLen = clipLen_s * Fs;
+    FsIn = round(auInfo.SampleRate/1000)*1000;
+    Fs = 16000;
+    nCh = 1;%auInfo.NumChannels;
+    clipLenIn = round(clipLen_s * FsIn);
+    clipLen = round(clipLen_s * Fs);
 
     [~,fileField] = fileparts(fileNames{j});
     fileField = ['file_' fileField];
@@ -78,14 +80,14 @@ for j = 1:length(fileNames)
     background = [];
     for k = 1:length(ii)
         idx = fileLoc(ii(k));
-        background = [background; audioread(fn, [clipStart(idx) clipEnd(idx)])];
+        background = [background; audioGet(fn, [clipStart(idx) clipEnd(idx)])];
     end
     
     ii = find(strcmp('speech', label(fileLoc)));
     speech = [];
     for k = 1:length(ii)
         idx = fileLoc(ii(k));
-        speech = [speech; audioread(fn, [clipStart(idx) clipEnd(idx)])];
+        speech = [speech; audioGet(fn, [clipStart(idx) clipEnd(idx)])];
     end
     
     ii = find(strcmp('keyword', label(fileLoc)));
@@ -94,26 +96,28 @@ for j = 1:length(fileNames)
 
         %tJitter = 0.05;
         tJitter = 0;
-        jitter = round(Fs * tJitter*(rand(1)*2-1));
+        jitter = round(FsIn * tJitter*(rand(1)*2-1));
         
-        cs = clipStart(idx) + jitter;
-        ce = clipEnd(idx) + jitter;
-        cd = ce - cs;
+        csIn = clipStart(idx) + jitter;
+        ceIn = clipEnd(idx) + jitter;
+        cdIn = ceIn - csIn;
+        cd = round(cdIn * Fs/FsIn);
         
-        if clipLen - cd > cs
+        if clipLenIn - cdIn > csIn
             disp('Discarding first keyword')
             continue
         end
-        tMax = clipLen/Fs - tJitter;
-        if cd > round(tMax * Fs)
+        tMax = clipLen_s - tJitter;
+        if cdIn > round(tMax * FsIn)
             disp('Discarding keyword: too long')
             continue
         end
         
-        pad = clipLen - cd;
+        padIn = clipLenIn - cdIn;
+        pad = round(padIn * Fs/FsIn);
         
         % keyword
-        kw = audioread(fn, [cs-pad+1 cs-pad+clipLen]);
+        kw = audioGet(fn, [csIn-padIn+1 csIn-padIn+clipLenIn]);
         
         % window for smooth-edge implants, same one for revKw and speech
         window = getWindow(cd+1, round(0.05*Fs), size(kw,2));
@@ -150,7 +154,8 @@ for j = 1:length(fileNames)
         end
         
         % partials --- 
-        kwMid = midPt(idx);
+        kwMidIn = midPt(idx);
+        kwMid = round(kwMidIn * Fs/FsIn);
         
         % partial implant early
         x = kw;
@@ -196,8 +201,8 @@ for j = 1:length(fileNames)
             
         % Partials shifted to boundaries --
         % The end
-        if pad + (cd-kwMid) < cs
-            kwSh = audioread(fn, [cs-(pad+cd-kwMid)+1 cs-(pad+cd-kwMid)+clipLen]);
+        if padIn + (cdIn-kwMidIn) < csIn
+            kwSh = audioGet(fn, [csIn-(padIn+cdIn-kwMidIn)+1 csIn-(padIn+cdIn-kwMidIn)+clipLenIn]);
             impInd = 1:cd-kwMid;
             window = getWindow(length(impInd), round(0.05*Fs), size(kw,2));
             out = kwSh(impInd,:);
@@ -209,8 +214,8 @@ for j = 1:length(fileNames)
             data.(fileField).shiftLateClip{end+1} = kwSh + noise;
         end
         % The beginning
-        if cs+kwMid+clipLen <= auInfo.TotalSamples
-            kwSh = audioread(fn, [cs+kwMid+1 cs+kwMid+clipLen]);
+        if csIn+kwMidIn+clipLenIn <= auInfo.TotalSamples
+            kwSh = audioGet(fn, [csIn+kwMidIn+1 csIn+kwMidIn+clipLenIn]);
             impInd = clipLen-kwMid+1:clipLen;
             window = getWindow(length(impInd), round(0.05*Fs), size(kw,2));
             out = kwSh(impInd,:);
@@ -251,12 +256,23 @@ window = ones(winDur, numChan);
 window(1:length(ramp),:) = ramp;
 window(end-length(ramp)+1:end,:) = flipud(ramp);
     
+function x = audioGet(fileName, bounds)
+
+if ~exist('bounds','var')
+    auInfo = audioinfo(fileName);
+    bounds = [1 auInfo.TotalSamples];
+end
+
+[x, fs] = audioread(fileName, bounds);
+x = x(:,1);
+x = resample(x, 16, round(fs/1000));
+
 function noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh)
 
 noiseIdx = randperm(length(noiseFiles), 1);
 scaleIdx = randperm(length(noiseScales), 1);
 
-[noise, fs] = audioread(fullfile(noiseDir, noiseFiles{noiseIdx}));
+noise = audioGet(fullfile(noiseDir, noiseFiles{noiseIdx}));
 
 startIdx = randperm(length(noise)-clipLen, 1);
 
