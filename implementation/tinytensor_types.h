@@ -6,6 +6,11 @@
 extern "C" {
 #endif
 
+#ifndef NULL
+#define NULL (0x0)
+#endif
+    
+    
 #define MAX_WEIGHT (0x7F)
 #define MAX_LONG_WEIGHT (0x7FFF)
 
@@ -46,15 +51,21 @@ typedef enum {
     conv_layer
 } ELayer_t;
     
-typedef void (*ConstLayerEval_t)(const void * context,Tensor_t * out,const Tensor_t * in, ELayer_t prev_layer_type);
+typedef void (*ConstLayerEval_t)(const void * context,void * layer_state,Tensor_t * out,const Tensor_t * in, ELayer_t prev_layer_type);
 
 typedef void (*ConstLayerDims_t)(const void * context,uint32_t * dims);
+    
+typedef void * (*LayerStateAlloc_t)(const void * context);
+    
+typedef void (*LayerStateFree_t)(const void * context, void ** state);
 
 typedef struct {
     ConstLayerEval_t eval;
     ConstLayerDims_t get_output_dims;
     ELayer_t layer_type;
     const void * context;
+    LayerStateAlloc_t alloc_state;
+    LayerStateFree_t free_state;
 } ConstLayer_t;
 
     

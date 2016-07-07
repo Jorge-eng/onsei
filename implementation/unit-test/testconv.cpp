@@ -79,7 +79,7 @@ TEST_F(TestConv,TestSmallConvLayerSingleImage) {
     
     tensor_out = tinytensor_create_new_tensor(output_dims);
 
-    layer.eval(layer.context,tensor_out,tensor_in,input_layer);
+    layer.eval(layer.context,NULL,tensor_out,tensor_in,input_layer);
 
     uint32_t out_size = tensor_out->dims[0] * tensor_out->dims[1] * tensor_out->dims[2] * tensor_out->dims[3];
     ASSERT_TRUE(out_size == ref2_dims[0]*ref2_dims[1]*ref2_dims[2] * ref2_dims[3]);
@@ -150,7 +150,7 @@ TEST_F(TestConv, TestVerySimpleTwoImageInput) {
     tensor_in = tinytensor_clone_new_tensor(&input);
     tensor_out = tinytensor_create_new_tensor(output_dims);
     
-    layer.eval(layer.context,tensor_out,tensor_in,input_layer);
+    layer.eval(layer.context,NULL,tensor_out,tensor_in,input_layer);
     
     int32_t accumulator = 0;
     accumulator += input_x[0] * x[0] + input_x[1]*x[1] + input_x[3] * x[2] + input_x[4] *x[3];
@@ -196,7 +196,7 @@ TEST_F(TestConv,TestLargeConvLayerSingleImage) {
     
     tensor_out = tinytensor_create_new_tensor(output_dims);
     
-    layer.eval(layer.context,tensor_out,tensor_in,input_layer);
+    layer.eval(layer.context,NULL,tensor_out,tensor_in,input_layer);
     
     uint32_t out_size = tensor_out->dims[0] * tensor_out->dims[1] * tensor_out->dims[2] * tensor_out->dims[3];
     ASSERT_TRUE(out_size == ref1_dims[0]*ref1_dims[1]*ref1_dims[2] * ref1_dims[3]);
@@ -239,7 +239,7 @@ TEST_F(TestConv,TestSmallConvNetwork) {
     
     ConstSequentialNetwork_t net = initialize_network();
     
-    tensor_out = eval_net(&net,tensor_in);
+    tensor_out = tinytensor_eval_net(&net,tensor_in);
     
     const uint32_t len = testoutput2_smallnet_dims[0]*testoutput2_smallnet_dims[1] * testoutput2_smallnet_dims[2] * testoutput2_smallnet_dims[3];
     

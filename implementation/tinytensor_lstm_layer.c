@@ -31,6 +31,29 @@ typedef enum {
     NUM_GATES
 } Gates_t;
 
+typedef struct {
+    int32_t * cell_state;
+    Weight_t * output;
+    uint32_t len;
+} LstmLayerState_t;
+
+static void * alloc_state(const void * context) {
+    const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
+    const uint32_t num_hidden_units = lstm_layer->output_dims[3];
+    
+    LstmLayerState_t * state = MALLOC(sizeof(LstmLayerState_t));
+    state->cell_state = MALLOC(num_hidden_units * sizeof(int32_t));
+    state->output = MALLOC(num_hidden_units * sizeof(Weight_t));
+    state->len = num_hidden_units;
+    
+    return state;
+}
+
+static void free_state(const void * context, void ** state) {
+    void * s = *state;
+    FREE(s);
+    *state = NULL;
+}
 
 static int16_t hard_sigmoid(int32_t x,int8_t in_scale) {
     
@@ -70,7 +93,6 @@ static void lstm_time_step_forwards(int32_t * cell_state,
     uint32_t igate;
     uint32_t icell;
     uint32_t ivec;
-    uint32_t i;
     int32_t accumulator32;
     int32_t temp32;
     int8_t temp8;
@@ -217,8 +239,9 @@ static void lstm_time_step_forwards(int32_t * cell_state,
  // cell state is intialized to zero
  
  */
-static void eval(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
+static void eval(const void * context,void * layer_state,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
     const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
+    LstmLayerState_t * state = (LstmLayerState_t *)layer_state;
     
     int32_t cell_state[LSTM_MAX_HIDDEN_UNITS];
     Weight_t input[LSTM_MAX_HIDDEN_UNITS];
@@ -319,6 +342,6 @@ static void eval(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_
 }
 
 ConstLayer_t tinytensor_create_lstm_layer(const LstmLayer_t * static_def) {
-    ConstLayer_t layer = {eval,get_output_size,lstm_layer,static_def};
+    ConstLayer_t layer = {eval,get_output_size,lstm_layer,static_def,NULL,NULL};
     return layer;
 }
