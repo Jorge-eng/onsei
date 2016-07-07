@@ -239,25 +239,12 @@ static void lstm_time_step_forwards(int32_t * cell_state,
  // cell state is intialized to zero
  
  */
-static void eval(const void * context,void * layer_state,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
-    const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
-    LstmLayerState_t * state = (LstmLayerState_t *)layer_state;
+
+
+static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type,
+                        int32_t * cell_state, Weight_t * prev_hidden) {
     
-    int32_t cell_state[LSTM_MAX_HIDDEN_UNITS];
-    Weight_t input[LSTM_MAX_HIDDEN_UNITS];
-    Weight_t output[LSTM_MAX_HIDDEN_UNITS];
-    const int16_t dropout_weight = (1 << QFIXEDPOINT) - lstm_layer->incoming_dropout;
-
-    const uint32_t time_length = in->dims[2];
-    const uint32_t num_inputs = in->dims[3];
-    const uint32_t num_hidden_units = lstm_layer->output_dims[3];
-    uint32_t t;
-    uint32_t i;
-    int32_t temp32;
-    uint8_t current_gate = 0;
-    Weight_t * out_row = out->x;
-    const Weight_t * in_row = in->x;
-
+    const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
     
     //arrange weights `n stuff
     const Weight_t * weights[NUM_GATES] = {
@@ -285,14 +272,25 @@ static void eval(const void * context,void * layer_state,Tensor_t * out,const Te
         lstm_layer->biases_cell->scale,
         lstm_layer->biases_output_gate->scale};
     
-    const uint32_t expected_num_input_units = lstm_layer->weights_forget_gate->dims[3];
-    const uint32_t actual_num_input_units = num_inputs + num_hidden_units;
-    assert(actual_num_input_units == expected_num_input_units);
-    
-    MEMSET(cell_state,0,sizeof(cell_state));
-    MEMSET(input,0,sizeof(input));
-    MEMSET(output,0,sizeof(output));
 
+    
+    const int16_t dropout_weight = (1 << QFIXEDPOINT) - lstm_layer->incoming_dropout;
+    
+    const uint32_t time_length = in->dims[2];
+    const uint32_t num_inputs = in->dims[3];
+    const uint32_t num_hidden_units = lstm_layer->output_dims[3];
+    uint32_t t;
+    uint32_t i;
+    int32_t temp32;
+    uint8_t current_gate = 0;
+    Weight_t * out_row = out->x;
+    const Weight_t * in_row = in->x;
+    
+
+    //our "large" stack variable
+    //which isn't that large
+    Weight_t input[LSTM_MAX_HIDDEN_UNITS];
+    
     for (t = 0; t < time_length; t++) {
 
         MEMCPY(input,in_row,num_inputs*sizeof(Weight_t));
@@ -304,10 +302,10 @@ static void eval(const void * context,void * layer_state,Tensor_t * out,const Te
             input[i] = (Weight_t)temp32;
         }
         
-        MEMCPY(input + num_inputs,output,num_hidden_units*sizeof(Weight_t));
+        MEMCPY(input + num_inputs,prev_hidden,num_hidden_units*sizeof(Weight_t));
         
         lstm_time_step_forwards(cell_state,
-                                output,
+                                prev_hidden,
                                 input,
                                 weights,
                                 biases,
@@ -326,12 +324,13 @@ static void eval(const void * context,void * layer_state,Tensor_t * out,const Te
         printf("\n");
         */
         
-        MEMCPY(out_row,output,num_hidden_units * sizeof(Weight_t));
+        MEMCPY(out_row,prev_hidden,num_hidden_units * sizeof(Weight_t));
 
         current_gate++;
         out_row += num_hidden_units;
         in_row += num_inputs;
     }
+    
     
     /*
     printf("\n");
@@ -341,6 +340,27 @@ static void eval(const void * context,void * layer_state,Tensor_t * out,const Te
 
 }
 
+static void eval(const void * context,void * layer_state,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
+    LstmLayerState_t * state = (LstmLayerState_t *)layer_state;
+
+    //const void * context, Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type, int32_t * cell_state, Weight_t * prev_hidden
+    if (state) {
+        eval_helper(context,out,in,prev_layer_type,state->cell_state,state->output);
+    }
+    else {
+        
+        //WE HAVE THIS BRANCH SEPARATE IN CASE WE ARE NOT USING A STATEFUL LSTM
+        //THIS LETS US SAVE ON STACK SIZE IN THE STATEFUL CASE
+        int32_t cell_state[LSTM_MAX_HIDDEN_UNITS];
+        Weight_t prev_hidden[LSTM_MAX_HIDDEN_UNITS];
+        
+        MEMSET(cell_state,0,sizeof(cell_state));
+        MEMSET(prev_hidden,0,sizeof(prev_hidden));
+        
+        eval_helper(context,out,in,prev_layer_type,cell_state,prev_hidden);
+    }
+    
+}
 ConstLayer_t tinytensor_create_lstm_layer(const LstmLayer_t * static_def) {
     ConstLayer_t layer = {eval,get_output_size,lstm_layer,static_def,NULL,NULL};
     return layer;

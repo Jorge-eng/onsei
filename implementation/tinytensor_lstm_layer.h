@@ -9,16 +9,7 @@ extern "C" {
     
     
 #define LSTM_MAX_HIDDEN_UNITS (128)
-    /*
-     i = self.inner_activation(z0)
-     f = self.inner_activation(z1)
-     c = f * c_tm1 + i * self.activation(z2)
-     o = self.inner_activation(z3)
-     
-     h = o * self.activation(c)
-     return h, [h, c]
-     
-     */
+
 
 typedef struct {
     
