@@ -14,7 +14,9 @@ outName = sys.argv[2]+'.mat'
 pos, neg = get_conditions()
 condMatch = pos + neg
 
-idMatch = ['160517_07','160517_08','160606_03','160606_04']
+idMatch = ['160517_07','160517_08','160606_03','160606_04',
+           'VoiceBunny_915641_AFDP9VS','VoiceBunny_916261_97VN760','VoiceBunny_916029_6M3QU0K',  
+          ]
 
 if len(glob.glob(os.path.join(dirName,'*.wav'))) > 0:
     load_features = load_features_python
