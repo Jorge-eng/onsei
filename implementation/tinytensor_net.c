@@ -22,7 +22,7 @@ static Tensor_t * eval_all_nets(const ConstSequentialNetwork_t * net,SequentialN
         void * layer_state = NULL;
         
         if (netstate) {
-            layer_state = &netstate->states[ilayer];
+            layer_state = netstate->states[ilayer];
         }
 
         layer->get_output_dims(layer->context,&output_dims[0]);

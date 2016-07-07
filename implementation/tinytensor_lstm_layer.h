@@ -31,6 +31,13 @@ typedef struct {
     SquashFunc_t output_activation;
 } LstmLayer_t;
     
+    
+typedef struct {
+    int32_t * cell_state;
+    Weight_t * output;
+    uint32_t len;
+} LstmLayerState_t;
+    
 ConstLayer_t tinytensor_create_lstm_layer(const LstmLayer_t * static_def);
     
 #ifdef __cplusplus

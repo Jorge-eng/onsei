@@ -42,6 +42,7 @@ unit-test/testconv.cpp
 unit-test/testfull.cpp
 unit-test/testlstm.cpp
 unit-test/testnet.cpp
+unit-test/testrecurrentnet.cpp
 unit-test/testfeatures.cpp
 )
 

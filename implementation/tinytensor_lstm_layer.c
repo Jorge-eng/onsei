@@ -2,27 +2,9 @@
 #include "tinytensor_memory.h"
 #include "tinytensor_math.h"
 #include <assert.h>
-static void get_output_size(const void * context,uint32_t * dims) {
-    const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
-
-    MEMCPY(dims,lstm_layer->output_dims,TENSOR_DIM*sizeof(uint32_t));
-    
-}
 
 
-/*
- i = self.inner_activation(z0)
- f = self.inner_activation(z1)
- c = f * c_tm1 + i * self.activation(z2)
- o = self.inner_activation(z3)
- 
- h = o * self.activation(c)
- return h, [h, c]
- 
- */
-//
 
-//GATES SHOULD BE IN THIS ORDER
 typedef enum {
     inputgate,
     forgetgate,
@@ -31,21 +13,28 @@ typedef enum {
     NUM_GATES
 } Gates_t;
 
-typedef struct {
-    int32_t * cell_state;
-    Weight_t * output;
-    uint32_t len;
-} LstmLayerState_t;
+
+
+static void get_output_size(const void * context,uint32_t * dims) {
+    const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
+    
+    MEMCPY(dims,lstm_layer->output_dims,TENSOR_DIM*sizeof(uint32_t));
+    
+}
+
 
 static void * alloc_state(const void * context) {
     const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
     const uint32_t num_hidden_units = lstm_layer->output_dims[3];
     
-    LstmLayerState_t * state = MALLOC(sizeof(LstmLayerState_t));
-    state->cell_state = MALLOC(num_hidden_units * sizeof(int32_t));
-    state->output = MALLOC(num_hidden_units * sizeof(Weight_t));
+    LstmLayerState_t * state = malloc(sizeof(LstmLayerState_t));
+    state->cell_state = malloc(num_hidden_units * sizeof(int32_t));
+    state->output = malloc(num_hidden_units * sizeof(Weight_t));
     state->len = num_hidden_units;
     
+    memset(state->cell_state,0,num_hidden_units * sizeof(int32_t));
+    memset(state->output,0,num_hidden_units * sizeof(Weight_t));
+
     return state;
 }
 
@@ -242,7 +231,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
 
 
 static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type,
-                        int32_t * cell_state, Weight_t * prev_hidden) {
+                        int32_t * cell_state, Weight_t * prev_hidden, uint8_t is_stateful) {
     
     const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
     
@@ -276,7 +265,7 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
     
     const int16_t dropout_weight = (1 << QFIXEDPOINT) - lstm_layer->incoming_dropout;
     
-    const uint32_t time_length = in->dims[2];
+    const uint32_t time_length = is_stateful ? 1 : in->dims[2];
     const uint32_t num_inputs = in->dims[3];
     const uint32_t num_hidden_units = lstm_layer->output_dims[3];
     uint32_t t;
@@ -345,7 +334,7 @@ static void eval(const void * context,void * layer_state,Tensor_t * out,const Te
 
     //const void * context, Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type, int32_t * cell_state, Weight_t * prev_hidden
     if (state) {
-        eval_helper(context,out,in,prev_layer_type,state->cell_state,state->output);
+        eval_helper(context,out,in,prev_layer_type,state->cell_state,state->output,1);
     }
     else {
         
@@ -357,11 +346,11 @@ static void eval(const void * context,void * layer_state,Tensor_t * out,const Te
         MEMSET(cell_state,0,sizeof(cell_state));
         MEMSET(prev_hidden,0,sizeof(prev_hidden));
         
-        eval_helper(context,out,in,prev_layer_type,cell_state,prev_hidden);
+        eval_helper(context,out,in,prev_layer_type,cell_state,prev_hidden,0);
     }
     
 }
 ConstLayer_t tinytensor_create_lstm_layer(const LstmLayer_t * static_def) {
-    ConstLayer_t layer = {eval,get_output_size,lstm_layer,static_def,NULL,NULL};
+    ConstLayer_t layer = {eval,get_output_size,lstm_layer,static_def,alloc_state,free_state};
     return layer;
 }
