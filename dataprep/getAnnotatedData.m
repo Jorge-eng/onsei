@@ -119,7 +119,7 @@ for j = 1:length(fileNames)
         % keyword
         kw = audioGet(fn, [csIn-padIn+1 csIn-padIn+clipLenIn]);
         
-        gain = 0.025 / sqrt(mean(kw(:,1).^2));
+        gain = deriveGain(kw(:,1), Fs); 
         disp(['Gain: ' num2str(gain)])
         kw = kw * gain;
         
@@ -259,7 +259,14 @@ ramp = repmat(ramp, [1 numChan]);
 window = ones(winDur, numChan);
 window(1:length(ramp),:) = ramp;
 window(end-length(ramp)+1:end,:) = flipud(ramp);
-    
+
+function gain = deriveGain(x, fs)
+
+pRef = 0.02;
+[b, a] = butter(7, [150 3400]/(fs/2));
+p = sqrt(mean(filtfilt(b, a, x).^2));
+gain = pRef / p;
+
 function x = audioGet(fileName, bounds)
 
 if ~exist('bounds','var')
