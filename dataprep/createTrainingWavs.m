@@ -1,12 +1,16 @@
-function createTrainingWavs(dataFile, outDir)
+function createTrainingWavs(dataFile, outDir, fileId)
 % createTrainingWavs(dataFile, outDir)
 
 [~,~] = mkdir(outDir);
 
 Fs = 16000;
 
-d = whos('-file',dataFile,'file_*');
-fileVars = {d.name};
+if ~exist('fileId','var')
+    d = whos('-file',dataFile,'file_*');
+    fileVars = {d.name};
+else
+    fileVars = {['file_' fileId]};
+end
 
 vars = {'kwClip','kwRevClip','speechClip','backClip',...
         'earlyImplantClip','lateImplantClip',...
