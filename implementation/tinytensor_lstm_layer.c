@@ -15,6 +15,7 @@ typedef enum {
 
 
 
+
 static void get_output_size(const void * context,uint32_t * dims) {
     const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
     
@@ -122,11 +123,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
             const int8_t w_scale = weights_scale[igate];
             const int8_t b_scale = biases_scale[igate];
             
-            //MATMUL MATMUL MATMUL dumbass.
-            for (ivec = 0; ivec < total_len; ivec++) {
-                accumulator32 += w[ivec] * input_vec[ivec];
-            }
-            
+            accumulator32 = accumulate(total_len,w,input_vec);
             
             bias32 = *b << QFIXEDPOINT; //to Q14 + QB FROM Q7 + QB
             
