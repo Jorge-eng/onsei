@@ -91,7 +91,7 @@ void tinytensor_sigmoid(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_sc
 }
 
 
-void tinytensor_vec_softmax(Weight_t * yvec, Weight_t * xvec, uint32_t len, int8_t in_scale) {
+void tinytensor_vec_softmax_in_place(Weight_t * xvec, uint32_t len, int8_t in_scale) {
     uint32_t i;
     int32_t temp32;
     int32_t val;
@@ -141,7 +141,7 @@ void tinytensor_vec_softmax(Weight_t * yvec, Weight_t * xvec, uint32_t len, int8
             val = -MAX_WEIGHT;
         }
         
-        yvec[i] = val;
+        xvec[i] = val;
         
     }
     

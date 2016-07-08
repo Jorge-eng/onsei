@@ -26,8 +26,9 @@ static void eval_fullyconnected(const void * context,void * layer_state,Tensor_t
     Weight_t * output = out->x;
     const uint32_t out_len = out->dims[0] * out->dims[1] * out->dims[2] * out->dims[3];
     
-    Weight_t temp_weight;
-    int8_t temp_scale;
+    int8_t activation_input_scale;
+    int8_t out_scale;
+    Weight_t outval;
     uint32_t i;
     
     const int16_t dropout_weight = (1 << QFIXEDPOINT) - layer->incoming_dropout;
@@ -58,7 +59,7 @@ static void eval_fullyconnected(const void * context,void * layer_state,Tensor_t
             break;
         
         default:
-            n_in = in->dims[3];
+            n_in = in->dims[0]*in->dims[1]*in->dims[2]*in->dims[3];
             input_start = in->x;
     }
 
@@ -123,35 +124,58 @@ static void eval_fullyconnected(const void * context,void * layer_state,Tensor_t
             descale += delta_descale; //update descale
             
             //backtrack -- right shift all previous by delta_scale
-            //so fucking inefficient.
             for (p = out->x; p < output; p++) {
                 *p >>= delta_descale;
             }
         }
 
+        if (temp32 > MAX_WEIGHT) {
+            temp32 = MAX_WEIGHT;
+        }
         
+        if (temp32 < -MAX_WEIGHT) {
+            temp32 = -MAX_WEIGHT;
+        }
         
-        layer->activation(&temp_weight,&temp_scale,temp32,in->scale - descale);
+        *output = (Weight_t)temp32;
         
-        *output = temp_weight;
         output++;
     }
-    //printf("\n");
     
+    //apply activations
+    activation_input_scale = in->scale - descale;
+    output = out->x;
+    out_scale = 0;
+    for (iweightcol = 0; iweightcol < n_out; iweightcol++) {
+        layer->activation(&outval,&out_scale,*output,activation_input_scale);
+        *output = outval;
+        output++;
+    }
+
+    if (layer->use_softmax) {
+        tinytensor_vec_softmax_in_place(out->x, n_out, out_scale);
+        out_scale = 0;
+    }
     
+    out->scale = out_scale;
+
+    
+    /*
     max = 0;
     for (i = 0; i < out_len; i++) {
         if (abs(out->x[i]) > abs(max)) {
             max = out->x[i];
         }
     }
+     
+     printf("max=%d\t\ts=%d\n",max,out->scale);
+       printf("%d\t",max); fflush(0);
+     */
     
 
-    out->scale = temp_scale;
 
     
-    //printf("max=%d\t\ts=%d\n",max,out->scale);
-    printf("%d\t",max); fflush(0);
+
 
 
 }
