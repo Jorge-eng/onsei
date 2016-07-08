@@ -14,7 +14,7 @@ typedef struct {
     const uint32_t * input_dims;
     const Weight_t incoming_dropout;
     SquashFunc_t activation;
-    uint8_t force_max;
+    uint8_t use_softmax;
 } FullyConnectedLayer_t;
 
 ConstLayer_t tinytensor_create_fullyconnected_layer(const FullyConnectedLayer_t * static_def);

@@ -25,12 +25,13 @@ void tinytensor_linear(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_sca
 void tinytensor_relu(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
 
     
-void tinytensor_vec_softmax(Weight_t * yvec, Weight_t * xvec, uint32_t len, int8_t in_scale);
+void tinytensor_vec_softmax_in_place(Weight_t * xvec, uint32_t len, int8_t in_scale);
 
 void tinytensor_descale(Weight_t * y, int8_t * out_scale, int32_t x, int8_t in_scale);
 int8_t tiny_tensor_compare_scaled_numbers(const Weight_t x1, const int8_t scale1, const Weight_t x2, const int8_t scale2);
 int8_t tiny_tensor_get_scaling(int32_t x);
 int8_t tiny_tensor_get_descaling(int32_t x);
+
 
     
 static inline int32_t accumulate(const uint32_t n, const Weight_t * in1, const Weight_t * in2) {

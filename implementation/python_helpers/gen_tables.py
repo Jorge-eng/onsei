@@ -9,7 +9,7 @@ def write(my_str):
 
 
 def gen_exp_table():
-    r = range(-384,384)
+    r = range(-384,385)
 
     write('const static int16_t exp_table[%d] = {' % (384*2 + 1))
 

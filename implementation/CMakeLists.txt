@@ -44,6 +44,7 @@ unit-test/testlstm.cpp
 unit-test/testnet.cpp
 unit-test/testrecurrentnet.cpp
 unit-test/testfeatures.cpp
+unit-test/testmath.cpp
 )
 
 target_link_libraries(unit-test gtest tensor hellomath)

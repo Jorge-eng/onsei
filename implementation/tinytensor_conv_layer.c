@@ -34,8 +34,7 @@ int8_t tinytensor_convolve3d_direct_maxpooling(int8_t * descale,
                                              const uint32_t num_image_rows,
                                              const uint32_t num_image_cols,
                                              const uint32_t num_images,
-                                             const Weight_t incoming_dropout,
-                                             SquashFunc_t activation) {
+                                             const Weight_t incoming_dropout) {
     
     
     Weight_t temp_weight;
@@ -70,8 +69,6 @@ int8_t tinytensor_convolve3d_direct_maxpooling(int8_t * descale,
     const int16_t dropout_weight = 128; //so just set it to 1.0
     
     Weight_t * pout = out;
-    
-    assert(activation);
     
     for (ipool_row = 0; ipool_row < num_pool_rows; ipool_row++) {
         for (ipool_col = 0; ipool_col < num_pool_cols; ipool_col++)
@@ -205,12 +202,17 @@ int8_t tinytensor_convolve3d_direct_maxpooling(int8_t * descale,
                 }
             }
             
+            if (temp32 > MAX_WEIGHT) {
+                temp32 = MAX_WEIGHT;
+            }
             
-            //activation
-            activation(&temp_weight,&temp_scale,temp32,input_scaling);
-            *pout = temp_weight;
+            if (temp32 < -MAX_WEIGHT) {
+                temp32 = -MAX_WEIGHT;
+            }
+            
+            *pout = (Weight_t)temp32;
+            
             pout++;
-            
         }
         
     }
@@ -243,7 +245,9 @@ static void eval_conv2d_direct(const void * context,void * layer_state,Tensor_t 
     Weight_t * const out_begin = out->x;
     Weight_t * out_start = out->x;
     const uint32_t out_image_size = layer->output_dims[3] * layer->output_dims[2];
-    
+    Weight_t * pout = out->x;
+    int8_t out_scale;
+    Weight_t temp_weight;
     assert(layer->weights->dims[1] == in->dims[1]);
     
     for (i = 0; i < TENSOR_DIM; i++) {
@@ -285,8 +289,7 @@ static void eval_conv2d_direct(const void * context,void * layer_state,Tensor_t 
                                                 num_image_rows ,
                                                 num_image_cols,
                                                 num_images,
-                                                layer->incoming_dropout,
-                                                layer->activation);
+                                                layer->incoming_dropout);
         
         
         bias += 1;
@@ -294,8 +297,16 @@ static void eval_conv2d_direct(const void * context,void * layer_state,Tensor_t 
         weight_start += weight_filter_size;
     }
     
+    //apply activations
+    out_scale = 0;
+    for (i = 0; i < out_image_size * num_out_images; i++) {
+        layer->activation(&temp_weight,&out_scale,*pout,total_scale);
+        *pout = temp_weight;
+        pout++;
+    }
     
-    
+    out->scale = out_scale;
+/*
     int32_t max = 0;
     for (i = 0; i < out_len; i++) {
         if (abs(out->x[i]) > abs(max)) {
@@ -303,10 +314,10 @@ static void eval_conv2d_direct(const void * context,void * layer_state,Tensor_t 
         }
     }
     
-    out->scale = total_scale;
-    
     //printf("max=%d\t\ts=%d\n",max,out->scale);
     printf("%d\t",max); fflush(0);
+
+    */
     
 }
 
