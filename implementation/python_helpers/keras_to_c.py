@@ -7,14 +7,13 @@ from keras.models import Sequential
 from collections import defaultdict
 from keras.optimizers import Adam
 
-default_image_len = 199
 
 QFIXEDPOINT = 7
 
 k_activation_func_map = {'relu' : 'tinytensor_relu',
                          'sigmoid' : 'tinytensor_sigmoid',
                          'linear' :'tinytensor_linear',
-                         'softmax' : 'tinytensor_softmax',
+                         'softmax' : 'tinytensor_linear',
                          'tanh' : 'tinytensor_tanh'}
 
 def write_header(f):
@@ -185,10 +184,10 @@ class Dense(Layer):
         activation = self.get_activation()
         hardmax = 0
         if activation == 'softmax':
-            hardmax = 1
+            use_softmax = 1
             
         activation_function = k_activation_func_map[activation]
-        f.write('const static FullyConnectedLayer_t %s = {&%s,&%s,%s,%s,TOFIX(%f),%s,%d};\n' % (self.name.lower(),weights_name,bias_name,output_name,input_name,self.dropout,activation_function,hardmax))
+        f.write('const static FullyConnectedLayer_t %s = {&%s,&%s,%s,%s,TOFIX(%f),%s,%d};\n' % (self.name.lower(),weights_name,bias_name,output_name,input_name,self.dropout,activation_function,use_softmax))
         f.write('\n\n\n')
         return output_shape
 
@@ -305,7 +304,7 @@ def write_sequential_network(layerobjs,model,f):
     layer_input_shape = layerobjs[0].layers[0]['input_shape']
 
     if len(layer_input_shape) == 2:
-        input_shape = (1,1,default_image_len,layer_input_shape[1])
+        input_shape = (1,1,1,layer_input_shape[1])
     else:
         input_shape = (1,layer_input_shape[0],layer_input_shape[1],layer_input_shape[2])
 
