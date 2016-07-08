@@ -184,7 +184,7 @@ static void feats_callback(void * context, int8_t * feats) {
     }
 
     
-    Tensor_t * tensor_out = eval_net(&(p->net),tensor_in);
+    Tensor_t * tensor_out = tinytensor_eval_net(&(p->net),tensor_in);
 
     outbuf[ioutbuf++ % OUTBUF_SUM_LEN] = tensor_out->x[1];
     

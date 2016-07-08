@@ -13,7 +13,7 @@ static void get_fullyconnectged_output_size(const void * context,uint32_t * dims
     
 }
 
-static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
+static void eval_fullyconnected(const void * context,void * layer_state,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
     const FullyConnectedLayer_t * layer = (const FullyConnectedLayer_t *)context;
     const uint32_t n_out = layer->output_dims[3];
     const uint32_t num_weight_cols = layer->weights->dims[3];
@@ -160,7 +160,9 @@ static void eval_fullyconnected(const void * context,Tensor_t * out,const Tensor
  does squash(W*x) for each unit (each "unit" is the "slice", 3rd dimension of your data tensor, etc.)
  */
 
+
+
 ConstLayer_t tinytensor_create_fullyconnected_layer(const FullyConnectedLayer_t * static_def) {
-    ConstLayer_t layer = {eval_fullyconnected,get_fullyconnectged_output_size,full_layer,static_def};
+    ConstLayer_t layer = {eval_fullyconnected,get_fullyconnectged_output_size,full_layer,static_def,NULL,NULL};
     return layer;
 }

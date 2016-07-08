@@ -84,7 +84,7 @@ void results_callback(void * context, int8_t * melbins) {
      }
      */
 
-    Tensor_t * tensor_out = eval_net(&(p->net),tensor_in);
+    Tensor_t * tensor_out = tinytensor_eval_net(&(p->net),tensor_in);
     
     std::cout << (int32_t)tensor_out->x[0] << "," << (int32_t)tensor_out->x[1] << std::endl;
     

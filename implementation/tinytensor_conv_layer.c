@@ -15,121 +15,7 @@ static void get_conv2d_output_size(const void * context,uint32_t * dims) {
     
 }
 
-/*  
- 
-   NOTE ABOUT 50% OF OUR CPU TIME IS SPENT IN THIS FUNCTION
- 
-    A REMAINING 25% is spent in tinytensor_convolve3d_direct_maxpooling
- 
-    The other bits are divided up between feature extraction and the fully connected layer
- 
- */
 
-static inline int32_t accumulate(const uint32_t n, const Weight_t * in1, const Weight_t * in2) {
-    int32_t accumulator = 0;
-    
-    assert(n <= 8 && n > 0);
-
-    
-    //pray for jump table
-    switch(n) {
-        case 1:
-        {
-            accumulator += in1[0] * in2[0];
-            
-            break;
-        }
-            
-        case 2:
-        {
-            accumulator += in1[0] * in2[0];
-            accumulator += in1[1] * in2[1];
-            
-            break;
-        }
-            
-            
-        case 3:
-        {
-            accumulator += in1[0] * in2[0];
-            accumulator += in1[1] * in2[1];
-            accumulator += in1[2] * in2[2];
-            
-            break;
-        }
-            
-        case 4:
-        {
-            accumulator += in1[0] * in2[0];
-            accumulator += in1[1] * in2[1];
-            accumulator += in1[2] * in2[2];
-            accumulator += in1[3] * in2[3];
-            
-            break;
-        }
-            
-        case 5:
-        {
-            //some SSE stuff that could help
-           // _mm_loadu_si128
-            // temp_products = _mm_mullo_epi32(temp_1, temp_2);
-            //Sum temp_sum
-            //temp_sum = _mm_add_epi32(temp_sum, temp_products);
-            
-            accumulator += in1[0] * in2[0];
-            accumulator += in1[1] * in2[1];
-            accumulator += in1[2] * in2[2];
-            accumulator += in1[3] * in2[3];
-            accumulator += in1[4] * in2[4];
-            
-            break;
-        }
-            
-        case 6:
-        {
-            accumulator += in1[0] * in2[0];
-            accumulator += in1[1] * in2[1];
-            accumulator += in1[2] * in2[2];
-            accumulator += in1[3] * in2[3];
-            accumulator += in1[4] * in2[4];
-            accumulator += in1[5] * in2[5];
-            
-            break;
-        }
-            
-        case 7:
-        {
-            accumulator += in1[0] * in2[0];
-            accumulator += in1[1] * in2[1];
-            accumulator += in1[2] * in2[2];
-            accumulator += in1[3] * in2[3];
-            accumulator += in1[4] * in2[4];
-            accumulator += in1[5] * in2[5];
-            accumulator += in1[6] * in2[6];
-            
-            break;
-        }
-            
-        case 8:
-        {
-            accumulator += in1[0] * in2[0];
-            accumulator += in1[1] * in2[1];
-            accumulator += in1[2] * in2[2];
-            accumulator += in1[3] * in2[3];
-            accumulator += in1[4] * in2[4];
-            accumulator += in1[5] * in2[5];
-            accumulator += in1[6] * in2[6];
-            accumulator += in1[7] * in2[7];
-            break;
-        }
-            
-            
-            
-    }
-    
-    return accumulator;
-
-}
 
 //takes two 3 dimensional tensors (a bunch of images, and a bunch of convolutional filters),
 //applies them accross each of the innermost tensor dimension (i.e. A1 x B1 x C1, A2 x B2 x C2, we're talking about A1 and A2, and A1 == A2)
@@ -333,7 +219,7 @@ int8_t tinytensor_convolve3d_direct_maxpooling(int8_t * descale,
 }
 
 
-static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
+static void eval_conv2d_direct(const void * context,void * layer_state,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
     const ConvLayer2D_t * layer = (ConvLayer2D_t *)context;
     
     uint32_t iout;
@@ -425,7 +311,7 @@ static void eval_conv2d_direct(const void * context,Tensor_t * out,const Tensor_
 }
 
 ConstLayer_t tinytensor_create_conv_layer(const ConvLayer2D_t * static_def) {
-    ConstLayer_t layer = {eval_conv2d_direct,get_conv2d_output_size,conv_layer,static_def};
+    ConstLayer_t layer = {eval_conv2d_direct,get_conv2d_output_size,conv_layer,static_def,NULL,NULL};
     return layer;
 }
 

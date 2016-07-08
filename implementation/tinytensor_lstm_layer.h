@@ -9,16 +9,7 @@ extern "C" {
     
     
 #define LSTM_MAX_HIDDEN_UNITS (128)
-    /*
-     i = self.inner_activation(z0)
-     f = self.inner_activation(z1)
-     c = f * c_tm1 + i * self.activation(z2)
-     o = self.inner_activation(z3)
-     
-     h = o * self.activation(c)
-     return h, [h, c]
-     
-     */
+
 
 typedef struct {
     
@@ -39,6 +30,13 @@ typedef struct {
     const Weight_t incoming_dropout;
     SquashFunc_t output_activation;
 } LstmLayer_t;
+    
+    
+typedef struct {
+    int32_t * cell_state;
+    Weight_t * output;
+    uint32_t len;
+} LstmLayerState_t;
     
 ConstLayer_t tinytensor_create_lstm_layer(const LstmLayer_t * static_def);
     

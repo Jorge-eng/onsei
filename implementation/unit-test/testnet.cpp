@@ -88,7 +88,7 @@ TEST_F(TestNet, test_input_rand) {
     tensor_in = tinytensor_clone_new_tensor(&test_input_rand);
     
     ConstSequentialNetwork_t net = initialize_network();
-    tensor_out = eval_net(&net,tensor_in);
+    tensor_out = tinytensor_eval_net(&net,tensor_in);
     
     printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
     
@@ -106,7 +106,7 @@ TEST_F(TestNet, kwClip_160517_02_1_layer1) {
     
     
     ConstSequentialNetwork_t net = initialize_network();
-    tensor_out = eval_partial_net(&net,tensor_in,1);
+    tensor_out = tinytensor_eval_partial_net(&net,tensor_in,1);
     uint32_t len = 1;
     for (int i = 0; i < 4; i++) {
         len *= beginresult.dims[i];
@@ -137,7 +137,7 @@ TEST_F(TestNet, kwClip_160517_02_1_layer2) {
     
     
     ConstSequentialNetwork_t net = initialize_network();
-    tensor_out = eval_partial_net(&net,tensor_in,2);
+    tensor_out = tinytensor_eval_partial_net(&net,tensor_in,2);
     uint32_t len = 1;
     for (int i = 0; i < 4; i++) {
         len *= midresult.dims[i];
@@ -169,7 +169,7 @@ TEST_F(TestNet, kwClip_160517_02_1) {
     tensor_in = tinytensor_clone_new_tensor(&kwClip_160517_02_1);
     
     ConstSequentialNetwork_t net = initialize_network();
-    tensor_out = eval_net(&net,tensor_in);
+    tensor_out = tinytensor_eval_net(&net,tensor_in);
     
     printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
     
@@ -183,7 +183,7 @@ TEST_F(TestNet, kwClip_160517_03_1) {
     tensor_in = tinytensor_clone_new_tensor(&kwClip_160517_03_1);
     
     ConstSequentialNetwork_t net = initialize_network();
-    tensor_out = eval_net(&net,tensor_in);
+    tensor_out = tinytensor_eval_net(&net,tensor_in);
     
     printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
     
@@ -197,7 +197,7 @@ TEST_F(TestNet, kwClip_160517_04) {
     tensor_in = tinytensor_clone_new_tensor(&kwClip_160517_04);
     
     ConstSequentialNetwork_t net = initialize_network();
-    tensor_out = eval_net(&net,tensor_in);
+    tensor_out = tinytensor_eval_net(&net,tensor_in);
     
     printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
     
@@ -211,7 +211,7 @@ TEST_F(TestNet, kwClip_160517_05_1) {
     tensor_in = tinytensor_clone_new_tensor(&kwClip_160517_05_1);
     
     ConstSequentialNetwork_t net = initialize_network();
-    tensor_out = eval_net(&net,tensor_in);
+    tensor_out = tinytensor_eval_net(&net,tensor_in);
     
     printf("%f,%f\n",tensor_out->x[0]/128.,tensor_out->x[1]/128.);
     

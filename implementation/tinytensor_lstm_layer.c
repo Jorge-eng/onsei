@@ -2,27 +2,9 @@
 #include "tinytensor_memory.h"
 #include "tinytensor_math.h"
 #include <assert.h>
-static void get_output_size(const void * context,uint32_t * dims) {
-    const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
-
-    MEMCPY(dims,lstm_layer->output_dims,TENSOR_DIM*sizeof(uint32_t));
-    
-}
 
 
-/*
- i = self.inner_activation(z0)
- f = self.inner_activation(z1)
- c = f * c_tm1 + i * self.activation(z2)
- o = self.inner_activation(z3)
- 
- h = o * self.activation(c)
- return h, [h, c]
- 
- */
-//
 
-//GATES SHOULD BE IN THIS ORDER
 typedef enum {
     inputgate,
     forgetgate,
@@ -31,6 +13,37 @@ typedef enum {
     NUM_GATES
 } Gates_t;
 
+
+
+
+static void get_output_size(const void * context,uint32_t * dims) {
+    const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
+    
+    MEMCPY(dims,lstm_layer->output_dims,TENSOR_DIM*sizeof(uint32_t));
+    
+}
+
+
+static void * alloc_state(const void * context) {
+    const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
+    const uint32_t num_hidden_units = lstm_layer->output_dims[3];
+    
+    LstmLayerState_t * state = malloc(sizeof(LstmLayerState_t));
+    state->cell_state = malloc(num_hidden_units * sizeof(int32_t));
+    state->output = malloc(num_hidden_units * sizeof(Weight_t));
+    state->len = num_hidden_units;
+    
+    memset(state->cell_state,0,num_hidden_units * sizeof(int32_t));
+    memset(state->output,0,num_hidden_units * sizeof(Weight_t));
+
+    return state;
+}
+
+static void free_state(const void * context, void ** state) {
+    void * s = *state;
+    FREE(s);
+    *state = NULL;
+}
 
 static int16_t hard_sigmoid(int32_t x,int8_t in_scale) {
     
@@ -70,7 +83,6 @@ static void lstm_time_step_forwards(int32_t * cell_state,
     uint32_t igate;
     uint32_t icell;
     uint32_t ivec;
-    uint32_t i;
     int32_t accumulator32;
     int32_t temp32;
     int8_t temp8;
@@ -111,11 +123,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
             const int8_t w_scale = weights_scale[igate];
             const int8_t b_scale = biases_scale[igate];
             
-            //MATMUL MATMUL MATMUL dumbass.
-            for (ivec = 0; ivec < total_len; ivec++) {
-                accumulator32 += w[ivec] * input_vec[ivec];
-            }
-            
+            accumulator32 = accumulate(total_len,w,input_vec);
             
             bias32 = *b << QFIXEDPOINT; //to Q14 + QB FROM Q7 + QB
             
@@ -217,24 +225,12 @@ static void lstm_time_step_forwards(int32_t * cell_state,
  // cell state is intialized to zero
  
  */
-static void eval(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
-    const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
+
+
+static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type,
+                        int32_t * cell_state, Weight_t * prev_hidden, uint8_t is_stateful) {
     
-    int32_t cell_state[LSTM_MAX_HIDDEN_UNITS];
-    Weight_t input[LSTM_MAX_HIDDEN_UNITS];
-    Weight_t output[LSTM_MAX_HIDDEN_UNITS];
-    const int16_t dropout_weight = (1 << QFIXEDPOINT) - lstm_layer->incoming_dropout;
-
-    const uint32_t time_length = in->dims[2];
-    const uint32_t num_inputs = in->dims[3];
-    const uint32_t num_hidden_units = lstm_layer->output_dims[3];
-    uint32_t t;
-    uint32_t i;
-    int32_t temp32;
-    uint8_t current_gate = 0;
-    Weight_t * out_row = out->x;
-    const Weight_t * in_row = in->x;
-
+    const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
     
     //arrange weights `n stuff
     const Weight_t * weights[NUM_GATES] = {
@@ -262,14 +258,25 @@ static void eval(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_
         lstm_layer->biases_cell->scale,
         lstm_layer->biases_output_gate->scale};
     
-    const uint32_t expected_num_input_units = lstm_layer->weights_forget_gate->dims[3];
-    const uint32_t actual_num_input_units = num_inputs + num_hidden_units;
-    assert(actual_num_input_units == expected_num_input_units);
-    
-    MEMSET(cell_state,0,sizeof(cell_state));
-    MEMSET(input,0,sizeof(input));
-    MEMSET(output,0,sizeof(output));
 
+    
+    const int16_t dropout_weight = (1 << QFIXEDPOINT) - lstm_layer->incoming_dropout;
+    
+    const uint32_t time_length = is_stateful ? 1 : in->dims[2];
+    const uint32_t num_inputs = in->dims[3];
+    const uint32_t num_hidden_units = lstm_layer->output_dims[3];
+    uint32_t t;
+    uint32_t i;
+    int32_t temp32;
+    uint8_t current_gate = 0;
+    Weight_t * out_row = out->x;
+    const Weight_t * in_row = in->x;
+    
+
+    //our "large" stack variable
+    //which isn't that large
+    Weight_t input[LSTM_MAX_HIDDEN_UNITS];
+    
     for (t = 0; t < time_length; t++) {
 
         MEMCPY(input,in_row,num_inputs*sizeof(Weight_t));
@@ -281,10 +288,10 @@ static void eval(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_
             input[i] = (Weight_t)temp32;
         }
         
-        MEMCPY(input + num_inputs,output,num_hidden_units*sizeof(Weight_t));
+        MEMCPY(input + num_inputs,prev_hidden,num_hidden_units*sizeof(Weight_t));
         
         lstm_time_step_forwards(cell_state,
-                                output,
+                                prev_hidden,
                                 input,
                                 weights,
                                 biases,
@@ -303,12 +310,13 @@ static void eval(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_
         printf("\n");
         */
         
-        MEMCPY(out_row,output,num_hidden_units * sizeof(Weight_t));
+        MEMCPY(out_row,prev_hidden,num_hidden_units * sizeof(Weight_t));
 
         current_gate++;
         out_row += num_hidden_units;
         in_row += num_inputs;
     }
+    
     
     /*
     printf("\n");
@@ -318,7 +326,28 @@ static void eval(const void * context,Tensor_t * out,const Tensor_t * in,ELayer_
 
 }
 
+static void eval(const void * context,void * layer_state,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
+    LstmLayerState_t * state = (LstmLayerState_t *)layer_state;
+
+    //const void * context, Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type, int32_t * cell_state, Weight_t * prev_hidden
+    if (state) {
+        eval_helper(context,out,in,prev_layer_type,state->cell_state,state->output,1);
+    }
+    else {
+        
+        //WE HAVE THIS BRANCH SEPARATE IN CASE WE ARE NOT USING A STATEFUL LSTM
+        //THIS LETS US SAVE ON STACK SIZE IN THE STATEFUL CASE
+        int32_t cell_state[LSTM_MAX_HIDDEN_UNITS];
+        Weight_t prev_hidden[LSTM_MAX_HIDDEN_UNITS];
+        
+        MEMSET(cell_state,0,sizeof(cell_state));
+        MEMSET(prev_hidden,0,sizeof(prev_hidden));
+        
+        eval_helper(context,out,in,prev_layer_type,cell_state,prev_hidden,0);
+    }
+    
+}
 ConstLayer_t tinytensor_create_lstm_layer(const LstmLayer_t * static_def) {
-    ConstLayer_t layer = {eval,get_output_size,lstm_layer,static_def};
+    ConstLayer_t layer = {eval,get_output_size,lstm_layer,static_def,alloc_state,free_state};
     return layer;
 }
