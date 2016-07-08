@@ -1,4 +1,4 @@
-function batchAnnotate(dirName, ext)
+function batchAnnotate(dirName, ext, clipDataFile)
 
 d = dir(fullfile(dirName,['*.' ext]));
 files = {d.name};
@@ -11,6 +11,10 @@ for j = 1:length(files)
     if ~exist(annoName, 'file')
         annotateWav(wavName, annoName);
         annotateKw(dirName, annoName);
+        
+        if exist('clipDataFile','var')
+            getAnnotatedData('~/Dropbox/Data/keyword/recordings', annoName, clipDataFile);
+        end
     end
     
 end
