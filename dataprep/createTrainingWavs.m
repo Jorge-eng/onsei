@@ -29,6 +29,7 @@ for f = 1:length(fileVars)
         for s = 1:length(data.(var))
             %wav = resample(data.(var){n}{s},16,48);
             wav = data.(var){s};
+            wav = 1.0 * wav; % Avoid clipping
             audiowrite(fullfile(outDir,[var '_' fileTag '_' num2str(s) '.wav']), wav, Fs)
         end
         
