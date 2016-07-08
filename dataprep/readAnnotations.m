@@ -14,6 +14,7 @@ while 1
         break
     end
     
+    line = strrep(line,'^M',''); % Where are these coming from?
     line = strsplit(line,',');
     
     fileName{end+1} = line{1};
