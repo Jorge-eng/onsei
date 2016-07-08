@@ -1,4 +1,5 @@
 function batchAnnotate(dirName, ext, clipDataFile)
+% batchAnnotate(dirName, ext, clipDataFile)
 
 d = dir(fullfile(dirName,['*.' ext]));
 files = {d.name};
