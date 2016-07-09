@@ -24,14 +24,15 @@ def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=20, offs
 
     logM = audioproc.wav2fbank(wavFile)
 
-    feaStream, starts = fbank_stream(logM, winLen, winShift, modelType)
+    feaStream, starts = fbank_stream(logM, winLen, winShift)
     feaStream = data.apply_norm(feaStream, offset, scale)
+    feaStream = data.reshape_for_model(feaStream, modelType)
 
     prob = model.predict_proba(feaStream, batch_size=128, verbose=verbose)
 
     return prob, starts
 
-def fbank_stream(logM, winLen, winShift, modelType):
+def fbank_stream(logM, winLen, winShift):
 
     nBands = logM.shape[0]
     nFrames = logM.shape[1]
@@ -39,19 +40,11 @@ def fbank_stream(logM, winLen, winShift, modelType):
     starts = np.arange(0, nFrames-winLen+1, winShift)
     nWindows = len(starts)
 
-    if modelType == 'cnn':
-        stream = np.zeros((nWindows,1,nBands,winLen),dtype='float32')
-        for n, stIdx in enumerate(starts):
-            stream[n,0,:,:] = logM[:,stIdx+np.arange(0,winLen)]
+    stream = np.zeros((nWindows,nBands,winLen),dtype='float32')
+    for n, stIdx in enumerate(starts):
+        stream[n,:,:] = logM[:,stIdx+np.arange(0,winLen)]
 
-        return stream, starts
-    elif modelType == 'rnn':
-        logM = np.swapaxes(logM, 0, 1)
-        stream = np.zeros((nWindows,winLen,nBands),dtype='float32')
-        for n, stIdx in enumerate(starts):
-            stream[n,:,:] = logM[stIdx+np.arange(0,winLen)]
-
-        return stream, starts
+    return stream, starts
 
 def detect_events(prob, detWinLen=2, detWait=10, detTh=1.5):
 
@@ -160,6 +153,7 @@ if __name__ == '__main__':
         # Batch sequence detection
         detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
 
+        pdb.set_trace()
         # Online sequence detection
         #detect = wav2detect(inFile, model, modelType, winLen, offset, scale, winLen_s=1.6, winShift_s=0.2, detTh=1.5)
 
@@ -179,11 +173,11 @@ if __name__ == '__main__':
 
         from loadEmbeddedFeatures import load_bin
         features = load_bin(inFile)
-        features = data.apply_norm(features, offset, scale)
 
         winShift = 20
-
-        feaStream, starts = fbank_stream(features, winLen, winShift, modelType)
+        feaStream, starts = fbank_stream(features, winLen, winShift)
+        feaStream = data.apply_norm(feaStream, offset, scale)
+        feaStream = data.reshape_for_model(feaStream, modelType)
 
         prob = model.predict_proba(feaStream, batch_size=128, verbose=1)
 
