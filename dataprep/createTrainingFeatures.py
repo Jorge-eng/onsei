@@ -43,18 +43,9 @@ if __name__ == '__main__':
 
     # Positive examples
     features = load_features(dirName, posMatchers)
-
-    if False:
-        tilt = tilt_compensation(features)
-        features = features - tilt[:,np.newaxis,np.newaxis]
-        pdb.set_trace()
-
     savemat('spec_pos.mat',{'features': features})
 
     # Negative examples
     features = load_features(dirName, negMatchers)
-    if False:
-        features = features - tilt[:,np.newaxis,np.newaxis]
-
     savemat('spec_neg.mat',{'features': features})
 
