@@ -8,8 +8,8 @@
 #include "tinytensor_net.h"
 #include "tinytensor_tensor.h"
 
-#include "unit-test/data/model_jun22_smaller_sigm.c"
-//#include "unit-test/data/model_may25_lstm_large.c"
+//#include "unit-test/data/model_jun22_smaller_sigm.c"
+#include "unit-test/data/model_may25_lstm_large.c"
 
 using namespace std;
 
@@ -24,12 +24,39 @@ typedef struct  {
     int8_t buf[NUM_MEL_BINS][MEL_FEAT_BUF_TIME_LEN];
     uint32_t bufidx;
     ConstSequentialNetwork_t net;
+    SequentialNetworkStates_t state;
 } CallbackContext ;
 
 void results_callback(void * context, int8_t * melbins) {
     static uint32_t counter = 0;
     CallbackContext * p = static_cast<CallbackContext *>(context);
 
+    
+    Tensor_t temp_tensor;
+    temp_tensor.dims[0] = 1;
+    temp_tensor.dims[1] = 1;
+    temp_tensor.dims[2] = 1;
+    temp_tensor.dims[3] = NUM_MEL_BINS;
+    
+    temp_tensor.x = melbins;
+    temp_tensor.scale = 0;
+    temp_tensor.delete_me = 0;
+    
+    if (++counter < MEL_FEAT_BUF_TIME_LEN) {
+        return;
+    }
+    
+    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor);
+    
+    printf("%d,%d\n",out->x[0],out->x[1]);
+    
+    out->delete_me(out);
+    
+
+    
+    return;
+    
+    //////////////////////////
     for (uint32_t i = 0; i < NUM_MEL_BINS; i++) {
         int32_t temp32 = melbins[i] + 0;
         if (temp32 > MAX_WEIGHT) {
@@ -45,11 +72,11 @@ void results_callback(void * context, int8_t * melbins) {
     
     
     
-    if (++counter % 10) {
+    if (counter % 10) {
         return;
     }
     
-    if (counter < MEL_FEAT_BUF_TIME_LEN) {
+    if (++counter < MEL_FEAT_BUF_TIME_LEN) {
         return;
     }
    
@@ -107,6 +134,7 @@ int main(int argc, char * argv[]) {
     CallbackContext context;
     memset(&context,0,sizeof(context));
     context.net = initialize_network();
+    tinytensor_allocate_states(&context.state, &context.net);
     
     tinytensor_features_initialize(&context,results_callback);
     const std::string inFile = argv[1];
@@ -155,7 +183,7 @@ int main(int argc, char * argv[]) {
     }
     
     tinytensor_features_deinitialize();
-    
+    tinytensor_free_states(&context.state, &context.net);
     
     return 0;
 }
