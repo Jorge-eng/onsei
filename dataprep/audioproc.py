@@ -68,3 +68,35 @@ def wav2fbank_batch(wavDir, matcher=None):
 
     return logM
 
+def find_bin_files(wavDir, matcher=None):
+
+    # Find all bin files in the directory
+    allFiles = glob.glob(os.path.join(wavDir,'*.bin'))
+    binFiles = []
+    for f in allFiles:
+        if matcher is not None and matcher not in f:
+            continue
+        binFiles.append(f)
+
+    return binFiles
+
+def load_bin(fname, nfilt=40):
+
+    f = open(fname,'r')
+    x = np.fromfile(f,dtype=np.int8)
+    f.close()
+
+    x = x.reshape(x.shape[0] / nfilt, nfilt)
+    x = np.swapaxes(x, 0, 1)
+
+    return x
+
+def bin2fbank_batch(dirName, matcher=None):
+
+    files = find_bin_files(dirName, matcher)
+    logM = []
+    for f in files:
+        logM.append(load_bin(f))
+
+    return logM
+

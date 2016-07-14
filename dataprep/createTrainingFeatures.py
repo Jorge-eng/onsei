@@ -1,6 +1,6 @@
 import numpy as np
 import audioproc as ap
-import sys
+import sys, os, glob
 from scipy.io import savemat
 import pdb
 import matplotlib.pyplot as plt
@@ -11,14 +11,27 @@ python createTrainingFeatures.py /path/to/audio/clips
 
 def load_features(dirName, matchers):
 
+    if len(glob.glob(os.path.join(dirName,'*.wav'))) > 0:
+        feaReader = ap.wav2fbank_batch
+    elif len(glob.glob(os.path.join(dirName,'*.bin'))) > 0:
+        feaReader = ap.bin2fbank_batch
+
+    features = np.array([])
+    labels = np.array([])
     for c, m in enumerate(matchers):
-        fea = np.stack(ap.wav2fbank_batch(dirName, m), axis=2)
+        fea = feaReader(dirName, m)
+        if len(fea) == 0:
+            continue
+        fea = np.stack(fea, axis=2)
+        lab = c * np.ones((fea.shape[0],), dtype='uint8')
         if c == 0:
             features = fea
+            labels = lab
         else:
             features = np.append(features, fea, axis=2)
+            labels = np.append(labels, lab, axis=0)
 
-    return features
+    return features, labels
 
 def get_conditions():
 
@@ -42,10 +55,12 @@ if __name__ == '__main__':
     posMatchers, negMatchers = get_conditions()
 
     # Positive examples
-    features = load_features(dirName, posMatchers)
-    savemat('spec_pos.mat',{'features': features})
+    features, labels = load_features(dirName, posMatchers)
+    labels = labels + 1 # labels 1, 2, ...
+    savemat('spec_pos.mat',{'features': features, 'labels': labels})
 
     # Negative examples
-    features = load_features(dirName, negMatchers)
-    savemat('spec_neg.mat',{'features': features})
+    features, labels = load_features(dirName, negMatchers)
+    labels = labels * 0 # labels all 0
+    savemat('spec_neg.mat',{'features': features, 'labels': labels})
 

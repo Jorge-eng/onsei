@@ -16,7 +16,7 @@
 
 
 #if HAVE_NET
-#include "unit-test/data/model_jun22_smaller_sigm.c"
+#include "unit-test/data/model_may25_lstm_large.c"
 #endif 
 
 #define MIN_PROB_TO_USE_FOR_SUM (40)
@@ -109,6 +109,7 @@ typedef struct {
     ConstSequentialNetwork_t net;
     int8_t buf[NUM_MEL_BINS][MEL_FEAT_BUF_TIME_LEN];
     uint32_t bufidx;
+    SequentialNetworkStates_t state;
 } FeatsCallbackContext;
 
 static void feats_callback(void * context, int8_t * feats) {
@@ -119,6 +120,32 @@ static void feats_callback(void * context, int8_t * feats) {
     static uint32_t off_count = 0;
     //desire to have the dims as 40 x 199
     //data comes in as 40 x 1 vectors, soo
+    
+    
+    
+    Tensor_t temp_tensor;
+    temp_tensor.dims[0] = 1;
+    temp_tensor.dims[1] = 1;
+    temp_tensor.dims[2] = 1;
+    temp_tensor.dims[3] = NUM_MEL_BINS;
+    
+    temp_tensor.x = feats;
+    temp_tensor.scale = 0;
+    temp_tensor.delete_me = 0;
+    
+    if (++counter < MEL_FEAT_BUF_TIME_LEN) {
+        return;
+    }
+    
+    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor);
+    
+    if (out->x[1] > 64)
+        printf("%d,%d\n",out->x[0],out->x[1]);
+    
+    out->delete_me(out);
+
+    return;
+    ////////////////////////////
     
     const static uint32_t dims[4] = {1,1,NUM_MEL_BINS,MEL_FEAT_BUF_TIME_LEN};
     int32_t temp32;
@@ -136,14 +163,12 @@ static void feats_callback(void * context, int8_t * feats) {
     if (off_count) {
         off_count--;
     }
-    
-    if (++counter % NET_RUN_PERIOD) {
+
+    if (counter % NET_RUN_PERIOD) {
         return;
     }
     
-    if (counter < MEL_FEAT_BUF_TIME_LEN) {
-        return;
-    }
+  
     
 #if HAVE_NET
     
@@ -220,11 +245,15 @@ int main(void) {
     FeatsCallbackContext featsContext;
     memset(&featsContext,0,sizeof(featsContext));
 
+    
     gettimeofday(&tp, NULL);
     ms = tp.tv_sec * 1000 + tp.tv_usec / 1000; //get current timestamp in milliseconds
 
 #if HAVE_NET
     featsContext.net = initialize_network();
+    
+    tinytensor_allocate_states(&featsContext.state, &featsContext.net);
+
 #endif
 
     

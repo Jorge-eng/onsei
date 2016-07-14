@@ -171,8 +171,7 @@ if __name__ == '__main__':
 
     elif inType == 'tinyfeats':
 
-        from loadEmbeddedFeatures import load_bin
-        features = load_bin(inFile)
+        features = audioproc.load_bin(inFile)
 
         winShift = 20
         feaStream, starts = fbank_stream(features, winLen, winShift)

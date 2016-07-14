@@ -1,9 +1,6 @@
 import numpy as np
-from createTrainingFeatures import load_features as load_features_python
-from loadEmbeddedFeatures import load_features as load_features_tinyfeats
-from createTrainingFeatures import get_conditions
+from createTrainingFeatures import load_features, get_conditions
 import sys, os
-import glob
 from scipy.io import savemat
 import pdb
 
@@ -18,18 +15,14 @@ idMatch = ['160517_07','160517_08','160606_03','160606_04',
            'VoiceBunny_915641_AFDP9VS','VoiceBunny_916261_97VN760','VoiceBunny_916029_6M3QU0K',  
           ]
 
-if len(glob.glob(os.path.join(dirName,'*.wav'))) > 0:
-    load_features = load_features_python
-elif len(glob.glob(os.path.join(dirName,'*.bin'))) > 0:
-    load_features = load_features_tinyfeats
-
 identity = []
 sampleType = []
 features = np.array([])
 for i in idMatch:
     for c in condMatch:
-        fea = load_features(dirName, [c+'_'+i])
-
+        fea, lab = load_features(dirName, [c+'_'+i])
+        if len(fea) == 0:
+            continue
         identity.extend([i]*fea.shape[2])
         sampleType.extend([c]*fea.shape[2])
         if features.shape[0] == 0:
