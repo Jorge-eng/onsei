@@ -133,12 +133,13 @@ def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, 
     feaTest = np.concatenate((feaTestPos, feaTestNeg), axis=0)
     labelTest = np.concatenate((labelTestPos, labelTestNeg), axis=0)
 
+    numClasses = len(np.unique(labelTrain))
     labelTrain = np.reshape(labelTrain, (len(labelTrain), 1))
     labelTest = np.reshape(labelTest, (len(labelTest), 1))
 
     # convert class vectors to binary class matrices
-    labelTrain = np_utils.to_categorical(labelTrain, 2)
-    labelTest = np_utils.to_categorical(labelTest, 2)
+    labelTrain = np_utils.to_categorical(labelTrain, numClasses)
+    labelTest = np_utils.to_categorical(labelTest, numClasses)
 
     # normalization
     if normalize is not None:
