@@ -21,6 +21,15 @@ def load_batch(filePath, var='mfc'):
 
     return data
 
+def load_labels(filePath, var='labels'):
+    data = loadmat(filePath, variable_names=[var])
+    if var in data:
+        labels = data[var][0]
+    else:
+        labels = []
+
+    return labels
+
 def reshape_for_model(data, modelType='cnn'):
 
     if modelType=='cnn':
@@ -86,11 +95,15 @@ def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, 
 
     # pos
     feaTrainPos = load_batch(inFiles[0], dataVar)
-    labelTrainPos = np.ones((feaTrainPos.shape[0],), dtype='uint8')
+    labelTrainPos = load_labels(inFiles[0])
+    if len(labelTrainPos) == 0:
+        labelTrainPos = np.ones((feaTrainPos.shape[0],), dtype='uint8')
 
     # neg
     feaTrainNeg = load_batch(inFiles[1], dataVar)
-    labelTrainNeg = np.zeros((feaTrainNeg.shape[0],), dtype='uint8')
+    labelTrainNeg = load_labels(inFiles[1])
+    if len(labelTrainNeg) == 0:
+        labelTrainNeg = np.zeros((feaTrainNeg.shape[0],), dtype='uint8')
 
     # permute before split
     if permuteBeforeSplit[0]: # pos
