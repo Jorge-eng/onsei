@@ -1,10 +1,13 @@
-function createTrainingWavs(dataFile, outDir, fileId)
+function createTrainingWavs(dataFile, outDir, kw, fileId)
 % createTrainingWavs(dataFile, outDir)
 
 [~,~] = mkdir(outDir);
 
 Fs = 16000;
 
+if ~exist('kw','var')
+    kw = '';
+end
 if ~exist('fileId','var')
     d = whos('-file',dataFile,'file_*');
     fileVars = {d.name};
@@ -34,7 +37,7 @@ for f = 1:length(fileVars)
             %wav = resample(data.(var){n}{s},16,48);
             wav = data.(var){s};
             wav = 1.0 * wav; % Avoid clipping
-            audiowrite(fullfile(outDir,[var '_' fileTag '_' num2str(s) '.wav']), wav, Fs)
+            audiowrite(fullfile(outDir,[var '_' kw '_' fileTag '_' num2str(s) '.wav']), wav, Fs)
         end
         
     end

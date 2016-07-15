@@ -19,11 +19,11 @@ def load_features(dirName, matchers):
     features = np.array([])
     labels = np.array([])
     for c, m in enumerate(matchers):
-        fea = feaReader(dirName, m)
+        fea = feaReader(dirName, '*'+m+'*')
         if len(fea) == 0:
             continue
         fea = np.stack(fea, axis=2)
-        lab = c * np.ones((fea.shape[0],), dtype='uint8')
+        lab = c * np.ones((fea.shape[2],), dtype='uint8')
         if c == 0:
             features = fea
             labels = lab
@@ -35,7 +35,9 @@ def load_features(dirName, matchers):
 
 def get_conditions():
 
-    posMatchers = ['kwClip']
+    posMatchers = ['kwClip_okay_sense',
+                   'kwClip_snooze',
+                  ]
      
     negMatchers = ['kwRevClip',
                    'speechClip',

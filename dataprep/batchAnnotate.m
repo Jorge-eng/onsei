@@ -23,7 +23,7 @@ for j = 1:length(files)
         if exist('clipDataFile','var')
             getAnnotatedData('~/Dropbox/Data/keyword/recordings', annoName, clipDataFile);
             if exist('outWavDir','var')
-                createTrainingWavs(clipDataFile, outWavDir, fileId);
+                createTrainingWavs(clipDataFile, outWavDir, kw, fileId);
             end
         end
     end

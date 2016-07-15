@@ -2,6 +2,7 @@ import os, glob, sndhdr
 import numpy as np
 from scipy.io import wavfile
 from features import fbank # python_speech_features
+import fnmatch
 import pdb
 
 def melfilter(N, freq):
@@ -51,7 +52,7 @@ def find_audio_files(wavDir, matcher=None):
     allFiles = glob.glob(os.path.join(wavDir,'*.*'))
     audioFiles = []
     for f in allFiles:
-        if matcher is not None and matcher not in f:
+        if matcher is not None and not fnmatch.fnmatch(f, matcher):
             continue
         chk = sndhdr.what(f)
         if chk is not None:
@@ -74,7 +75,7 @@ def find_bin_files(wavDir, matcher=None):
     allFiles = glob.glob(os.path.join(wavDir,'*.bin'))
     binFiles = []
     for f in allFiles:
-        if matcher is not None and matcher not in f:
+        if matcher is not None and not fnmatch.fnmatch(f, matcher):
             continue
         binFiles.append(f)
 

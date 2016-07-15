@@ -20,7 +20,7 @@ sampleType = []
 features = np.array([])
 for i in idMatch:
     for c in condMatch:
-        fea, lab = load_features(dirName, [c+'_'+i])
+        fea, lab = load_features(dirName, ['*'+c+'*'+i+'*'])
         if len(fea) == 0:
             continue
         identity.extend([i]*fea.shape[2])
