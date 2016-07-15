@@ -15,22 +15,23 @@ import pdb
 
 modelName = sys.argv[1]
 modelType = sys.argv[2]
+modelTag = sys.argv[3]
 
 batchSize = 8
-numEpoch = 100
+numEpoch = 250
 
 # the data, shuffled and split between train and test sets
 inFiles = ('spec_pos.mat',
            'spec_neg.mat')
 
-modelDef = 'models/'+modelName+'.json'
-modelWeights = 'models/'+modelName+'.h5'
-modelInfo = 'models/'+modelName+'.mat'
+modelDef = 'models/'+modelName+modelTag+'.json'
+modelWeights = 'models/'+modelName+modelTag+'.h5'
+modelInfo = 'models/'+modelName+modelTag+'.mat'
 
 (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale) = data.load_training(
 	inFiles, 'features', modelType,
 	negRatioTrain=10, negRatioTest=10,
-	permuteBeforeSplit=(True,True), testSplit=0.2, normalize=True)
+	permuteBeforeSplit=(True,True), testSplit=0.15, normalize=None)
 
 print('feaTrain shape:', feaTrain.shape)
 print(feaTrain.shape[0], 'train samples')
