@@ -22,7 +22,7 @@ randomSpeechPerKw = 2;
 noiseDir = '~/Dropbox/Data/keyword/noiseWavs';
 d = dir(fullfile(noiseDir, '*.wav'));
 noiseFiles = {d.name};
-noiseScales = 12:3:30;
+noiseScales = 1./10.^((-18:-2:-30)/20);
 %noiseScales = Inf;
 
 irDir = 'IR';
