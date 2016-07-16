@@ -37,6 +37,8 @@ def get_conditions():
 
     posMatchers = ['kwClip_okay_sense',
                    'kwClip_snooze',
+                   'kwClip_alexa',
+                   'kwClip_stop',
                   ]
      
     negMatchers = ['kwRevClip',
