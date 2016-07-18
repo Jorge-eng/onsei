@@ -4,7 +4,7 @@
 
 if [ $1 = "train" ]; then
     echo "createTrainingFeatures.py"
-    python createTrainingFeatures.py $2
+    python createTrainingFeatures.py $2 ${@:4}
 
     echo "zip"
     rm -f $3\.zip 

@@ -5,5 +5,5 @@
 echo "batchfeat.sh"
 ../implementation/batchfeat.sh $2 $3
 
-./wav2feats.sh $1 $3 $4
+./wav2feats.sh $1 $3 $4 ${@:5}
 

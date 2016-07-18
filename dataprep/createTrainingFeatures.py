@@ -1,4 +1,5 @@
 import numpy as np
+import itertools
 import audioproc as ap
 import sys, os, glob
 from scipy.io import savemat
@@ -11,6 +12,7 @@ python createTrainingFeatures.py /path/to/audio/clips
 
 def load_features(dirName, matchers):
 
+    # Auto detect source
     if len(glob.glob(os.path.join(dirName,'*.wav'))) > 0:
         feaReader = ap.wav2fbank_batch
     elif len(glob.glob(os.path.join(dirName,'*.bin'))) > 0:
@@ -33,21 +35,25 @@ def load_features(dirName, matchers):
 
     return features, labels
 
-def get_conditions():
-
-    posMatchers = ['kwClip_okay_sense',
-                   'kwClip_snooze',
-                   'kwClip_alexa',
-                   'kwClip_stop',
-                  ]
+def get_conditions(kws=None):
+        
+    posConds = ['kwClip',
+               ]
      
-    negMatchers = ['kwRevClip',
-                   'speechClip',
-                   'backClip',
-                   'earlyImplantClip','lateImplantClip',
-                   'partialEarlyClip','partialLateClip',
-                   'shiftEarlyClip','shiftLateClip',
-                   ]
+    negConds = ['kwRevClip',
+                'speechClip',
+                'backClip',
+                'earlyImplantClip','lateImplantClip',
+                'partialEarlyClip','partialLateClip',
+                'shiftEarlyClip','shiftLateClip',
+                 ]
+
+    if kws is not None:
+        posMatchers = [p[0]+'_'+p[1] for p in list(itertools.product(posConds, kws))]
+        negMatchers = [p[0]+'_'+p[1] for p in list(itertools.product(negConds, kws))]
+    else:
+        posMatchers = posConds
+        negMatchers = negConds
 
     return posMatchers, negMatchers
  
@@ -55,8 +61,12 @@ if __name__ == '__main__':
 
     # Input audio directory
     dirName = sys.argv[1]
+    if len(sys.argv) > 2:
+        kws = sys.argv[2:]
+    else:
+        kws = None
 
-    posMatchers, negMatchers = get_conditions()
+    posMatchers, negMatchers = get_conditions(kws=kws)
 
     # Positive examples
     features, labels = load_features(dirName, posMatchers)
