@@ -71,7 +71,7 @@ def detect_events(prob, detWinLen=2, detWait=10, detTh=1.5):
 def detect_online(wav,prob_prev,model,modelType,winLen=None,offset=0.,scale=1.,detWait=10,detTh=1.5,waitCount=0,waiting=False):
 
     prob, starts = predict_wav_stream(wav, model, modelType, winLen, offset=offset, scale=scale, verbose=0)
-    prob = prob[0, 1]
+    prob = prob[0, :]
 
     detect = np.float32(0)
     if waitCount >= detWait:
@@ -81,8 +81,8 @@ def detect_online(wav,prob_prev,model,modelType,winLen=None,offset=0.,scale=1.,d
         waitCount += 1
     else:
         signal = prob + prob_prev
-        if signal >= detTh:
-            detect = np.float32(1)
+        if np.any(signal[1:] >= detTh):
+            detect = 1 + np.argmax(signal[1:])
             waiting = True
 
     return detect, prob, waitCount, waiting
@@ -91,6 +91,8 @@ def wav2detect(wavFile,model,modelType,winLen,offset=0.,scale=1.,winLen_s=1.6,wi
 
     (fs, wav) = wavfile.read(wavFile)
     assert fs == 16000
+    if len(wav.shape) == 1:
+        wav = wav[:,None]
 
     winSamples = int(winLen_s * fs)
     shiftSamples = int(winShift_s * fs)
@@ -153,9 +155,8 @@ if __name__ == '__main__':
         # Batch sequence detection
         detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
 
-        pdb.set_trace()
         # Online sequence detection
-        #detect = wav2detect(inFile, model, modelType, winLen, offset, scale, winLen_s=1.6, winShift_s=0.2, detTh=1.5)
+        detect = wav2detect(inFile, model, modelType, winLen, offset, scale, winLen_s=1.6, winShift_s=0.2, detTh=1.5)
 
         savemat(outFile, {'prob': prob, 'startTimes': startTimes, 'detect': detect})
 

@@ -17,11 +17,15 @@ probMat = zeros(nId, nCond);
 
 for l = 1:size(prob, 2)-1
     p = prob(:,l+1);
+    isMax = (p == max(prob,[],2));
     for j = 1:nId
         for k = 1:nCond
             
             ii = strcmp(idMatch{j}, id) & strcmp(condMatch{k}, cond);
             dec = p(ii) > th;
+            if 1
+                dec = dec & isMax(ii);
+            end
             posRate = sum(dec) / length(dec);
             
             decMat(j, k, l) = posRate;

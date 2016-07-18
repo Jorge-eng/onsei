@@ -96,7 +96,7 @@ class Detector(object):
         self.detWait = 10
         self.audioGain = audio_gain
         self.detTh = detTh
-        self.prob_prev = 0.
+        self.prob_prev = np.array([0.])
         self.waitCount = 0
         self.waiting = False
 
@@ -147,7 +147,9 @@ class Detector(object):
                 flag = 0
 
             if debug is True:
-                print('%.5f' % self.prob_prev)
+                #print('%.5f' % self.prob_prev)
+                print np.array_str(self.prob_prev, precision=5)
+
             flag = int(flag)
             if flag > 0:
                 message = "Keyword " + str(flag) + " detected at time: "
@@ -184,6 +186,7 @@ if __name__ == '__main__':
     sensitivity = 1.5
     audio_gain = 2.0
     debug = False
+    detect_rate = 0.20
 
     model = sys.argv[1]
     if len(sys.argv) > 2:
@@ -202,7 +205,7 @@ if __name__ == '__main__':
     # main loop
     detector.start(detected_callback=play_audio_file,
                    interrupt_check=interrupt_callback,
-                   sleep_time=0.20,debug=debug)
+                   sleep_time=detect_rate,debug=debug)
 
     detector.terminate()
 
