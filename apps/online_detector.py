@@ -147,8 +147,7 @@ class Detector(object):
                 flag = 0
 
             if debug is True:
-                #print('%.5f' % self.prob_prev)
-                print np.array_str(self.prob_prev, precision=5)
+                print ' '.join(['%.5f' % p for p in self.prob_prev])
 
             flag = int(flag)
             if flag > 0:
