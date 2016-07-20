@@ -91,17 +91,17 @@ def apply_norm(fea, offset, scale):
 
     return fea
 
-def load_training(inFiles, dataVar, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=None, permuteBeforeSplit=(True,True)):
+def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=None, permuteBeforeSplit=(True,True)):
 
     # pos
-    feaTrainPos = load_batch(inFiles[0], dataVar)
-    labelTrainPos = load_labels(inFiles[0])
+    feaTrainPos = load_batch(inFile, 'features_pos')
+    labelTrainPos = load_labels(inFile, 'labels_pos')
     if len(labelTrainPos) == 0:
         labelTrainPos = np.ones((feaTrainPos.shape[0],), dtype='uint8')
 
     # neg
-    feaTrainNeg = load_batch(inFiles[1], dataVar)
-    labelTrainNeg = load_labels(inFiles[1])
+    feaTrainNeg = load_batch(inFile, 'features_neg')
+    labelTrainNeg = load_labels(inFile, 'labels_neg')
     if len(labelTrainNeg) == 0:
         labelTrainNeg = np.zeros((feaTrainNeg.shape[0],), dtype='uint8')
 

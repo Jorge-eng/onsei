@@ -61,20 +61,23 @@ if __name__ == '__main__':
 
     # Input audio directory
     dirName = sys.argv[1]
-    if len(sys.argv) > 2:
-        kws = sys.argv[2:]
+    outName = sys.argv[2]+'.mat'
+    if len(sys.argv) > 3:
+        kws = sys.argv[3:]
     else:
         kws = None
 
     posMatchers, negMatchers = get_conditions(kws=kws)
 
     # Positive examples
-    features, labels = load_features(dirName, posMatchers)
-    labels = labels + 1 # labels 1, 2, ...
-    savemat('spec_pos.mat',{'features': features, 'labels': labels})
+    features_pos, labels_pos = load_features(dirName, posMatchers)
+    labels_pos = labels_pos + 1 # labels 1, 2, ...
 
     # Negative examples
-    features, labels = load_features(dirName, negMatchers)
-    labels = labels * 0 # labels all 0
-    savemat('spec_neg.mat',{'features': features, 'labels': labels})
+    features_neg, labels_neg = load_features(dirName, negMatchers)
+    labels_neg = labels_neg * 0 # labels all 0
+
+    savemat(outName,
+            {'features_pos': features_pos, 'labels_pos': labels_pos,
+             'features_neg': features_neg, 'labels_neg': labels_neg})
 

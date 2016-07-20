@@ -13,23 +13,22 @@ import modeldefs
 from scipy.io import savemat
 import pdb
 
-modelName = sys.argv[1]
-modelType = sys.argv[2]
-modelTag = sys.argv[3]
+# .mat file expected to contain features_pos, labels_pos, features_neg, labels_neg
+inFile = sys.argv[1] 
+
+modelName = sys.argv[2]
+modelType = sys.argv[3]
+modelTag = sys.argv[4]
 
 batchSize = 8
-numEpoch = 250
-
-# the data, shuffled and split between train and test sets
-inFiles = ('spec_pos.mat',
-           'spec_neg.mat')
+numEpoch = 100
 
 modelDef = 'models/'+modelName+modelTag+'.json'
 modelWeights = 'models/'+modelName+modelTag+'.h5'
 modelInfo = 'models/'+modelName+modelTag+'.mat'
 
 (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale) = data.load_training(
-	inFiles, 'features', modelType,
+	inFile, modelType,
 	negRatioTrain=10, negRatioTest=10,
 	permuteBeforeSplit=(True,True), testSplit=0.15, normalize=None)
 

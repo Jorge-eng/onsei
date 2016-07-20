@@ -4,14 +4,10 @@
 
 if [ $1 = "train" ]; then
     echo "createTrainingFeatures.py"
-    python createTrainingFeatures.py $2 ${@:4}
-
-    echo "zip"
-    rm -f $3\.zip 
-    zip -r $3\.zip spec_pos.mat spec_neg.mat
+    python createTrainingFeatures.py $2 $3 ${@:4}
 
     echo "copyToHelloServer.sh"
-    ~/copyToHelloServer.sh $3\.zip onsei/net
+    ~/copyToHelloServer.sh $3\.mat onsei/net
 elif [ $1 = "test" ]; then
     echo "createTestGrid.py"
     python createTestGrid.py $2 $3 
