@@ -63,7 +63,7 @@ if __name__ == '__main__':
     dirName = sys.argv[1]
     outName = sys.argv[2]+'.mat'
     if len(sys.argv) > 3:
-        kws = sys.argv[3:]
+        kws = sys.argv[3].split('+')
     else:
         kws = None
 
