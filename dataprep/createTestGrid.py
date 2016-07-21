@@ -7,8 +7,12 @@ import pdb
 # Input audio directory
 dirName = sys.argv[1]
 outName = sys.argv[2]+'.mat'
+if len(sys.argv) > 3:
+    kws = sys.argv[3:]
+else:
+    kws = None
 
-pos, neg = get_conditions()
+pos, neg = get_conditions(kws=kws)
 condMatch = pos + neg
 
 idMatch = ['160517_07','160517_08','160606_03','160606_04',
@@ -20,7 +24,8 @@ sampleType = []
 features = np.array([])
 for i in idMatch:
     for c in condMatch:
-        fea, lab = load_features(dirName, ['*'+c+'*'+i+'*'])
+        m = '*'+c+'*'+i+'*'
+        fea, lab = load_features(dirName, [m])
         if len(fea) == 0:
             continue
         identity.extend([i]*fea.shape[2])
