@@ -32,7 +32,7 @@ batchSize = 8
 numEpoch = 100
 
 modelDef = 'models/'+modelName+modelTag+'.json'
-modelWeights = 'models/'+modelName+modelTag+'.h5'
+#modelWeights = 'models/'+modelName+modelTag+'.h5'
 modelInfo = 'models/'+modelName+modelTag+'.mat'
 
 (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale) = data.load_training(
@@ -61,8 +61,8 @@ def build_model(inputShape, numClasses):
 
 model = build_model(inputShape, numClasses)
 
-cbks = [ModelCheckpoint(modelWeights,
-        monitor='val_loss', save_best_only=True, mode='auto')]
+modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:02d}_{val_loss:.2f}.h5'
+cbks = [ModelCheckpoint(modelWeights, monitor='val_loss')]
 
 if True:
     classCount = labelTrain.sum(axis=0)
@@ -70,11 +70,12 @@ if True:
     classWeight = dict([(i, w[i]) for i in range(numClasses)])
 else:
     classWeight = {0:1,1:1,2:10}
+print('classWeight:', classWeight)
 
-model.fit(feaTrain, labelTrain, batch_size=batchSize,
-          nb_epoch=numEpoch, show_accuracy=True,
-          validation_data=(feaTest, labelTest), callbacks=cbks, shuffle=True,
-          class_weight=classWeight)
+history = model.fit(feaTrain, labelTrain, batch_size=batchSize,
+            nb_epoch=numEpoch, show_accuracy=True,
+            validation_data=(feaTest, labelTest), callbacks=cbks, shuffle=True,
+            class_weight=classWeight)
 
 if modelType == 'cnn':
     winLen = inputShape[2]
@@ -84,7 +85,11 @@ elif modelType == 'rnn':
 print('Saving to '+modelInfo)
 savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights,
                     'modelType': modelType,'winLen': winLen,
-                    'offset': offset,'scale': scale})
+                    'offset': offset,'scale': scale,
+                    'train_acc':history.history['acc'],
+                    'train_loss':history.history['loss'],
+                    'val_acc':history.history['val_acc'],
+                    'val_loss':history.history['val_loss']})
 
 # Write model definition to file
 open(modelDef, 'w').write(model.to_json())
