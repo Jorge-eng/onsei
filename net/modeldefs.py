@@ -16,9 +16,9 @@ def model_may25_lstm_small(inputShape, numClasses):
     model = Sequential()
 
     model.add(LSTM(32, return_sequences=True, input_shape=inputShape))
-    #model.add(Dropout(0.2))
-    model.add(LSTM(16, return_sequences=False))
-    #model.add(Dropout(0.2))
+    model.add(Dropout(0.2))
+    model.add(LSTM(32, return_sequences=False))
+    model.add(Dropout(0.2))
     model.add(Dense(numClasses))
     model.add(Activation('softmax'))
 
@@ -219,10 +219,10 @@ def model_jun17_small_sigm(inputShape, numClasses):
 
 def model_jun22_smaller_sigm(inputShape, numClasses):
 
-    optimizer = SGD(lr=0.003, decay=0.0, momentum=0.9, nesterov=True)
+    optimizer = SGD(lr=0.003, decay=1e-7, momentum=0.9, nesterov=True)
     #optimizer = 'rmsprop'
     #optimizer = 'adagrad'
-    #loss = 'binary_crossentropy'
+    #loss = 'categorical_crossentropy'
     loss = 'mse'
 
     model = Sequential()
