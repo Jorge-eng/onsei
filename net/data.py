@@ -1,8 +1,10 @@
-from __future__ import absolute_import
+import sys, os
+TOP_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(TOP_DIR, '../net/models')
+
 from keras.utils import np_utils
 from keras.models import model_from_json
 import numpy as np
-import os
 from scipy.io import loadmat
 import pdb
 
