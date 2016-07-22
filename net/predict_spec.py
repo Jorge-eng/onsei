@@ -1,6 +1,7 @@
 import sys, os
 TOP_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(TOP_DIR, 'models')
+NET_PATH = os.path.join(TOP_DIR, '../net')
 DATA_PATH = os.path.join(TOP_DIR, '../dataprep')
 sys.path.append(DATA_PATH)
 
@@ -120,8 +121,10 @@ def get_model(modelTag, epoch=None):
     infoFile = os.path.join(MODEL_PATH, modelTag+'.mat')
 
     info = loadmat(infoFile)
-    modelDef = info['modelDef'][0]
-    modelWeights = info['modelWeights'][0]
+    modelDef = os.path.join(NET_PATH, info['modelDef'][0])
+    modelWeights = os.path.join(NET_PATH, info['modelWeights'][0])
+    #modelDef = info['modelDef'][0]
+    #modelWeights = info['modelWeights'][0]
     modelType = info['modelType'][0]
     winLen = int(info['winLen'][0])
     offset = info['offset'][0]
