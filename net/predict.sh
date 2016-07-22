@@ -1,17 +1,23 @@
 # Usage:
-# ./predict.sh inTag modelDef [epoch # | auto] [get]
+# ./predict.sh trTag modelDef modelTag [epoch # | auto] [get]
 
-if [ ! -z "$3" ]; then
-    epoch=$3
+if [ ! -z "$4" ]; then
+    epoch=$4
     if [ $epoch = "auto" ]; then
         epoch=
     fi
 fi
 
-if [ ! -z "$4" ] && [ $4 = "get" ]; then
-    ./get_model.sh $2\_$1
+modelTag=$3
+if [ ! -z "$modelTag" ]; then
+    modelTag=_$modelTag 
 fi
 
-echo "python predict_spec.py features ../dataprep/testingFeats_$1.mat prob_$2_$1 $2_$1 $epoch"
-python predict_spec.py features ../dataprep/testingFeats_$1\.mat prob_$2\_$1 $2\_$1 $epoch
+model=$2_$1$modelTag
+if [ ! -z "$5" ] && [ $5 = "get" ]; then
+    ./get_model.sh $model
+fi
+
+echo "python predict_spec.py features ../dataprep/testingFeats_$1.mat prob_$model $model $epoch"
+python predict_spec.py features ../dataprep/testingFeats_$1.mat prob_$model $model $epoch
 
