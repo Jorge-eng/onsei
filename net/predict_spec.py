@@ -115,7 +115,7 @@ def wav2detect(wavFile,model,modelType,winLen,offset=0.,scale=1.,winLen_s=1.6,wi
 
     return detect
 
-def get_model(modelTag):
+def get_model(modelTag, epoch=None):
 
     infoFile = os.path.join(MODEL_PATH, modelTag+'.mat')
 
@@ -127,6 +127,15 @@ def get_model(modelTag):
     offset = info['offset'][0]
     scale = info['scale'][0]
 
+    if 'epoch' in modelWeights:
+        if epoch is None:
+            val_loss = info['val_loss'][0]
+            epoch = np.argmin(val_loss)
+
+        print('Choosing epoch {:02d}'.format(epoch))
+        modelWeights = modelWeights.format(**{'epoch':epoch})
+        print(modelWeights)
+ 
     model = data.load_model(modelDef, modelWeights)
 
     return model, modelType, winLen, offset, scale
@@ -142,11 +151,15 @@ if __name__ == '__main__':
     inFile = sys.argv[2]
     outFile = sys.argv[3]+'.mat'
     modelTag = sys.argv[4]
+    if len(sys.argv) > 5:
+        epoch = int(sys.argv[5])
+    else:
+        epoch = None
 
     if not os.path.isfile(inFile):
         raise ValueError('Input file '+inFile+' does not exist')
 
-    model, modelType, winLen, offset, scale = get_model(modelTag)
+    model, modelType, winLen, offset, scale = get_model(modelTag, epoch=epoch)
 
     if inType == 'audio':
 
