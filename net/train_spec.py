@@ -2,14 +2,14 @@
 GPU run command:
     THEANO_FLAGS=mode=FAST_RUN,device=gpu,floatX=float32 python2 train_cnn_spec.py
 '''
-
 from __future__ import print_function
+import numpy as np
+np.random.seed(1337)  # for reproducibility
 import sys
 from keras.callbacks import ModelCheckpoint
 import data
 import modeldefs
 from scipy.io import savemat
-import numpy as np
 import ast
 import pdb
 
@@ -32,7 +32,7 @@ batchSize = 8
 numEpoch = 100
 
 modelDef = 'models/'+modelName+modelTag+'.json'
-#modelWeights = 'models/'+modelName+modelTag+'.h5'
+modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:02d}.h5'
 modelInfo = 'models/'+modelName+modelTag+'.mat'
 
 (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale) = data.load_training(
@@ -49,6 +49,20 @@ print(feaTest.shape[0], 'test samples')
 # input dimensions
 inputShape = feaTrain.shape[1:]
 numClasses = labelTrain.shape[1]
+classCount = labelTrain.sum(axis=0)
+
+if modelType == 'cnn':
+    winLen = inputShape[2]
+elif modelType == 'rnn':
+    winLen = inputShape[0]
+
+# class weights
+if len(sys.argv) > 6:
+    w = sys.argv[6].split(',')
+else:
+    w = np.concatenate(([1.], classCount[1:].max() / classCount[1:]))
+classWeight = dict([(i, w[i]) for i in range(numClasses)])
+print('classWeight:', classWeight)
 
 def build_model(inputShape, numClasses):
 
@@ -61,27 +75,23 @@ def build_model(inputShape, numClasses):
 
 model = build_model(inputShape, numClasses)
 
-modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:02d}_{val_loss:.2f}.h5'
+# Save info required to run intermediate model during training
+print('Saving to '+modelInfo)
+savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights,
+                    'modelType': modelType,'winLen': winLen,
+                    'offset': offset,'scale': scale})
+ # Write model definition to file
+open(modelDef, 'w').write(model.to_json())
+
 cbks = [ModelCheckpoint(modelWeights, monitor='val_loss')]
 
-if True:
-    classCount = labelTrain.sum(axis=0)
-    w = np.concatenate(([1.], classCount[1:].max() / classCount[1:]))
-    classWeight = dict([(i, w[i]) for i in range(numClasses)])
-else:
-    classWeight = {0:1,1:1,2:10}
-print('classWeight:', classWeight)
-
+# Train
 history = model.fit(feaTrain, labelTrain, batch_size=batchSize,
             nb_epoch=numEpoch, show_accuracy=True,
             validation_data=(feaTest, labelTest), callbacks=cbks, shuffle=True,
             class_weight=classWeight)
 
-if modelType == 'cnn':
-    winLen = inputShape[2]
-elif modelType == 'rnn':
-    winLen = inputShape[0]
-
+# Save all info again plus training history (no way to append)
 print('Saving to '+modelInfo)
 savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights,
                     'modelType': modelType,'winLen': winLen,
@@ -90,7 +100,4 @@ savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights,
                     'train_loss':history.history['loss'],
                     'val_acc':history.history['val_acc'],
                     'val_loss':history.history['val_loss']})
-
-# Write model definition to file
-open(modelDef, 'w').write(model.to_json())
 
