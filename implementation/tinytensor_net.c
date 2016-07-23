@@ -44,6 +44,7 @@ static Tensor_t * eval_all_nets(const ConstSequentialNetwork_t * net,SequentialN
         
         current_input = current_output;
         prev_layer = layer->layer_type;
+        memcpy(input_dims, output_dims, sizeof(input_dims));
         
     }
     
