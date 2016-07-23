@@ -6,7 +6,6 @@ extern "C" {
 #endif
 
 #define DESKTOP
-#define UNIT_TESTING
     
 #ifdef DESKTOP
 #include <memory.h>
