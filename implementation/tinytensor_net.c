@@ -8,13 +8,6 @@
    core neural net evalution code
    should handle all the cases, everything else is just a wrapper around this
  */
-static void setrand(void * p, const uint32_t n) {
-    int i;
-    int8_t * p2 = (int8_t *) p;
-    for (i = 0; i < n; i++) {
-        *p2++ = (int8_t)rand();
-    }
-}
 
 static Tensor_t * eval_all_nets(const ConstSequentialNetwork_t * net,SequentialNetworkStates_t * netstate,Tensor_t * input, const uint32_t stop_layer) {
     Tensor_t * current_input = input;
@@ -40,7 +33,6 @@ static Tensor_t * eval_all_nets(const ConstSequentialNetwork_t * net,SequentialN
         
         //allocate output
         current_output = tinytensor_create_new_tensor(output_dims);
-        setrand(current_output->x,output_dims[0]*output_dims[1]*output_dims[2]*output_dims[3]*sizeof(Weight_t));
         
         //perform evaluation
         layer->eval(layer->context,layer_state,current_output,current_input,prev_layer);

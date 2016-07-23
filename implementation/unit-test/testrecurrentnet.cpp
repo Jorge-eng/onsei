@@ -57,12 +57,13 @@ TEST_F(TestRecurrentNet, TestRandInput) {
     
     uint32_t dims[4];
     lstm_layer.get_output_dims(lstm_layer.context,dims,tensor_in->dims);
-    dims[2] = 1;
+    dims[2] = 1; //since we are doing output one at a time
+    tensor_out = tinytensor_create_new_tensor(dims);
+
     
     const uint32_t * d = lstm1_ref.dims;
     int n = d[0] * d[1] * d[2] * d[3];
     
-    tensor_out = tinytensor_create_new_tensor(dims);
     Weight_t out[n];
     
     
