@@ -8,6 +8,13 @@
    core neural net evalution code
    should handle all the cases, everything else is just a wrapper around this
  */
+static void setrand(void * p, const uint32_t n) {
+    int i;
+    int8_t * p2 = (int8_t *) p;
+    for (i = 0; i < n; i++) {
+        *p2++ = (int8_t)rand();
+    }
+}
 
 static Tensor_t * eval_all_nets(const ConstSequentialNetwork_t * net,SequentialNetworkStates_t * netstate,Tensor_t * input, const uint32_t stop_layer) {
     Tensor_t * current_input = input;
@@ -16,6 +23,9 @@ static Tensor_t * eval_all_nets(const ConstSequentialNetwork_t * net,SequentialN
     ELayer_t prev_layer = input_layer;
     const uint32_t endidx = (net->num_layers < stop_layer || stop_layer == 0) ? net->num_layers : stop_layer;
     uint32_t output_dims[TENSOR_DIM];
+    uint32_t input_dims[TENSOR_DIM];
+    
+    memcpy(input_dims,input->dims,sizeof(input_dims));
     
     for (ilayer = 0; ilayer < endidx; ilayer++) {
         const ConstLayer_t * const layer = &net->layers[ilayer];
@@ -25,10 +35,12 @@ static Tensor_t * eval_all_nets(const ConstSequentialNetwork_t * net,SequentialN
             layer_state = netstate->states[ilayer];
         }
 
-        layer->get_output_dims(layer->context,&output_dims[0]);
+        //get output size
+        layer->get_output_dims(layer->context,&output_dims[0],&input_dims[0]);
         
         //allocate output
         current_output = tinytensor_create_new_tensor(output_dims);
+        setrand(current_output->x,output_dims[0]*output_dims[1]*output_dims[2]*output_dims[3]*sizeof(Weight_t));
         
         //perform evaluation
         layer->eval(layer->context,layer_state,current_output,current_input,prev_layer);

@@ -3,8 +3,8 @@
 #include "tinytensor_fullyconnected_layer.h"
 #include "tinytensor_math.h"
 #include "tinytensor_net.h"
-const static uint32_t LSTM2_01_input_dims[4] = {1,1,199,5};
-const static uint32_t LSTM2_01_output_dims[4] = {1,1,199,4};
+const static uint32_t LSTM2_01_input_dims[4] = {1,1,1,5};
+const static uint32_t LSTM2_01_output_dims[4] = {1,1,1,4};
 const static Weight_t LSTM2_01_weights_input_gate_x[36] = {81,17,82,2,103,-95,43,-84,-44,22,60,9,46,-82,-94,-86,59,6,-77,68,56,20,101,44,-90,-52,-84,-77,66,23,51,25,1,-50,-81,104};
 const static uint32_t LSTM2_01_weights_input_gate_dims[4] = {1,1,4,9};
 const static ConstTensor_t LSTM2_01_weights_input_gate = {&LSTM2_01_weights_input_gate_x[0],&LSTM2_01_weights_input_gate_dims[0],0};

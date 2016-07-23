@@ -16,7 +16,8 @@
 
 
 #if HAVE_NET
-#include "unit-test/data/model_may25_lstm_large.c"
+//#include "unit-test/data/model_may25_lstm_large.c"
+#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny.c"
 #endif 
 
 #define MIN_PROB_TO_USE_FOR_SUM (40)
@@ -139,7 +140,7 @@ static void feats_callback(void * context, int8_t * feats) {
     
     Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor);
     
-    if (out->x[1] > 64)
+    if (out->x[1] > 70)
         printf("%d,%d\n",out->x[0],out->x[1]);
     
     out->delete_me(out);

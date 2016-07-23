@@ -56,7 +56,7 @@ TEST_F(TestRecurrentNet, TestRandInput) {
     tensor_in = tinytensor_clone_new_tensor(&lstm1_input);
     
     uint32_t dims[4];
-    lstm_layer.get_output_dims(lstm_layer.context,dims);
+    lstm_layer.get_output_dims(lstm_layer.context,dims,tensor_in->dims);
     dims[2] = 1;
     
     const uint32_t * d = lstm1_ref.dims;
