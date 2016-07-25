@@ -16,9 +16,10 @@ from scipy.io import loadmat
 import pdb
 import matplotlib.pyplot as plt
 import data as getdata
-from predict_spec import detect_online
+from predict_spec import detect_online, get_model
 import uuid
 from scipy.io import wavfile
+import ast
 
 interrupted = False
 
@@ -72,7 +73,7 @@ class Detector(object):
     Detect whether a keyword specified by `model_str`
     exists in a microphone input stream.
     """
-    def __init__(self, model_str, detTh=1.5,
+    def __init__(self, model_str, epoch=None, detTh=1.5,
                  audio_gain=1.):
 
         def audio_callback(in_data, frame_count, time_info, status):
@@ -80,18 +81,9 @@ class Detector(object):
             play_data = chr(0) * len(in_data)
             return play_data, pyaudio.paContinue
 
-        modelInfo = os.path.join(MODEL_PATH, model_str+'.mat')
-        print(modelInfo)
-        info = loadmat(modelInfo)
-        modelDef = os.path.join(NET_PATH, info['modelDef'][0])
-        modelWeights = os.path.join(NET_PATH, info['modelWeights'][0])
-
         print('Compiling... This may take a minute.')
-        self.model = getdata.load_model(modelDef, modelWeights)
-        self.modelType = info['modelType'][0]
-        self.winLen = info['winLen'][0]
-        self.offset = info['offset'][0]
-        self.scale = info['scale'][0]
+        self.model, self.modelType, self.winLen, self.offset, self.scale = get_model(model_str, epoch=epoch)
+
         self.winLen_s = 1.6
         self.detWait = 10
         self.audioGain = audio_gain
@@ -185,20 +177,23 @@ if __name__ == '__main__':
     sensitivity = 1.5
     audio_gain = 2.0
     debug = False
-    detect_rate = 0.20
+    detect_rate = 0.10
+    epoch = None
 
     model = sys.argv[1]
     if len(sys.argv) > 2:
-        sensitivity = np.float(sys.argv[2])
+        epoch = ast.literal_eval(sys.argv[2])
     if len(sys.argv) > 3:
-        audio_gain = np.float(sys.argv[3])
+        sensitivity = np.float(sys.argv[3])
     if len(sys.argv) > 4:
+        audio_gain = np.float(sys.argv[4])
+    if len(sys.argv) > 5:
         debug = True
-
+    
     # capture SIGINT signal, e.g., Ctrl+C
     signal.signal(signal.SIGINT, signal_handler)
 
-    detector = Detector(model, detTh=sensitivity, audio_gain=audio_gain)
+    detector = Detector(model, epoch=epoch, detTh=sensitivity, audio_gain=audio_gain)
     print('Listening... Press Ctrl+C to exit')
 
     # main loop
