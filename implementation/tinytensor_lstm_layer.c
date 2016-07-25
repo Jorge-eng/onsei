@@ -3,7 +3,7 @@
 #include "tinytensor_math.h"
 #include <assert.h>
 
-
+#define DAMP_CELL_STATES (0)
 
 typedef enum {
     inputgate,
@@ -16,10 +16,11 @@ typedef enum {
 
 
 
-static void get_output_size(const void * context,uint32_t * dims) {
+static void get_output_size(const void * context,uint32_t * dims,const uint32_t * input_size) {
     const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
     
     MEMCPY(dims,lstm_layer->output_dims,TENSOR_DIM*sizeof(uint32_t));
+    dims[2] = input_size[2]; //keep time size
     
 }
 
@@ -28,9 +29,9 @@ static void * alloc_state(const void * context) {
     const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
     const uint32_t num_hidden_units = lstm_layer->output_dims[3];
     
-    LstmLayerState_t * state = malloc(sizeof(LstmLayerState_t));
-    state->cell_state = malloc(num_hidden_units * sizeof(int32_t));
-    state->output = malloc(num_hidden_units * sizeof(Weight_t));
+    LstmLayerState_t * state = MALLOC(sizeof(LstmLayerState_t));
+    state->cell_state = MALLOC(num_hidden_units * sizeof(int32_t));
+    state->output = MALLOC(num_hidden_units * sizeof(Weight_t));
     state->len = num_hidden_units;
     
     memset(state->cell_state,0,num_hidden_units * sizeof(int32_t));
@@ -82,7 +83,6 @@ static void lstm_time_step_forwards(int32_t * cell_state,
   
     uint32_t igate;
     uint32_t icell;
-    uint32_t ivec;
     int32_t accumulator32;
     int32_t temp32;
     int8_t temp8;
@@ -268,6 +268,8 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
     uint32_t t;
     uint32_t i;
     int32_t temp32;
+    int64_t temp64;
+    
     uint8_t current_gate = 0;
     Weight_t * out_row = out->x;
     const Weight_t * in_row = in->x;
@@ -301,6 +303,14 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
                                 num_inputs,
                                 in->scale,
                                 lstm_layer->output_activation);
+        
+#if DAMP_CELL_STATES == 1
+        for (i = 0; i < num_hidden_units; i++) {
+            temp64 = cell_state[i] * 250;
+            temp64 >>= 8;
+            cell_state[i] = (int32_t)temp64;
+        }
+#endif
      
         /*
         for (i = 0; i < num_hidden_units; i++) {

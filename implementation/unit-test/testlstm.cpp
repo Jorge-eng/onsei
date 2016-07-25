@@ -46,7 +46,6 @@ protected:
 
 class DISABLED_TestLstm : public TestLstm {};
 
-
 TEST_F(TestLstm, TestZeros) {
     
     ConstLayer_t lstm_layer = tinytensor_create_lstm_layer(&LSTM2_01);
@@ -54,15 +53,14 @@ TEST_F(TestLstm, TestZeros) {
     tensor_in = tinytensor_clone_new_tensor(&lstm1_input_zeros);
     
     uint32_t dims[4];
-    lstm_layer.get_output_dims(lstm_layer.context,dims);
-    
+    lstm_layer.get_output_dims(lstm_layer.context,dims,tensor_in->dims);
+
     tensor_out = tinytensor_create_new_tensor(dims);
     
-    lstm_layer.eval(lstm_layer.context,NULL,tensor_out,tensor_in,input_layer);
-    
-   
     uint32_t * d = tensor_out->dims;
-    int n = d[0] * d[1] * d[2] * d[3];
+    int n = d[0] * d[1] * tensor_in->dims[2] * d[3];
+    
+    lstm_layer.eval(lstm_layer.context,NULL,tensor_out,tensor_in,input_layer);
     
     for (int i = 0; i < n; i++) {
         ASSERT_NEAR(tensor_out->x[i],0,1);
@@ -77,15 +75,17 @@ TEST_F(TestLstm, TestRandInput) {
     tensor_in = tinytensor_clone_new_tensor(&lstm1_input);
     
     uint32_t dims[4];
-    lstm_layer.get_output_dims(lstm_layer.context,dims);
+    lstm_layer.get_output_dims(lstm_layer.context,dims,tensor_in->dims);
+    dims[2] = tensor_in->dims[2];
     
     tensor_out = tinytensor_create_new_tensor(dims);
-    
+    const uint32_t * d = tensor_out->dims;
+    int n = d[0] * d[1] * tensor_in->dims[2] * d[3];
+
     lstm_layer.eval(lstm_layer.context,NULL,tensor_out,tensor_in,input_layer);
     
     
-    const uint32_t * d = lstm1_ref.dims;
-    int n = d[0] * d[1] * d[2] * d[3];
+  
     
     for (int i = 0; i < n; i++) {
         int x1 = tensor_out->x[i] >> tensor_out->scale;
@@ -112,7 +112,7 @@ TEST_F(TestLstm, TestRandInput) {
 
 TEST_F(TestLstm, TwoLayers) {
     tensor_in = tinytensor_clone_new_tensor(&lstm1_input);
-    
+        
     ConstSequentialNetwork_t net = initialize_network03();
     tensor_out = tinytensor_eval_partial_net(&net,tensor_in,3);
 

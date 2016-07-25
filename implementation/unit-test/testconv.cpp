@@ -74,7 +74,7 @@ TEST_F(TestConv,TestSmallConvLayerSingleImage) {
     ConstLayer_t layer = tinytensor_create_conv_layer(&conv_layer_def2);
     
     uint32_t output_dims[TENSOR_DIM];
-    layer.get_output_dims(layer.context,output_dims);
+    layer.get_output_dims(layer.context,output_dims,tensor_in->dims);
     
     
     tensor_out = tinytensor_create_new_tensor(output_dims);
@@ -191,7 +191,7 @@ TEST_F(TestConv,TestLargeConvLayerSingleImage) {
     ConstLayer_t layer = tinytensor_create_conv_layer(&conv_layer_def1);
     
     uint32_t output_dims[TENSOR_DIM];
-    layer.get_output_dims(layer.context,output_dims);
+    layer.get_output_dims(layer.context,output_dims,tensor_in->dims);
     
     
     tensor_out = tinytensor_create_new_tensor(output_dims);
