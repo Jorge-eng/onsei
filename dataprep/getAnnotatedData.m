@@ -121,9 +121,12 @@ for j = 1:length(fileNames)
         
         % speech implants
         starts = 1 + floor(rand(1, alignedSpeechPerKw)*(length(speech)-clipLen));
+        x = kw;
+        out = x(pad:pad+cd,:);
         for n = 1:alignedSpeechPerKw
-            x = kw;
-            out = x(pad:pad+cd,:);
+            if starts(n) < 1
+                continue
+            end
             in = gain*speech(starts(n):starts(n)+cd,:);
             x(pad:pad+cd,:) = (1-window).*out + window.*in;
             x = applyRandomShift(x, Fs);
@@ -133,6 +136,9 @@ for j = 1:length(fileNames)
         end
         starts = 1 + floor(rand(1, randomSpeechPerKw)*(length(speech)-clipLen));
         for n = 1:randomSpeechPerKw
+            if starts(n) < 1
+                continue
+            end
             x = gain*speech(starts(n)+1:starts(n)+clipLen,:);
             x = applyRandomShift(x, Fs);
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
@@ -150,46 +156,50 @@ for j = 1:length(fileNames)
         window = getWindow(length(impInd), round(0.05*Fs), size(kw,2)); % smooth edge implants
         speechStart = 1 + floor(rand(1)*(length(speech)-length(impInd)));
         out = x(impInd,:);
-        in = gain*speech(speechStart:speechStart+(length(impInd)-1),:);
-        x(impInd,:) = (1-window).*out + window.*in;
-        x = applyRandomShift(x, Fs);
-        noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
-        mix = applyRandomIR(x + noise, irDir, irFiles);
-        data.(fileField).earlyImplantClip{end+1} = mix;
-        
+        if speechStart >= 1
+            in = gain*speech(speechStart:speechStart+(length(impInd)-1),:);
+            x(impInd,:) = (1-window).*out + window.*in;
+            x = applyRandomShift(x, Fs);
+            noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
+            mix = applyRandomIR(x + noise, irDir, irFiles);
+            data.(fileField).earlyImplantClip{end+1} = mix;
+        end
         % partial late - missing early part
         x = kw;
         backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
-        in = gain*background(backStart:backStart+(length(impInd)-1),:);
-        x(impInd,:) = (1-window).*out + window.*in;
-        x = applyRandomShift(x, Fs);
-        noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
-        mix = applyRandomIR(x + noise, irDir, irFiles);
-        data.(fileField).partialLateClip{end+1} = mix;
-        
+        if backStart >= 1
+            in = gain*background(backStart:backStart+(length(impInd)-1),:);
+            x(impInd,:) = (1-window).*out + window.*in;
+            x = applyRandomShift(x, Fs);
+            noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
+            mix = applyRandomIR(x + noise, irDir, irFiles);
+            data.(fileField).partialLateClip{end+1} = mix;
+        end
         % partial implant late
         x = kw;
         impInd = pad+kwMid+1:pad+cd;
         window = getWindow(length(impInd), round(0.05*Fs), size(kw,2)); % smooth edge implants
         speechStart = 1 + floor(rand(1)*(length(speech)-length(impInd)));
         out = x(impInd,:);
-        in = gain*speech(speechStart:speechStart+(length(impInd)-1),:);
-        x(impInd,:) = (1-window).*out + window.*in;
-        x = applyRandomShift(x, Fs);
-        noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
-        mix = applyRandomIR(x + noise, irDir, irFiles);
-        data.(fileField).lateImplantClip{end+1} = mix;
-        
+        if speechStart >= 1
+            in = gain*speech(speechStart:speechStart+(length(impInd)-1),:);
+            x(impInd,:) = (1-window).*out + window.*in;
+            x = applyRandomShift(x, Fs);
+            noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
+            mix = applyRandomIR(x + noise, irDir, irFiles);
+            data.(fileField).lateImplantClip{end+1} = mix;
+        end
         % partial early -  missing late part
         x = kw;
         backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
-        in = gain*background(backStart:backStart+(length(impInd)-1),:);
-        x(impInd,:) = (1-window).*out + window.*in;
-        x = applyRandomShift(x, Fs);
-        noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
-        mix = applyRandomIR(x + noise, irDir, irFiles);
-        data.(fileField).partialEarlyClip{end+1} = mix;
-            
+        if backStart >= 1
+            in = gain*background(backStart:backStart+(length(impInd)-1),:);
+            x(impInd,:) = (1-window).*out + window.*in;
+            x = applyRandomShift(x, Fs);
+            noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
+            mix = applyRandomIR(x + noise, irDir, irFiles);
+            data.(fileField).partialEarlyClip{end+1} = mix;
+        end
         % Partials shifted to boundaries --
         % The end
         if padIn + (cdIn-kwMidIn) < csIn
@@ -198,6 +208,9 @@ for j = 1:length(fileNames)
             window = getWindow(length(impInd), round(0.05*Fs), size(kw,2));
             out = kwSh(impInd,:);
             backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
+            if backStart < 1
+                break
+            end
             in = gain*background(backStart:backStart+(length(impInd)-1),:);
             kwSh(impInd,:) = (1-window).*out + window.*in;
             kwSh = applyRandomShift(kwSh, Fs);
@@ -212,6 +225,9 @@ for j = 1:length(fileNames)
             window = getWindow(length(impInd), round(0.05*Fs), size(kw,2));
             out = kwSh(impInd,:);
             backStart = 1 + floor(rand(1)*(length(background)-length(impInd)));
+            if backStart < 1
+                break
+            end
             in = gain*background(backStart:backStart+(length(impInd)-1),:);
             kwSh(impInd,:) = (1-window).*out + window.*in;
             kwSh = applyRandomShift(kwSh, Fs);
@@ -225,8 +241,11 @@ for j = 1:length(fileNames)
     % backgrounds
     interval = floor((length(background)-clipLen)/backPerFile);
     starts = 1:interval:interval*backPerFile;
+    noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
     for n = 1:backPerFile
-        noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
+        if starts(n) < 1
+            continue
+        end
         x = gain*background(starts(n):(starts(n)-1)+clipLen,:);
         x = applyRandomShift(x, Fs);
         mix = applyRandomIR(x + noise, irDir, irFiles);
