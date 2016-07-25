@@ -4,7 +4,8 @@
 #include "hellomath/fft.h"
 #include "hellomath/hellomath.h"
 
-#define USE_BACKGROUND_NORMALIZATION (0)
+#define USE_BACKGROUND_NORMALIZATION (1)
+#define BACKGROUND_NOISE_MAX_ATTENUATION (-2048)
 
 //this controls how much less to "descale" the FFT output (NOT USED CURRENTLY)
 #define FFT_DESCALE_FACTOR (0)
@@ -263,22 +264,38 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel, int16_t * melbank, cons
         memcpy(_this.melbank_avg,melbank,NUM_MEL_BINS * sizeof(int16_t));
     }
     
+#if USE_BACKGROUND_NORMALIZATION
+
     //compute moving avergage
     for (i = 0; i < NUM_MEL_BINS; i++) {
         _this.melbank_avg[i] = MUL16(_this.melbank_avg[i],TOFIX(MOVING_AVG_COEFF,QFIXEDPOINT_INT16));
         _this.melbank_avg[i] += MUL16(melbank[i],TOFIX(1.0 - MOVING_AVG_COEFF,QFIXEDPOINT_INT16));
     }
     
-#if USE_BACKGROUND_NORMALIZATION
+    //get AVG
     temp32 = 0;
+    
     for (i = 0; i < NUM_MEL_BINS; i++) {
         temp32 += _this.melbank_avg[i];
     }
     
     temp32 /= NUM_MEL_BINS;
+    temp16 = temp32;
     
     for (i = 0; i < NUM_MEL_BINS; i++) {
-        melbank[i] -= (_this.melbank_avg[i] - temp32);
+        temp32 = temp16 - _this.melbank_avg[i];
+        
+        //only attenuate a bit
+        if (temp32 < BACKGROUND_NOISE_MAX_ATTENUATION) {
+            temp32 = BACKGROUND_NOISE_MAX_ATTENUATION;
+        }
+        
+        //no gaining up
+        if (temp32 > 0) {
+            temp32 = 0;
+        }
+        
+        melbank[i] += temp32;
     }
 #endif
     
