@@ -149,6 +149,11 @@ void tinytensor_features_get_mel_bank(int16_t * melbank,const int16_t * fr, cons
 
 }
 
+
+static int16_t bins[3][160];
+static int binidx=0;
+static int bintot=0;
+
 static uint8_t add_samples_and_get_mel(int16_t * maxmel, int16_t * melbank, const int16_t * samples, const uint32_t num_samples) {
     int16_t fr[FFT_SIZE] = {0};
     int16_t fi[FFT_SIZE] = {0};
@@ -165,13 +170,24 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel, int16_t * melbank, cons
     
      */
     
+    /*
     tiny_tensor_features_add_to_buffer(samples,num_samples);
 
     if (_this.num_samples_in_buffer < FFT_UNPADDED_SIZE) {
         return 0;
     }
+     */
     
-    tiny_tensor_features_get_latest_samples(fr,FFT_UNPADDED_SIZE);
+    //num_samples must be 160...
+    memcpy( (void*)bins[binidx], (void*)samples, num_samples*sizeof(int16_t) );
+    binidx = (binidx+1)% 3;
+    if( ++bintot < 3 ) return 0;
+    bintot = 3;
+    memcpy( fr, bins[binidx], 160*2);
+    memcpy( fr+160, bins[(binidx+1)%3], 160*2);
+    memcpy( fr+320, bins[(binidx+2)%3], 80*2);
+    
+    //tiny_tensor_features_get_latest_samples(fr,FFT_UNPADDED_SIZE);
     
  
     //"preemphasis", and apply window as you go
@@ -251,11 +267,20 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel, int16_t * melbank, cons
     for (i = 0; i < NUM_MEL_BINS; i++) {
         _this.melbank_avg[i] = MUL16(_this.melbank_avg[i],TOFIX(MOVING_AVG_COEFF,QFIXEDPOINT_INT16));
         _this.melbank_avg[i] += MUL16(melbank[i],TOFIX(1.0 - MOVING_AVG_COEFF,QFIXEDPOINT_INT16));
-
-#if USE_BACKGROUND_NORMALIZATION
-        melbank[i] -= _this.melbank_avg[i];
-#endif
     }
+    
+#if USE_BACKGROUND_NORMALIZATION
+    temp32 = 0;
+    for (i = 0; i < NUM_MEL_BINS; i++) {
+        temp32 += _this.melbank_avg[i];
+    }
+    
+    temp32 /= NUM_MEL_BINS;
+    
+    for (i = 0; i < NUM_MEL_BINS; i++) {
+        melbank[i] -= (_this.melbank_avg[i] - temp32);
+    }
+#endif
     
 
     return 1;

@@ -28,7 +28,7 @@
 #define MIN_FEAT_COUNT (200)
 #define SAMPLE_RATE  (16000)
 #define DETECTION_THRESHOLD (80)
-#define FRAMES_PER_BUFFER (128)
+#define FRAMES_PER_BUFFER (160)
 #define NUM_SECONDS     (3600)
 #define NUM_CHANNELS    (1)
 /* #define DITHER_FLAG     (paDitherOff) */
@@ -90,7 +90,7 @@ static int recordCallback(const void *inputBuffer, void *outputBuffer,
     
     for( i=0; i<framesToCalc; i++ ) {
         *wptr++ = *rptr++;  /* left */
-        //if( NUM_CHANNELS == 2 ) *wptr++ = *rptr++;  /* right */
+        if( NUM_CHANNELS == 2 ) *wptr++ = *rptr++;  /* right */
     }
     
     tinytensor_features_add_samples(localbuf, framesToCalc);
@@ -140,7 +140,7 @@ static void feats_callback(void * context, int8_t * feats) {
     
     Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor);
     
-    if (out->x[1] > 70)
+    if (out->x[1] > 90)
         printf("%d,%d\n",out->x[0],out->x[1]);
     
     out->delete_me(out);
