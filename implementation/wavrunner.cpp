@@ -9,8 +9,8 @@
 #include "tinytensor_tensor.h"
 
 //#include "unit-test/data/model_jun22_smaller_sigm.c"
-#include "unit-test/data/model_may25_lstm_large.c"
-
+//#include "unit-test/data/model_may25_lstm_large.c"
+#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny.c"
 using namespace std;
 
 

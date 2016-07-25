@@ -3,7 +3,7 @@
 #include "tinytensor_math.h"
 #include <assert.h>
 
-#define DAMP_CELL_STATES (0)
+#define DAMP_CELL_STATES (1)
 
 typedef enum {
     inputgate,
