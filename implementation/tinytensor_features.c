@@ -3,6 +3,7 @@
 
 #include "hellomath/fft.h"
 #include "hellomath/hellomath.h"
+#include "tinytensor_farfield_agc.h"
 
 #define USE_BACKGROUND_NORMALIZATION (1)
 #define BACKGROUND_NOISE_MAX_ATTENUATION (-2048)
@@ -192,6 +193,7 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel, int16_t * melbank, cons
     
     //tiny_tensor_features_get_latest_samples(fr,FFT_UNPADDED_SIZE);
     
+    do_agc(samples, num_samples);
  
     //"preemphasis", and apply window as you go
     memcpy(fi,fr,sizeof(fi));

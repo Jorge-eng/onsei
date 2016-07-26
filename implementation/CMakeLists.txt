@@ -26,6 +26,7 @@ tinytensor_conv_layer.c
 tinytensor_fullyconnected_layer.c
 tinytensor_lstm_layer.c
 tinytensor_features.c
+tinytensor_farfield_agc.c
 )
 #############
 add_library(hellomath STATIC 
@@ -37,7 +38,8 @@ target_link_libraries(gtest pthread)
 
 ############
 add_executable(unit-test 
-unit-test/main.cpp 
+unit-test/main.cpp
+unit-test/testagc.cpp 
 unit-test/testconv.cpp
 unit-test/testfull.cpp
 unit-test/testlstm.cpp
