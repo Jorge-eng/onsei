@@ -333,19 +333,24 @@ def write_sequential_network(layerobjs,model,f):
     f.write('\n}')
     return original_input_shape
 
-def save_model_to_c_from_file(model_name):
-    model = get_model(model_name)
+def save_model_to_c_from_file(json_name,h5file_name):
+    model_name = (json_name.split('\.')[0]).replace('+','_')
+    print 'model_name %s' % model_name
+
+    model = get_model(json_name,h5file_name)
+
 
     save_model_to_c(model,model_name)
 
-def get_model(model_name):
-    fname = '%s.json' % model_name
-    with open(fname,'r') as f:
+def get_model(json_name,h5file_name):
+
+    with open(json_name,'r') as f:
         config_json = f.read()
         
-    print 'read model from %s' % fname
+    print 'read model from %s' % json_name
 
-    weights_filename = '%s.h5' % model_name
+    weights_filename = h5file_name
+
     print 'compiling...'
     model = model_from_json(config_json)
     print 'loading weights from %s' % weights_filename
@@ -401,4 +406,4 @@ def save_model_to_c(model,name):
     f.close()
 
 if __name__ == '__main__':
-    save_model_to_c_from_file(sys.argv[1])
+    save_model_to_c_from_file(sys.argv[1],sys.argv[2])
