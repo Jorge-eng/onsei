@@ -23,9 +23,14 @@ def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=20, offs
     if winLen is None:
         winLen = model.input_shape[3]
 
-    logM = audioproc.wav2fbank(wavFile)
+    if os.path.isfile(wavFile):
+        logM = audioproc.wav2fbank(wavFile)
+        feaStream, starts = fbank_stream(logM, winLen, winShift)
+    elif os.path.isdir(wavFile): # currently assuming each clip is winLen
+        logM = audioproc.wav2fbank_batch(wavFile)
+        starts = [1]*len(logM)
+        feaStream = np.array(logM)
 
-    feaStream, starts = fbank_stream(logM, winLen, winShift)
     feaStream = data.apply_norm(feaStream, offset, scale)
     feaStream = data.reshape_for_model(feaStream, modelType)
 
@@ -144,9 +149,9 @@ def get_model(modelTag, epoch=None):
 
 if __name__ == '__main__':
     # Usage:
-    # $ python predict_spec.py audio in.wav out model_name
-    # $ python predict_spec.py features in.mat out model_name
-    # $ python predict_spec.py tinyfeats in.bin out model_name
+    # $ python predict_spec.py audio in.wav out model_name [epoch]
+    # $ python predict_spec.py features in.mat out model_name [epoch]
+    # $ python predict_spec.py tinyfeats in.bin out model_name [epoch]
 
     inType = sys.argv[1]
     inFile = sys.argv[2]
@@ -157,8 +162,8 @@ if __name__ == '__main__':
     else:
         epoch = None
 
-    if not os.path.isfile(inFile):
-        raise ValueError('Input file '+inFile+' does not exist')
+    if not os.path.isfile(inFile) and not os.path.isdir(inFile):
+        raise ValueError('Input '+inFile+' does not exist')
 
     model, modelType, winLen, offset, scale = get_model(modelTag, epoch=epoch)
 
@@ -170,7 +175,7 @@ if __name__ == '__main__':
         detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
 
         # Online sequence detection
-        detect = wav2detect(inFile, model, modelType, winLen, offset, scale, winLen_s=1.6, winShift_s=0.2, detTh=1.5)
+        #detect = wav2detect(inFile, model, modelType, winLen, offset, scale, winLen_s=1.6, winShift_s=0.2, detTh=1.5)
 
         savemat(outFile, {'prob': prob, 'startTimes': startTimes, 'detect': detect})
 
