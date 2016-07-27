@@ -9,9 +9,9 @@ def write(my_str):
 
 
 def gen_exp_table():
-    r = range(-384,385)
+    r = range(-512,513)
 
-    write('const static int16_t exp_table[%d] = {' % (384*2 + 1))
+    write('const static int16_t exp_table[%d] = {' % (512*2 + 1))
 
     for i,x in enumerate(r):
         y = int(np.round(np.exp(x/128.0)*128))

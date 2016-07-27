@@ -35,7 +35,7 @@ TEST_F(TestMath, SoftMax) {
     memcpy(x2,x,sizeof(x2));
 
     const Weight_t y1[8] = {30,  6, 18, 17, 12, 26,  7, 11};
-    const Weight_t y2[8] = {49,  0, 15, 10,  3, 49,  0,  2};
+    const Weight_t y2[8] = {69,  0, 8, 6,  1, 39,  0,  1};
     
     tinytensor_vec_softmax_in_place(x1, 8, 0);
     tinytensor_vec_softmax_in_place(x2, 8, -2);
@@ -48,5 +48,19 @@ TEST_F(TestMath, SoftMax) {
         ASSERT_NEAR(x2[i],y2[i],3);
     }
 
+}
+
+TEST_F(TestMath,SoftMax2) {
+    const Weight_t x[3] = {-52,-80,-109};
+    
+    Weight_t x1[3];
+    memcpy(x1,x,sizeof(x1));
+    tinytensor_vec_softmax_in_place(x1, 3, -3);
+    
+    int foo = 3;
+    foo++;
+
+    
+    
 }
 
