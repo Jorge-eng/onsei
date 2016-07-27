@@ -334,7 +334,8 @@ def write_sequential_network(layerobjs,model,f):
     return original_input_shape
 
 def save_model_to_c_from_file(json_name,h5file_name):
-    model_name = (json_name.split('\.')[0]).replace('+','_')
+    model_name = json_name.split('.')[0]
+    model_name = model_name.replace('+','_')
     print 'model_name %s' % model_name
 
     model = get_model(json_name,h5file_name)
