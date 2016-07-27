@@ -69,6 +69,5 @@ if __name__ == '__main__':
         startTimes.extend(t)
         fileIdx.extend([c]*len(t))
 
-    pdb.set_trace()
     savemat(outFile, {'prob':prob, 'startTimes':startTimes, 'fileIdx':fileIdx, 'files':files})
 
