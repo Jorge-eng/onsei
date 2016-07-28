@@ -32,7 +32,7 @@ batchSize = 8
 numEpoch = 100
 
 modelDef = 'models/'+modelName+modelTag+'.json'
-modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:02d}.h5'
+modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:03d}.h5'
 modelInfo = 'models/'+modelName+modelTag+'.mat'
 
 (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale) = data.load_training(
