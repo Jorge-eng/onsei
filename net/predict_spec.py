@@ -18,7 +18,7 @@ except:
     print('Warning: pyplot failed to import')
     pass
 
-def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=20, offset=0., scale=1., verbose=0):
+def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=10, offset=0., scale=1., verbose=0):
 
     if winLen is None:
         winLen = model.input_shape[3]
@@ -138,7 +138,7 @@ def get_model(modelTag, epoch=None):
             val_loss = info['val_loss'][0]
             epoch = np.argmin(val_loss)
 
-        print('Choosing epoch {:02d}'.format(epoch))
+        print('Choosing epoch {:03d}'.format(epoch))
         modelWeights = modelWeights.format(**{'epoch':epoch})
         print(modelWeights)
  
