@@ -1,5 +1,5 @@
 function createTrainingWavs(dataFile, outDir, kw, fileId)
-% createTrainingWavs(dataFile, outDir)
+% createTrainingWavs(dataFile, outDir, kw, fileId)
 
 [~,~] = mkdir(outDir);
 
