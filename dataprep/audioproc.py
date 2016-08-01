@@ -1,7 +1,7 @@
 import os, glob, sndhdr
 import numpy as np
 from scipy.io import wavfile
-from features import fbank # python_speech_features
+from features import fbank, mfcc # python_speech_features
 import fnmatch
 import pdb
 
@@ -21,7 +21,7 @@ def melfilter(N, freq):
 
     return filt
 
-def wav2fbank(wavFile, fs=16000):
+def wav2fbank(wavFile, fs=16000, maxLen_s=None):
 
     if isinstance(wavFile, str):
         (fs, wav) = wavfile.read(wavFile)
@@ -38,10 +38,16 @@ def wav2fbank(wavFile, fs=16000):
 
     if np.ndim(wav) == 2: # Multiple channels; just take left one
         wav = wav[:,0]
+    if maxLen_s is not None:
+        maxSamp = maxLen_s * fs
+        wav = wav[:maxSamp]
+  
+    if True:
+        M, E = fbank(wav, fs, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, winfunc=winfunc, preemph=preemph)
 
-    M, E = fbank(wav, fs, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, winfunc=winfunc, preemph=preemph)
-
-    logM = np.log(M)
+        logM = np.log(M)
+    else:
+        logM = mfcc(wav, fs, numcep=16, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, winfunc=winfunc, preemph=preemph)
     logM = np.swapaxes(logM, 0, 1)
 
     return logM
