@@ -18,6 +18,6 @@ if [ ! -z "$5" ] && [ $5 = "get" ]; then
     ./get_model.sh $model
 fi
 
-echo "python predict_spec.py features ../dataprep/testingFeats_$1.mat prob_$model $model $epoch"
-python predict_spec.py features ../dataprep/testingFeats_$1.mat prob_$model $model $epoch
+echo "python predict_spec.py features ../dataprep/testingFeats_$1.mat prob_$model\_$epoch $model $epoch"
+python predict_spec.py features ../dataprep/testingFeats_$1.mat prob_$model\_$epoch $model $epoch
 
