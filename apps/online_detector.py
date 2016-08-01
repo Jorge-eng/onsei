@@ -170,7 +170,7 @@ class Detector(object):
 if __name__ == '__main__':
 
     if len(sys.argv) < 2:
-        print("Usage: python online_detector.py model_path [sensitivity] [audio_gain] [debug]")
+        print("Usage: python online_detector.py model_path [epoch] [sensitivity] [audio_gain] [debug]")
         sys.exit(-1)
 
     # Defaults
