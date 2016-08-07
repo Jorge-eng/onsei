@@ -26,7 +26,7 @@ def load_features(dirName, matchers):
             continue
         fea = np.stack(fea, axis=2)
         lab = c * np.ones((fea.shape[2],), dtype='uint8')
-        if c == 0:
+        if len(features) == 0:
             features = fea
             labels = lab
         else:
