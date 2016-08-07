@@ -1,7 +1,9 @@
-function [decMat, probMat, idMatch, condMatch] = compileTestResults(probFile, feaFile, th)
+function [decMat, probMat, idMatch, condMatch] = compileTestResults(probFile, feaFile, th, ep)
 
 load(probFile) % -> prob
-
+if ndims(prob) == 3
+    prob = squeeze(prob(ep,:,:));
+end
 load(feaFile); % -> idMatch, condMatch, identity, sampleType
 
 idMatch = cellstr(idMatch);
