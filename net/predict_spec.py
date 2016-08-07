@@ -38,7 +38,7 @@ def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=10, offs
 
     return prob, starts
 
-def fbank_stream(logM, winLen, winShift):
+def fbank_stream(logM, winLen, winShift=10):
 
     nBands = logM.shape[0]
     nFrames = logM.shape[1]
@@ -193,8 +193,7 @@ if __name__ == '__main__':
 
         features = audioproc.load_bin(inFile)
 
-        winShift = 20
-        feaStream, starts = fbank_stream(features, winLen, winShift)
+        feaStream, starts = fbank_stream(features, winLen)
         feaStream = data.apply_norm(feaStream, offset, scale)
         feaStream = data.reshape_for_model(feaStream, modelType)
 
