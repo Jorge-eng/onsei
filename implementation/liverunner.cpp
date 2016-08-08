@@ -17,8 +17,13 @@
 
 #if HAVE_NET
 //#include "unit-test/data/model_may25_lstm_large.c"
-#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny.c"
-#endif 
+//#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny.c"
+//#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny2.c"
+//#include "unit-test/data/model_may25_lstm_small_okay_sense_alexa_tiny3.c"
+//#include "unit-test/data/model_may25_lstm_small_alexa_tiny_726.c"
+#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny_727.c"
+
+#endif
 
 #define MIN_PROB_TO_USE_FOR_SUM (40)
 #define OUTBUF_SUM_LEN (2)
@@ -119,6 +124,7 @@ static void feats_callback(void * context, int8_t * feats) {
     static Weight_t outbuf[OUTBUF_SUM_LEN] = {0};
     static uint32_t ioutbuf = 0;
     static uint32_t off_count = 0;
+    static bool last_is_printing = false;
     //desire to have the dims as 40 x 199
     //data comes in as 40 x 1 vectors, soo
     
@@ -134,15 +140,41 @@ static void feats_callback(void * context, int8_t * feats) {
     temp_tensor.scale = 0;
     temp_tensor.delete_me = 0;
     
-    if (++counter < MEL_FEAT_BUF_TIME_LEN) {
-        return;
-    }
+    counter++;
     
     Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor);
+#define THRESHOLD (50)
+    bool is_printing = false;
     
-    if (out->x[1] > 90)
-        printf("%d,%d\n",out->x[0],out->x[1]);
+    for (int i = 1; i < out->dims[3]; i++) {
+        if (out->x[i] > THRESHOLD) {
+            is_printing = true;
+            break;
+        }
+    }
     
+    if (is_printing) {
+        
+        if (!last_is_printing) {
+            printf("\a");
+            last_is_printing = true;
+        }
+        
+        for (int i = 0; i < out->dims[3]; i++) {
+            if (i!=0)printf(",");
+            printf("%d",out->x[i]);
+        }
+        
+        printf("\n");
+    }
+    else {
+        if (last_is_printing) {
+            last_is_printing = false;
+            printf("\n");
+        }
+    }
+
+
     out->delete_me(out);
 
     return;

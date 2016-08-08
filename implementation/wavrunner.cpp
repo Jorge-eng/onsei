@@ -10,7 +10,14 @@
 
 //#include "unit-test/data/model_jun22_smaller_sigm.c"
 //#include "unit-test/data/model_may25_lstm_large.c"
-#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny.c"
+//#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny.c"
+//#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny2.c"
+//#include "unit-test/data/model_may25_lstm_small_okay_sense_alexa_tiny3.c"
+//#include "unit-test/data/model_may25_lstm_small_alexa_tiny_726.c"
+#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny_727.c"
+//#include "unit-test/data/model_may25_lstm_small_okay_sense_alexa_tiny_727.c"
+//#include "unit-test/data/model_may25_lstm_small_alexa_tiny_727.c"
+
 using namespace std;
 
 
@@ -30,7 +37,7 @@ typedef struct  {
 void results_callback(void * context, int8_t * melbins) {
     static uint32_t counter = 0;
     CallbackContext * p = static_cast<CallbackContext *>(context);
-
+    
     
     Tensor_t temp_tensor;
     temp_tensor.dims[0] = 1;
@@ -41,14 +48,16 @@ void results_callback(void * context, int8_t * melbins) {
     temp_tensor.x = melbins;
     temp_tensor.scale = 0;
     temp_tensor.delete_me = 0;
-    
-    if (++counter < MEL_FEAT_BUF_TIME_LEN) {
-        return;
-    }
+   
     
     Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor);
     
-    printf("%d,%d\n",out->x[0],out->x[1]);
+    for (int i = 0; i < out->dims[3]; i++) {
+        if (i!=0)printf(",");
+        printf("%d",out->x[i]);
+    }
+    
+    printf("\n");
     
     out->delete_me(out);
     
