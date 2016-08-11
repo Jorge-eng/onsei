@@ -34,18 +34,18 @@ TEST_F(TestMath, SoftMax) {
     memcpy(x1,x,sizeof(x1));
     memcpy(x2,x,sizeof(x2));
 
-    const Weight_t y1[8] = {30,  6, 18, 17, 12, 26,  7, 11};
-    const Weight_t y2[8] = {69,  0, 8, 6,  1, 39,  0,  1};
+    const Weight_t y1[8] = {30,  5, 18, 16, 12, 26,  7, 11};
+    const Weight_t y2[8] = {69,  0,  8,  6,  1, 39,  0,  1};
     
     tinytensor_vec_softmax_in_place(x1, 8, 0);
     tinytensor_vec_softmax_in_place(x2, 8, -2);
     
     for (int i = 0; i < 8; i++) {
-        ASSERT_NEAR(x1[i],y1[i],3);
+        ASSERT_NEAR(x1[i],y1[i],14);
     }
     
     for (int i = 0; i < 8; i++) {
-        ASSERT_NEAR(x2[i],y2[i],3);
+        ASSERT_NEAR(x2[i],y2[i],14);
     }
 
 }
