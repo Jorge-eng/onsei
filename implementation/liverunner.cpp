@@ -18,10 +18,10 @@
 #if HAVE_NET
 //#include "unit-test/data/model_may25_lstm_large.c"
 //#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny.c"
-//#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny2.c"
+#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny2.c"
 //#include "unit-test/data/model_may25_lstm_small_okay_sense_alexa_tiny3.c"
 //#include "unit-test/data/model_may25_lstm_small_alexa_tiny_726.c"
-#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny_727.c"
+//#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny_727.c"
 
 #endif
 
@@ -302,7 +302,7 @@ int main(void) {
     double              average;
     
     
-    tinytensor_features_initialize(&featsContext, feats_callback);
+    tinytensor_features_initialize(&featsContext, feats_callback,NULL);
     
     data.maxFrameIndex = totalFrames = NUM_SECONDS * SAMPLE_RATE; /* Record for a few seconds. */
     data.frameIndex = 0;

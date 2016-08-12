@@ -145,7 +145,7 @@ int main(int argc, char * argv[]) {
     context.net = initialize_network();
     tinytensor_allocate_states(&context.state, &context.net);
     
-    tinytensor_features_initialize(&context,results_callback);
+    tinytensor_features_initialize(&context,results_callback,NULL);
     const std::string inFile = argv[1];
     
     SndfileHandle file = SndfileHandle (inFile) ;
