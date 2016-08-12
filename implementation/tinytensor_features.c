@@ -62,8 +62,12 @@ typedef struct {
     int32_t speech_energy_accumulator;
     int16_t speech_energy_history[SPEECH_ENERGY_HISTORY_SIZE];
     
+    int32_t speech_energy_diff_accumulator;
+    int16_t speech_energy_diff_history[SPEECH_ENERGY_HISTORY_SIZE];
+    
     uint32_t speech_frame_counter;
     int16_t last_speech_energy_average;
+    int16_t last_speech_energy_diff;
     
     int32_t log_liklihood_of_speech;
 
@@ -212,9 +216,16 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
     diff = avg - _this.last_speech_energy_average;
     _this.last_speech_energy_average = avg;
 
+    _this.speech_energy_diff_accumulator -= _this.speech_energy_diff_history[idx];
+    _this.speech_energy_diff_history[idx] = diff;
+    _this.speech_energy_diff_accumulator += diff;
+    
+    diffavg = _this.speech_energy_diff_accumulator >> SPEECH_ENERGY_HISTORY_SIZE_2N;
+    diffdiff = diffavg - _this.last_speech_energy_diff;
+    _this.last_speech_energy_diff = diffavg;
     
 #define LOG2Q10 (710)
-    temp32 = LOG2Q10 * diff;
+    temp32 = LOG2Q10 * diffdiff;
     temp32 >>= 10;
     
     //exp(log(2) * x) = 2^x
@@ -223,22 +234,8 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
     
     //so this is energy_of_speech_fraction * 2nd derivitive of log_energy_of_spee_fraction (i.e. the tops and bottoms of peaks and troughs, respectively.
     //so if fraction of speech energy is low, this feature will be low
-    talking_feature = temp16 * diff >> 10;
+    talking_feature = temp16 * diffdiff >> 10;
 
-    
-    printf("%d\n",talking_feature);
-    
-#define MEAN_NOISE (11)
-#define STDDEV_NOISE (192)
-
-#define MEAN_SPEECH (200)
-#define STDDEV_NOISE (700)
-    
-    mu1 = talking_feature - MEAN_NOISE;
-    
-    mu2 = talking_feature - MEAN_SPEECH;
-    
-    (mu1 << 10) / ((STDDEV_NOISE*STDDEV_NOISE) >> 10)
     
     //log likelihood of gaussian is -x^2/(2 * sigma^2) + some constant if mean is zero
     //so not talking is a
@@ -263,11 +260,11 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
     }
     
     if (_this.log_liklihood_of_speech >= 0 && temp32 < 0) {
-       // printf("end speech\n\n");
+        printf("end speech\n\n");
     }
     
     if (_this.log_liklihood_of_speech < 0 && temp32 >= 0) {
-       // printf("start speech\n");
+        printf("start speech\n");
     }
     
     _this.log_liklihood_of_speech = temp32;
