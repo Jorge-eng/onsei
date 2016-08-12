@@ -13,7 +13,7 @@ protected:
     
     
     virtual void SetUp() {
-        tinytensor_features_initialize(NULL,NULL);
+        tinytensor_features_initialize(NULL,NULL,NULL);
     }
     
     virtual void TearDown() {

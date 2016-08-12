@@ -37,7 +37,7 @@ int main(int argc, char * argv[]) {
     CallbackContext context;
     context.file = fopen(argv[2], "w");
     
-    tinytensor_features_initialize(&context,results_callback);
+    tinytensor_features_initialize(&context,results_callback,NULL);
     const std::string inFile = argv[1];
     
     SndfileHandle file = SndfileHandle (inFile) ;

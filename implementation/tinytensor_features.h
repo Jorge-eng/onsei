@@ -16,7 +16,9 @@ extern "C" {
     
 typedef void(*tinytensor_audio_feat_callback_t)(void * context, int8_t * feats);
     
-void tinytensor_features_initialize(void * results_context, tinytensor_audio_feat_callback_t results_callback);
+typedef void(*tinytensor_speech_detector_callback_t)(void * context, uint32_t flags);
+    
+void tinytensor_features_initialize(void * results_context, tinytensor_audio_feat_callback_t results_callback,tinytensor_speech_detector_callback_t speech_detector_callback);
 
 void tinytensor_features_deinitialize(void);
 
