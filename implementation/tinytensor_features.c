@@ -243,12 +243,12 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
     temp32 = -((talking_feature * talking_feature) >> 1); //q20
     temp32 = ((int64_t)temp32 * ONE_OVER_VARIANCE_Q20) >> 20;
 
-#define LOG_LIKELIHOOD_OF_BACKGROUND_Q20 (-5)
+#define LOG_LIKELIHOOD_OF_BACKGROUND_Q20 (-6)
     temp32 -= LOG_LIKELIHOOD_OF_BACKGROUND_Q20;
     
     temp32 = _this.log_liklihood_of_speech - temp32;
     
-#define LOG_LIK_MAX (300)
+#define LOG_LIK_MAX (400)
 #define LOG_LIK_MIN (-40)
 
     if (temp32 > LOG_LIK_MAX) {
