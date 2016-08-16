@@ -97,7 +97,7 @@ if __name__ == '__main__':
     feaStream = data.reshape_for_model(feaStream, modelType)
 
     tag = os.path.join(MODEL_PATH, modelTag)
-    weightFiles = glob.glob(tag+'*'+'.h5')
+    weightFiles = glob.glob(tag+'_ep*.h5')
     weightFiles.sort()
 
     prob = []
