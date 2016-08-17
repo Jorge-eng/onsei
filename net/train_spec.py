@@ -29,7 +29,7 @@ else:
     normalize = True
 
 batchSize = 8
-numEpoch = 100
+numEpoch = 300
 
 modelDef = 'models/'+modelName+modelTag+'.json'
 modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:03d}.h5'
@@ -48,8 +48,7 @@ print(feaTest.shape[0], 'test samples')
 
 # input dimensions
 inputShape = feaTrain.shape[1:]
-numClasses = labelTrain.shape[1]
-classCount = labelTrain.sum(axis=0)
+numClasses = labelTrain.shape[-1]
 
 if modelType == 'cnn':
     winLen = inputShape[2]
@@ -60,8 +59,13 @@ elif modelType == 'rnn':
 if len(sys.argv) > 6:
     w = sys.argv[6].split(',')
 else:
+    classCount = labelTrain.sum(axis=0)
     w = np.concatenate(([1.], classCount[1:].max() / classCount[1:]))
-classWeight = dict([(i, w[i]) for i in range(numClasses)])
+
+if w[0] == 'None':
+    classWeight = None
+else:
+    classWeight = dict([(i, w[i]) for i in range(numClasses)])
 print('classWeight:', classWeight)
 
 def build_model(inputShape, numClasses):
@@ -84,6 +88,9 @@ savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights,
 open(modelDef, 'w').write(model.to_json())
 
 cbks = [ModelCheckpoint(modelWeights, monitor='val_loss')]
+
+print(labelTrain.shape)
+print(labelTest.shape)
 
 # Train
 history = model.fit(feaTrain, labelTrain, batch_size=batchSize,

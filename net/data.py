@@ -36,7 +36,7 @@ def reshape_for_model(data, modelType='cnn'):
 
     if modelType=='cnn':
         data = data.reshape(data.shape[0], 1, data.shape[1], data.shape[2])
-    elif modelType=='rnn':
+    elif modelType=='rnn' or modelType=='rnn_dist':
         data = np.swapaxes(data, 1, 2)
 
     return data
@@ -93,6 +93,23 @@ def apply_norm(fea, offset, scale):
 
     return fea
 
+def time_distribute_label(labels, timeSteps, numClasses, labelWindows=None, nullLabel=0):
+
+    if labelWindows is None:
+        labelWindows = ((1,[timeSteps]))
+
+    labelsTimeDistributed = np_utils.to_categorical(np.tile(nullLabel, (labels.shape[0],1)), numClasses)
+    labelsTimeDistributed = np.tile(labelsTimeDistributed[:,None,:], (1,timeSteps,1))
+
+    labels = np_utils.to_categorical(labels, numClasses)
+    for w in labelWindows:
+        labelWindow = np.tile(labels[:,None,:], (1,len(w[1]),1))
+        if w[0] is None:
+            labelWindow = labelWindow * 0
+        labelsTimeDistributed[:,w[1],:] = labelWindow
+
+    return labelsTimeDistributed
+
 def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=None, permuteBeforeSplit=(True,True)):
 
     # pos
@@ -136,12 +153,19 @@ def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTe
     labelTest = np.concatenate((labelTestPos, labelTestNeg), axis=0)
 
     numClasses = len(np.unique(labelTrain))
-    labelTrain = np.reshape(labelTrain, (len(labelTrain), 1))
-    labelTest = np.reshape(labelTest, (len(labelTest), 1))
 
-    # convert class vectors to binary class matrices
-    labelTrain = np_utils.to_categorical(labelTrain, numClasses)
-    labelTest = np_utils.to_categorical(labelTest, numClasses)
+    typeInfo = str.split(modelType)
+    if len(typeInfo) > 1 and typeInfo[1]=='dist':
+        labelWindows = ((None, range(0,40)),(None, range(50,123)),(1, range(143,153)))
+        labelTrain = time_distribute_label(labelTrain, feaTrain.shape[2], numClasses, labelWindows=labelWindows)
+        labelTest = time_distribute_label(labelTest, feaTrain.shape[2], numClasses, labelWindows=labelWindows)
+    else:
+        labelTrain = np.reshape(labelTrain, (len(labelTrain), 1))
+        labelTest = np.reshape(labelTest, (len(labelTest), 1))
+
+        # convert class vectors to binary class matrices
+        labelTrain = np_utils.to_categorical(labelTrain, numClasses)
+        labelTest = np_utils.to_categorical(labelTest, numClasses)
 
     # normalization
     if normalize is not None:
