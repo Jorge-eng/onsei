@@ -3,7 +3,7 @@
 #include "tinytensor_math.h"
 #include <assert.h>
 
-#define DAMP_CELL_STATES (1)
+#define DAMPING_FACTOR (250)
 
 typedef enum {
     inputgate,
@@ -228,7 +228,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
 
 
 static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type,
-                        int32_t * cell_state, Weight_t * prev_hidden, uint8_t is_stateful) {
+                        int32_t * cell_state, Weight_t * prev_hidden, uint8_t is_stateful,const uint32_t flags) {
     
     const LstmLayer_t * lstm_layer = (const LstmLayer_t *) context;
     
@@ -303,13 +303,14 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
                                 in->scale,
                                 lstm_layer->output_activation);
         
-#if DAMP_CELL_STATES == 1
-        for (i = 0; i < num_hidden_units; i++) {
-            int64_t temp64 = cell_state[i] * 250;
-            temp64 >>= 8;
-            cell_state[i] = (int32_t)temp64;
+
+        if (flags & NET_FLAG_LSTM_DAMPING) {
+            for (i = 0; i < num_hidden_units; i++) {
+                int64_t temp64 = cell_state[i] * DAMPING_FACTOR;
+                temp64 >>= 8;
+                cell_state[i] = (int32_t)temp64;
+            }
         }
-#endif
      
         /*
         for (i = 0; i < num_hidden_units; i++) {
@@ -335,12 +336,12 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
 
 }
 
-static void eval(const void * context,void * layer_state,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type) {
+static void eval(const void * context,void * layer_state,Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type,const uint32_t flags) {
     LstmLayerState_t * state = (LstmLayerState_t *)layer_state;
 
     //const void * context, Tensor_t * out,const Tensor_t * in,ELayer_t prev_layer_type, int32_t * cell_state, Weight_t * prev_hidden
     if (state) {
-        eval_helper(context,out,in,prev_layer_type,state->cell_state,state->output,1);
+        eval_helper(context,out,in,prev_layer_type,state->cell_state,state->output,1,flags);
     }
     else {
         
@@ -352,7 +353,7 @@ static void eval(const void * context,void * layer_state,Tensor_t * out,const Te
         MEMSET(cell_state,0,sizeof(cell_state));
         MEMSET(prev_hidden,0,sizeof(prev_hidden));
         
-        eval_helper(context,out,in,prev_layer_type,cell_state,prev_hidden,0);
+        eval_helper(context,out,in,prev_layer_type,cell_state,prev_hidden,0,flags);
     }
     
 }

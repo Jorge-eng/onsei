@@ -139,7 +139,7 @@ static void feats_callback(void * context, int16_t * feats) {
     
     counter++;
     
-    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor);
+    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAG_LSTM_DAMPING);
 #define THRESHOLD (50)
     bool is_printing = false;
     
@@ -238,7 +238,7 @@ static void feats_callback(void * context, int16_t * feats) {
     }
 
     
-    Tensor_t * tensor_out = tinytensor_eval_net(&(p->net),tensor_in);
+    Tensor_t * tensor_out = tinytensor_eval_net(&(p->net),tensor_in,NET_FLAGS_NONE);
 
     outbuf[ioutbuf++ % OUTBUF_SUM_LEN] = tensor_out->x[1];
     
