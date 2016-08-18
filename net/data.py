@@ -96,14 +96,18 @@ def apply_norm(fea, offset, scale):
 def time_distribute_label(labels, timeSteps, numClasses, labelWindows=None, nullLabel=0):
 
     if labelWindows is None:
-        labelWindows = ((1,[timeSteps]))
+        labelWindows = ((1,[timeSteps]),)
 
     labelsTimeDistributed = np_utils.to_categorical(np.tile(nullLabel, (labels.shape[0],1)), numClasses)
     labelsTimeDistributed = np.tile(labelsTimeDistributed[:,None,:], (1,timeSteps,1))
 
     labels = np_utils.to_categorical(labels, numClasses)
+    nullLabels = np_utils.to_categorical(nullLabel+0*labels, numClasses)
     for w in labelWindows:
-        labelWindow = np.tile(labels[:,None,:], (1,len(w[1]),1))
+        if w[0] is 0:
+            labelWindow = np.tile(nullLabels[:,None,:], (1,len(w[1]),1))
+        else:
+            labelWindow = np.tile(labels[:,None,:], (1,len(w[1]),1))
         if w[0] is None:
             labelWindow = labelWindow * 0
         labelsTimeDistributed[:,w[1],:] = labelWindow
@@ -154,9 +158,14 @@ def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTe
 
     numClasses = len(np.unique(labelTrain))
 
-    typeInfo = str.split(modelType)
+    typeInfo = str.split(modelType,'_')
     if len(typeInfo) > 1 and typeInfo[1]=='dist':
-        labelWindows = ((None, range(0,40)),(None, range(50,123)),(1, range(143,153)))
+        #labelWindows = ((None, range(0,40)),(None, range(50,123)),(1, range(143,153)))
+        labelWindows = ((None, range(0,157)),)
+        for t in range(36,137,20):
+            labelWindows = labelWindows + ((0, range(t,t+1)),)
+        labelWindows = labelWindows + ((1, range(156,157)),)
+
         labelTrain = time_distribute_label(labelTrain, feaTrain.shape[2], numClasses, labelWindows=labelWindows)
         labelTest = time_distribute_label(labelTest, feaTrain.shape[2], numClasses, labelWindows=labelWindows)
     else:
