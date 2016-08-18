@@ -52,7 +52,7 @@ numClasses = labelTrain.shape[-1]
 
 if modelType == 'cnn':
     winLen = inputShape[2]
-elif modelType == 'rnn':
+elif modelType == 'rnn' or modelType == 'rnn_dist':
     winLen = inputShape[0]
 
 # class weights
@@ -91,6 +91,7 @@ cbks = [ModelCheckpoint(modelWeights, monitor='val_loss')]
 
 print(labelTrain.shape)
 print(labelTest.shape)
+pdb.set_trace()
 
 # Train
 history = model.fit(feaTrain, labelTrain, batch_size=batchSize,
