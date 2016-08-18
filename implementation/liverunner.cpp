@@ -16,12 +16,9 @@
 
 
 #if HAVE_NET
-//#include "unit-test/data/model_may25_lstm_large.c"
-//#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny.c"
+
 #include "unit-test/data/model_may25_lstm_small_okay_sense_tiny2.c"
-//#include "unit-test/data/model_may25_lstm_small_okay_sense_alexa_tiny3.c"
-//#include "unit-test/data/model_may25_lstm_small_alexa_tiny_726.c"
-//#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny_727.c"
+
 
 #endif
 
@@ -118,7 +115,7 @@ typedef struct {
     SequentialNetworkStates_t state;
 } FeatsCallbackContext;
 
-static void feats_callback(void * context, int8_t * feats) {
+static void feats_callback(void * context, int16_t * feats) {
     FeatsCallbackContext * p = (FeatsCallbackContext *) context;
     static uint32_t counter = 0;
     static Weight_t outbuf[OUTBUF_SUM_LEN] = {0};
@@ -142,7 +139,7 @@ static void feats_callback(void * context, int8_t * feats) {
     
     counter++;
     
-    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor);
+    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAG_LSTM_DAMPING);
 #define THRESHOLD (50)
     bool is_printing = false;
     
@@ -181,7 +178,6 @@ static void feats_callback(void * context, int8_t * feats) {
     ////////////////////////////
     
     const static uint32_t dims[4] = {1,1,NUM_MEL_BINS,MEL_FEAT_BUF_TIME_LEN};
-    int32_t temp32;
     //get feats
 
     for (uint32_t i = 0; i < NUM_MEL_BINS; i++) {
@@ -242,7 +238,7 @@ static void feats_callback(void * context, int8_t * feats) {
     }
 
     
-    Tensor_t * tensor_out = tinytensor_eval_net(&(p->net),tensor_in);
+    Tensor_t * tensor_out = tinytensor_eval_net(&(p->net),tensor_in,NET_FLAGS_NONE);
 
     outbuf[ioutbuf++ % OUTBUF_SUM_LEN] = tensor_out->x[1];
     

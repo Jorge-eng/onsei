@@ -450,7 +450,7 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
 
 void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num_samples) {
     int16_t melbank[NUM_MEL_BINS];
-    int8_t melbank8[NUM_MEL_BINS];
+    int16_t melbank8[NUM_MEL_BINS];
     int32_t temp32;
     int16_t maxmel;
     int16_t avgmel;

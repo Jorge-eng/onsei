@@ -34,7 +34,7 @@ typedef struct  {
     SequentialNetworkStates_t state;
 } CallbackContext ;
 
-void results_callback(void * context, int8_t * melbins) {
+void results_callback(void * context, int16_t * melbins) {
     static uint32_t counter = 0;
     CallbackContext * p = static_cast<CallbackContext *>(context);
     
@@ -50,7 +50,7 @@ void results_callback(void * context, int8_t * melbins) {
     temp_tensor.delete_me = 0;
    
     
-    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor);
+    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAGS_NONE);
     
     for (int i = 0; i < out->dims[3]; i++) {
         if (i!=0)printf(",");
@@ -120,7 +120,7 @@ void results_callback(void * context, int8_t * melbins) {
      }
      */
 
-    Tensor_t * tensor_out = tinytensor_eval_net(&(p->net),tensor_in);
+    Tensor_t * tensor_out = tinytensor_eval_net(&(p->net),tensor_in,NET_FLAG_LSTM_DAMPING);
     
     std::cout << (int32_t)tensor_out->x[0] << "," << (int32_t)tensor_out->x[1] << std::endl;
     

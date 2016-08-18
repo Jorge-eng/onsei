@@ -79,7 +79,7 @@ TEST_F(TestFull, TestSmall) {
     tensor_in = tinytensor_clone_new_tensor(&small_model_ref);
     tensor_out = tinytensor_create_new_tensor(output_ref_dims);
     
-    layer.eval(layer.context,NULL,tensor_out,tensor_in,input_layer);
+    layer.eval(layer.context,NULL,tensor_out,tensor_in,input_layer,NET_FLAGS_NONE);
     
     ASSERT_NEAR(tensor_out->x[0],19,5);
 }
@@ -91,7 +91,7 @@ TEST_F(TestFull, TestBig) {
     tensor_in = tinytensor_clone_new_tensor(&big_full_input);
     tensor_out = tinytensor_create_new_tensor(big_output_ref_dims);
     
-    layer.eval(layer.context,NULL,tensor_out,tensor_in,input_layer);
+    layer.eval(layer.context,NULL,tensor_out,tensor_in,input_layer,NET_FLAGS_NONE);
     
     
     for (int i = 0; i < 512; i++) {
