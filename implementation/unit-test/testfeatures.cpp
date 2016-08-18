@@ -70,7 +70,7 @@ TEST_F(TestFeatures, TestBatched) {
     idx = -1;
 }
 
-TEST_F(TestFeatures, TestTypicalProduceConsumeCase) {
+TEST_F(TestFeatures, TestTypicalAddAndConsume) {
     
     const uint32_t batch_size = 7;
     const uint32_t num_buf_samples_to_get = 400;
@@ -89,12 +89,11 @@ TEST_F(TestFeatures, TestTypicalProduceConsumeCase) {
             const uint32_t pointer_pos = p + batch_size - &val[0];
             
             ngets++;
-
-            ASSERT_GT(pointer_pos,num_buf_samples_to_get*ngets);
             
             for (i = 0; i < num_buf_samples_to_get; i++) {
+                target_val = i + (ngets - 1) * num_buf_samples_to_consume;
+
                 ASSERT_EQ(target_val,val_out[i]);
-                target_val++;
             }
             
             
