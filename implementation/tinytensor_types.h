@@ -11,10 +11,10 @@ extern "C" {
 #endif
     
     
-#define MAX_WEIGHT (0x7F)
+#define MAX_WEIGHT (0x7FFF)
 #define MAX_LONG_WEIGHT (0x7FFF)
 
-typedef int8_t Weight_t;
+typedef int16_t Weight_t;
 typedef Weight_t Data_t; //data and weight are the same for now
     
 //callback defs

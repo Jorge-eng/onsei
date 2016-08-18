@@ -15,7 +15,7 @@ extern "C" {
 #define MEL_FEAT_BUF_TIME_LEN (157)
     
     
-typedef void(*tinytensor_audio_feat_callback_t)(void * context, int8_t * feats);
+typedef void(*tinytensor_audio_feat_callback_t)(void * context, int16_t * feats);
     
 typedef enum {
     start_speech,

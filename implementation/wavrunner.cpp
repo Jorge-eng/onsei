@@ -34,7 +34,7 @@ typedef struct  {
     SequentialNetworkStates_t state;
 } CallbackContext ;
 
-void results_callback(void * context, int8_t * melbins) {
+void results_callback(void * context, int16_t * melbins) {
     static uint32_t counter = 0;
     CallbackContext * p = static_cast<CallbackContext *>(context);
     

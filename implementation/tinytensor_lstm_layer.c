@@ -98,7 +98,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
     int16_t activation_forget_gate;
     int16_t activation_input_gate;
     int16_t activation_output_gate;
-    int8_t activation_cell;
+    Weight_t activation_cell;
     
     for (igate = 0; igate < NUM_GATES; igate++) {
         //set up row starts for all weights
@@ -268,7 +268,6 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
     uint32_t t;
     uint32_t i;
     int32_t temp32;
-    int64_t temp64;
     
     uint8_t current_gate = 0;
     Weight_t * out_row = out->x;
@@ -306,7 +305,7 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
         
 #if DAMP_CELL_STATES == 1
         for (i = 0; i < num_hidden_units; i++) {
-            temp64 = cell_state[i] * 250;
+            int64_t temp64 = cell_state[i] * 250;
             temp64 >>= 8;
             cell_state[i] = (int32_t)temp64;
         }
