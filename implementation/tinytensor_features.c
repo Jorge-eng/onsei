@@ -113,30 +113,42 @@ void tiny_tensor_features_add_to_buffer(const int16_t * samples, const uint32_t 
     
     _this.num_samples_in_buffer += num_samples;
     
+    //check to see if we overflowed, if so, ignore oldest samples (reset the read pointer position)
     if (_this.num_samples_in_buffer > BUF_SIZE_IN_SAMPLES) {
         _this.num_samples_in_buffer = BUF_SIZE_IN_SAMPLES;
+        
+        _this.pbuf_read = _this.pbuf_write + 1;
+        
+        if (_this.pbuf_read >= _this.end) {
+            _this.pbuf_read = _this.buf + (_this.pbuf_read - _this.end);
+        }
     }
 }
 
-uint8_t tiny_tensor_features_consume_oldest_samples(int16_t * outbuffer, const uint32_t num_samples) {
+uint8_t tiny_tensor_features_consume_oldest_samples(int16_t * outbuffer, const uint32_t num_samples_to_read,const uint32_t num_samples_to_consume ) {
     int32_t ibuf;
-    int16_t * pstart = _this.pbuf_read;
+    int16_t * p = _this.pbuf_read;
     
     
-    if (_this.num_samples_in_buffer < num_samples) {
+    if (_this.num_samples_in_buffer < num_samples_to_read) {
         return 0; //not enough samples in buffer
     }
     
-    for (ibuf = 0; ibuf < num_samples; ibuf++) {
-        outbuffer[ibuf] = *pstart;
+    for (ibuf = 0; ibuf < num_samples_to_read; ibuf++) {
+        outbuffer[ibuf] = *p;
         
-        if (++pstart >= _this.end) {
-            pstart = _this.buf;
+        if (++p >= _this.end) {
+            p = _this.buf;
         }
     }
     
-    _this.pbuf_read = pstart;
-    _this.num_samples_in_buffer -= num_samples;
+    _this.pbuf_read += num_samples_to_consume;
+    
+    if (_this.pbuf_read >= _this.end) {
+        _this.pbuf_read = _this.buf + (_this.pbuf_read - _this.end);
+    }
+    
+    _this.num_samples_in_buffer -= num_samples_to_consume;
     
 
     return 1;
@@ -316,7 +328,7 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
 
     tiny_tensor_features_add_to_buffer(samples,num_samples);
     
-    if (!tiny_tensor_features_consume_oldest_samples(fr,FFT_UNPADDED_SIZE)) {
+    if (!tiny_tensor_features_consume_oldest_samples(fr,FFT_UNPADDED_SIZE,NUM_SAMPLES_TO_RUN_FFT)) {
         return 0;
     }
     

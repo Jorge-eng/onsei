@@ -4,7 +4,7 @@
 
 extern "C" {
     void tiny_tensor_features_add_to_buffer(const int16_t * samples, const uint32_t num_samples);
-    uint8_t tiny_tensor_features_consume_oldest_samples(int16_t * outbuffer, const uint32_t num_samples);
+    uint8_t tiny_tensor_features_consume_oldest_samples(int16_t * outbuffer, const uint32_t num_samples_to_read,const uint32_t num_samples_to_consume );
     void tinytensor_features_get_mel_bank(int16_t * melbank,const int16_t * fr, const int16_t * fi);
 }
 
@@ -41,6 +41,7 @@ class DISABLED_TestFeatures : public TestFeatures {};
 
 TEST_F(TestFeatures, TestBatched) {
     const int16_t buf_samples_to_get = 360;
+    const int16_t num_buf_samples_to_consume = 160;
   
     tinytensor_features_deinitialize();
 
@@ -58,7 +59,7 @@ TEST_F(TestFeatures, TestBatched) {
         
         int16_t val2[BUF_SIZE_IN_SAMPLES] = {0};
         
-        tiny_tensor_features_consume_oldest_samples(val2,buf_samples_to_get);
+        tiny_tensor_features_consume_oldest_samples(val2,buf_samples_to_get,num_buf_samples_to_consume);
         
         for (int j = 0; j < buf_samples_to_get; j++) {
             const uint32_t expected_val = j;
@@ -72,7 +73,8 @@ TEST_F(TestFeatures, TestBatched) {
 TEST_F(TestFeatures, TestTypicalProduceConsumeCase) {
     
     const uint32_t batch_size = 7;
-    const uint32_t num_buf_samples_to_get = 160;
+    const uint32_t num_buf_samples_to_get = 400;
+    const uint32_t num_buf_samples_to_consume = 160;
     int16_t val_out[BUF_SIZE_IN_SAMPLES];
     int i;
     uint32_t ngets = 0 ;
@@ -83,7 +85,7 @@ TEST_F(TestFeatures, TestTypicalProduceConsumeCase) {
         
         tiny_tensor_features_add_to_buffer(p,batch_size);
         
-        if (tiny_tensor_features_consume_oldest_samples(val_out,num_buf_samples_to_get)) {
+        if (tiny_tensor_features_consume_oldest_samples(val_out,num_buf_samples_to_get,num_buf_samples_to_consume)) {
             const uint32_t pointer_pos = p + batch_size - &val[0];
             
             ngets++;
