@@ -51,6 +51,7 @@ const static uint8_t k_fft_index_pairs[40][2] = {{1,1},{2,3},{3,5},{5,7},{7,9},{
 typedef struct {
     int16_t * buf;
     int16_t * pbuf_write;
+    int16_t * pbuf_read;
     int16_t * end;
     uint32_t num_samples_in_buffer;
     int16_t melbank_avg[NUM_MEL_BINS];
@@ -86,6 +87,7 @@ void tinytensor_features_initialize(void * results_context, tinytensor_audio_fea
     _this.buf = MALLOC(BUF_SIZE_IN_SAMPLES*sizeof(int16_t));
     memset(_this.buf,0,BUF_SIZE_IN_SAMPLES*sizeof(int16_t));
     _this.pbuf_write = _this.buf;
+    _this.pbuf_read = _this.buf;
     _this.end = _this.buf + BUF_SIZE_IN_SAMPLES;
     _this.results_callback = results_callback;
     _this.speech_detector_callback = speech_detector_callback;
@@ -111,27 +113,45 @@ void tiny_tensor_features_add_to_buffer(const int16_t * samples, const uint32_t 
     
     _this.num_samples_in_buffer += num_samples;
     
+    //check to see if we overflowed, if so, ignore oldest samples (reset the read pointer position)
     if (_this.num_samples_in_buffer > BUF_SIZE_IN_SAMPLES) {
         _this.num_samples_in_buffer = BUF_SIZE_IN_SAMPLES;
+        
+        _this.pbuf_read = _this.pbuf_write + 1;
+        
+        if (_this.pbuf_read >= _this.end) {
+            _this.pbuf_read = _this.buf + (_this.pbuf_read - _this.end);
+        }
     }
 }
 
-void tiny_tensor_features_get_latest_samples(int16_t * outbuffer, const uint32_t num_samples) {
+uint8_t tiny_tensor_features_consume_oldest_samples(int16_t * outbuffer, const uint32_t num_samples_to_read,const uint32_t num_samples_to_consume ) {
     int32_t ibuf;
-    int16_t * pstart = _this.pbuf_write - num_samples;
+    int16_t * p = _this.pbuf_read;
     
-    if (pstart < _this.buf) {
-        pstart += BUF_SIZE_IN_SAMPLES;
+    
+    if (_this.num_samples_in_buffer < num_samples_to_read) {
+        return 0; //not enough samples in buffer
     }
     
-    
-    for (ibuf = 0; ibuf < num_samples; ibuf++) {
-        outbuffer[ibuf] = *pstart;
+    for (ibuf = 0; ibuf < num_samples_to_read; ibuf++) {
+        outbuffer[ibuf] = *p;
         
-        if (++pstart >= _this.end) {
-            pstart = _this.buf;
+        if (++p >= _this.end) {
+            p = _this.buf;
         }
     }
+    
+    _this.pbuf_read += num_samples_to_consume;
+    
+    if (_this.pbuf_read >= _this.end) {
+        _this.pbuf_read = _this.buf + (_this.pbuf_read - _this.end);
+    }
+    
+    _this.num_samples_in_buffer -= num_samples_to_consume;
+    
+
+    return 1;
 }
 
 void tinytensor_features_get_mel_bank(int16_t * melbank,const int16_t * fr, const int16_t * fi,const int16_t input_scaling) {
@@ -305,24 +325,12 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
     
      */
     
-    /*
-    tiny_tensor_features_add_to_buffer(samples,num_samples);
 
-    if (_this.num_samples_in_buffer < FFT_UNPADDED_SIZE) {
+    tiny_tensor_features_add_to_buffer(samples,num_samples);
+    
+    if (!tiny_tensor_features_consume_oldest_samples(fr,FFT_UNPADDED_SIZE,NUM_SAMPLES_TO_RUN_FFT)) {
         return 0;
     }
-     */
-    
-    //num_samples must be 160...
-    memcpy( (void*)_this.bins[_this.binidx], (void*)samples, num_samples*sizeof(int16_t) );
-    _this.binidx = (_this.binidx+1)% 3;
-    if( ++_this.bintot < 3 ) return 0;
-    _this.bintot = 3;
-    memcpy( fr, _this.bins[_this.binidx], 160*2);
-    memcpy( fr+160, _this.bins[(_this.binidx+1)%3], 160*2);
-    memcpy( fr+320, _this.bins[(_this.binidx+2)%3], 80*2);
-    
-    //tiny_tensor_features_get_latest_samples(fr,FFT_UNPADDED_SIZE);
     
  
     //"preemphasis", and apply window as you go
