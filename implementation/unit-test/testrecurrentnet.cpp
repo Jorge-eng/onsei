@@ -80,7 +80,7 @@ TEST_F(TestRecurrentNet, TestRandInput) {
         temp_tensor.scale = tensor_in->scale;
         temp_tensor.delete_me = NULL;
         
-        lstm_layer.eval(lstm_layer.context,state,tensor_out,&temp_tensor,input_layer);
+        lstm_layer.eval(lstm_layer.context,state,tensor_out,&temp_tensor,input_layer,NET_FLAGS_NONE);
         
         
         for (int i = 0; i < d[3]; i++) {
@@ -129,7 +129,7 @@ TEST_F(TestRecurrentNet, TwoLayers) {
         temp_tensor.scale = tensor_in->scale;
         temp_tensor.delete_me = NULL;
         
-        Tensor_t * output = tinytensor_eval_stateful_net(&net, &states, &temp_tensor);
+        Tensor_t * output = tinytensor_eval_stateful_net(&net, &states, &temp_tensor,NET_FLAGS_NONE);
         
         for (int i = 0; i < output->dims[3]; i++) {
             *p = output->x[i] >> output->scale;

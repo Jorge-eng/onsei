@@ -3,6 +3,7 @@ from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.core import Reshape, Permute
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.layers.recurrent import LSTM
+from keras.layers.wrappers import TimeDistributed
 from keras.optimizers import SGD
 import numpy as np
 import pdb
@@ -16,6 +17,74 @@ def model_may25_lstm_small(inputShape, numClasses):
     model = Sequential()
 
     model.add(LSTM(32, return_sequences=True, input_shape=inputShape))
+    model.add(Dropout(0.2))
+    model.add(LSTM(32, return_sequences=False))
+    model.add(Dropout(0.2))
+    model.add(Dense(numClasses))
+    model.add(Activation('softmax'))
+
+    return model, optimizer, loss
+
+def model_aug16_lstm_24x24(inputShape, numClasses):
+
+    optimizer = 'rmsprop'
+    #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
+    loss = 'categorical_crossentropy'
+
+    model = Sequential()
+
+    model.add(LSTM(24, return_sequences=True, input_shape=inputShape))
+    model.add(Dropout(0.2))
+    model.add(LSTM(24, return_sequences=False))
+    model.add(Dropout(0.2))
+    model.add(Dense(numClasses))
+    model.add(Activation('softmax'))
+
+    return model, optimizer, loss
+
+def model_aug15_lstm_small_dist(inputShape, numClasses):
+
+    optimizer = 'rmsprop'
+    #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
+    loss = 'categorical_crossentropy'
+
+    model = Sequential()
+
+    model.add(LSTM(32, return_sequences=True, input_shape=inputShape))
+    model.add(Dropout(0.2))
+    model.add(LSTM(32, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(TimeDistributed(Dense(numClasses)))
+    model.add(Activation('softmax'))
+
+    return model, optimizer, loss
+
+def model_aug10_lstm_small_sigm(inputShape, numClasses):
+
+    optimizer = 'rmsprop'
+    #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
+    loss = 'categorical_crossentropy'
+
+    model = Sequential()
+
+    model.add(LSTM(32, return_sequences=True, input_shape=inputShape))
+    model.add(Dropout(0.2))
+    model.add(LSTM(32, return_sequences=False))
+    model.add(Dropout(0.2))
+    model.add(Dense(numClasses))
+    model.add(Activation('sigmoid'))
+
+    return model, optimizer, loss
+
+def model_aug07_lstm_med(inputShape, numClasses):
+
+    optimizer = 'rmsprop'
+    #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
+    loss = 'categorical_crossentropy'
+
+    model = Sequential()
+
+    model.add(LSTM(64, return_sequences=True, input_shape=inputShape))
     model.add(Dropout(0.2))
     model.add(LSTM(32, return_sequences=False))
     model.add(Dropout(0.2))
@@ -219,11 +288,11 @@ def model_jun17_small_sigm(inputShape, numClasses):
 
 def model_jun22_smaller_sigm(inputShape, numClasses):
 
-    optimizer = SGD(lr=0.003, decay=1e-7, momentum=0.9, nesterov=True)
+    optimizer = SGD(lr=0.005, decay=1e-7, momentum=0.9, nesterov=True)
     #optimizer = 'rmsprop'
     #optimizer = 'adagrad'
-    #loss = 'categorical_crossentropy'
-    loss = 'mse'
+    loss = 'categorical_crossentropy'
+    #loss = 'mse'
 
     model = Sequential()
 

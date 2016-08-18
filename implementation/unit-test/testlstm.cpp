@@ -60,7 +60,7 @@ TEST_F(TestLstm, TestZeros) {
     uint32_t * d = tensor_out->dims;
     int n = d[0] * d[1] * tensor_in->dims[2] * d[3];
     
-    lstm_layer.eval(lstm_layer.context,NULL,tensor_out,tensor_in,input_layer);
+    lstm_layer.eval(lstm_layer.context,NULL,tensor_out,tensor_in,input_layer,NET_FLAGS_NONE);
     
     for (int i = 0; i < n; i++) {
         ASSERT_NEAR(tensor_out->x[i],0,1);
@@ -82,7 +82,7 @@ TEST_F(TestLstm, TestRandInput) {
     const uint32_t * d = tensor_out->dims;
     int n = d[0] * d[1] * tensor_in->dims[2] * d[3];
 
-    lstm_layer.eval(lstm_layer.context,NULL,tensor_out,tensor_in,input_layer);
+    lstm_layer.eval(lstm_layer.context,NULL,tensor_out,tensor_in,input_layer,NET_FLAGS_NONE);
     
     
   
@@ -114,7 +114,7 @@ TEST_F(TestLstm, TwoLayers) {
     tensor_in = tinytensor_clone_new_tensor(&lstm1_input);
         
     ConstSequentialNetwork_t net = initialize_network03();
-    tensor_out = tinytensor_eval_partial_net(&net,tensor_in,3);
+    tensor_out = tinytensor_eval_partial_net(&net,tensor_in,3,NET_FLAGS_NONE);
 
     const uint32_t * d = lstm3_ref.dims;
     int n = d[0] * d[1] * d[2] * d[3];

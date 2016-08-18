@@ -19,7 +19,7 @@ typedef struct  {
     FILE * file;
 } CallbackContext ;
 
-void results_callback(void * context, int8_t * melbins) {
+void results_callback(void * context, int16_t * melbins) {
     CallbackContext * p = static_cast<CallbackContext *>(context);
     if (p->file) {
         fwrite(melbins,1,NUM_MEL_BINS,p->file);
