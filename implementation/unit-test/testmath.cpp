@@ -1,13 +1,6 @@
 #include "gtest/gtest.h"
 #include "../tinytensor_math.h"
 
-
-extern "C" {
-    void tiny_tensor_features_add_to_buffer(const int16_t * samples, const uint32_t num_samples);
-    void tiny_tensor_features_get_latest_samples(int16_t * outbuffer, const uint32_t num_samples);
-    void tinytensor_features_get_mel_bank(int16_t * melbank,const int16_t * fr, const int16_t * fi);
-}
-
 class TestMath : public ::testing::Test {
 protected:
     
