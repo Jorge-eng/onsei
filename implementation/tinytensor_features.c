@@ -310,6 +310,7 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
 
 
 static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_t * melbank, const int16_t * samples, const uint32_t num_samples) {
+    int16_t x[FFT_SIZE] = {0};
     int16_t fr[FFT_SIZE] = {0};
     int16_t fi[FFT_SIZE] = {0};
     const int16_t preemphasis_coeff = PREEMPHASIS;
@@ -328,31 +329,32 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
 
     tiny_tensor_features_add_to_buffer(samples,num_samples);
     
-    if (!tiny_tensor_features_consume_oldest_samples(fr,FFT_UNPADDED_SIZE,NUM_SAMPLES_TO_RUN_FFT)) {
+    if (!tiny_tensor_features_consume_oldest_samples(x,FFT_UNPADDED_SIZE,NUM_SAMPLES_TO_RUN_FFT)) {
         return 0;
     }
     
  
     //"preemphasis", and apply window as you go
-    memcpy(fi,fr,sizeof(fi));
+    memcpy(fi,x,sizeof(x));
     for (i = 1; i < FFT_UNPADDED_SIZE; i++) {
 
-        temp32 = fr[i] - MUL16(preemphasis_coeff,fi[i-1]);
+        temp32 = x[i] - MUL16(preemphasis_coeff,fi[i-1]);
         temp16 = temp32 >> 1; //never overflow
         
         //APPLY WINDOW
-        fr[i]  = MUL16(temp16,k_hanning[i]);
+        x[i]  = MUL16(temp16,k_hanning[i]);
     }
     
-    fr[0] = MUL16(k_hanning[0],fr[0]);
+    x[0] = MUL16(k_hanning[0],x[0]);
 
     memset(fi,0,sizeof(fi));
-   
+    memset(fr,0,sizeof(fr));
+
     
     //PRESCALE THE FFT TO MINIMIZE UNDERFLOW
     max = 0;
     for (i = 0; i < FFT_UNPADDED_SIZE; i++) {
-        temp16 = fr[i];
+        temp16 = x[i];
         if (temp16 < 0) {
             temp16 = -temp16;
         }
@@ -372,14 +374,15 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
     
     if (temp16 > 0) {
         for (i = 0; i < FFT_UNPADDED_SIZE; i++) {
-            fr[i] <<= temp16;
+            x[i] <<= temp16;
         }
     }
     
     
     //PERFORM FFT
-    fft(fr,fi,FFT_SIZE_2N);
+    fftr(x,fr,fi,FFT_SIZE_2N);
     
+       
     //get "speech" energy ratio
     get_speech_energy_ratio(fr,fi,temp16);
 

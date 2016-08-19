@@ -15,7 +15,7 @@ extern "C" {
 #define LOG2_HANNING_WINDOW_ENERGY_MULTIPLIER (1.3951f)
 
 int32_t fft(int16_t fr[], int16_t fi[], int32_t m);
-int32_t fftr(int16_t f[], int32_t m); //this does not work, do not use it.
+int fftr(const int16_t x[], int16_t fr[],int16_t fi[],int32_t m);
 void fix_window(int16_t fr[], int32_t n);
     
 uint8_t bitlog(uint32_t n);
