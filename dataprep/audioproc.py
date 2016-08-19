@@ -90,7 +90,7 @@ def find_bin_files(wavDir, matcher=None):
 def load_bin(fname, nfilt=40):
 
     f = open(fname,'r')
-    x = np.fromfile(f,dtype=np.int8)
+    x = np.fromfile(f,dtype=np.int16)
     f.close()
 
     x = x.reshape(x.shape[0] / nfilt, nfilt)
