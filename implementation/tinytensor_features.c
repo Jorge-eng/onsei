@@ -332,26 +332,17 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
         return 0;
     }
     
- 
+    max = 0;
     //"preemphasis", and apply window as you go
-    memcpy(fi,fr,sizeof(fi));
     for (i = 1; i < FFT_UNPADDED_SIZE; i++) {
 
-        temp32 = fr[i] - MUL16(preemphasis_coeff,fi[i-1]);
+        temp32 = fr[i] - MUL16(preemphasis_coeff,fr[i-1]);
         temp16 = temp32 >> 1; //never overflow
         
         //APPLY WINDOW
         fr[i]  = MUL16(temp16,k_hanning[i]);
-    }
-    
-    fr[0] = MUL16(k_hanning[0],fr[0]);
 
-    memset(fi,0,sizeof(fi));
-   
-    
-    //PRESCALE THE FFT TO MINIMIZE UNDERFLOW
-    max = 0;
-    for (i = 0; i < FFT_UNPADDED_SIZE; i++) {
+
         temp16 = fr[i];
         if (temp16 < 0) {
             temp16 = -temp16;
@@ -359,7 +350,9 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
 
         max = temp16 > max ? temp16 : max; //max
     }
-    
+
+    fr[0] = 0;
+
     temp16 = 0;
     //find max scaling factor, brute force
     for (i = 1; i < 16; i++) {
@@ -414,22 +407,17 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
         memcpy(_this.melbank_avg,melbank,NUM_MEL_BINS * sizeof(int16_t));
     }
     
-
+    //get AVG
+    temp32 = 0;
     //compute moving avergage
     for (i = 0; i < NUM_MEL_BINS; i++) {
         _this.melbank_avg[i] = MUL16(_this.melbank_avg[i],TOFIX(MOVING_AVG_COEFF,QFIXEDPOINT_INT16));
         _this.melbank_avg[i] += MUL16(melbank[i],TOFIX(1.0 - MOVING_AVG_COEFF,QFIXEDPOINT_INT16));
-    }
-    
-    //get AVG
-    temp32 = 0;
-    
-    for (i = 0; i < NUM_MEL_BINS; i++) {
+
         temp32 += _this.melbank_avg[i];
     }
-    
+
     temp32 /= NUM_MEL_BINS;
-    
 
     temp16 = temp32;
     *avgmel = temp16;
@@ -458,8 +446,6 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
 
 void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num_samples) {
     int16_t melbank[NUM_MEL_BINS];
-    int16_t melbank8[NUM_MEL_BINS];
-    int32_t temp32;
     int16_t maxmel;
     int16_t avgmel;
     int32_t nominal_offset;
@@ -484,28 +470,14 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
         }
         
         offset = nominal_offset - offset_adjustment;
-        
+
         //printf("%d\n",offset);
         for (i = 0; i <NUM_MEL_BINS; i++) {
-            temp32 = melbank[i];
-            temp32 >>= SCALE_TO_8_BITS;
-            temp32 += offset;
-
-            if (temp32 > INT8_MAX) {
-                temp32 = INT8_MAX;
-            }
-            
-            if (temp32 < -INT8_MAX) {
-                temp32 = -INT8_MAX;
-            }
-            
-            melbank8[i] = (int8_t)temp32;
+            melbank[i] = (melbank[i]>>SCALE_TO_8_BITS)+offset;
         }
-        
         if (_this.results_callback) {
-            _this.results_callback(_this.results_context,melbank8);
+            _this.results_callback(_this.results_context,melbank);
         }
-        
 #ifdef PRINT_MEL_BINS
         for (i = 0; i < 40; i++) {
             if (i!= 0) {
