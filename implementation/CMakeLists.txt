@@ -13,6 +13,9 @@ find_package(PortAudio REQUIRED)
 
 add_definitions(-DUSE_CPP_DEBUG_LOGGING)
 add_definitions(-DNO_EQUALIZATION)
+add_definitions(-DARM_MATH_CM0)
+
+
 
 include_directories (${SNDFILE_INCLUDE_DIRS} ${PORTAUDIO_INCLUDE_DIRS} "gtest/include/" "gtest" "./")
 message(STATUS "${SNDFILE_INCLUDE_DIRS}")
@@ -30,7 +33,18 @@ tinytensor_features.c
 #############
 add_library(hellomath STATIC 
 hellomath/fft.c 
-hellomath/hellomath.c)
+hellomath/hellomath.c
+hellomath/arm_common_tables.c
+hellomath/arm_const_structs.c
+hellomath/arm_bitreversal.c
+hellomath/arm_cfft_q15.c
+hellomath/arm_rfft_init_q15.c
+hellomath/arm_cfft_radix2_init_q15.c
+hellomath/arm_cfft_radix2_q15.c
+hellomath/arm_cfft_radix4_init_q15.c
+hellomath/arm_cfft_radix4_q15.c
+hellomath/arm_rfft_q15.c
+)
 #############
 add_library(gtest STATIC gtest/gtest-all.cc)
 target_link_libraries(gtest pthread)

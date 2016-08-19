@@ -247,5 +247,35 @@ int8_t tiny_tensor_compare_scaled_numbers(const Weight_t x1, const int8_t scale1
     
 }
 
+/*
+#include "hellomath/fft.h"
+#include "hellomath/hellomath.h"
+#include "hellomath/arm_math.h"
 
+void compare_fft(int16_t * x) {
+    
+    //PERFORM FFT
+    int16_t fr[512] = {0};
+    int16_t fi[512] = {0};
+    
+    int16_t input[512] = {0};
+    int16_t output[1024] = {0};
+    arm_rfft_instance_q15 fft_instance;
 
+    memcpy(fr,x,sizeof(fr));
+    memcpy(input,x,sizeof(input));
+
+    
+    arm_rfft_init_q15(&fft_instance, 512, 0, 0);
+
+    fft(fr,fi,9);
+    
+    
+    arm_rfft_q15(&fft_instance, &input[0], &output[0]);
+    
+    
+ 
+
+    
+}
+*/

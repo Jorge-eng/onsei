@@ -108,3 +108,7 @@ TEST_F(TestFeatures, TestTypicalAddAndConsume) {
 
 }
 
+TEST_F(TestFeatures,TestFFT) {
+    
+}
+

@@ -1,7 +1,6 @@
 #include "hellomath.h"
 #include <stdlib.h> //abs
 
-
 static inline uint16_t umultq16(uint16_t a, uint16_t b) {
     uint32_t c;
     uint16_t * p = (uint16_t *)(&c);

@@ -3,6 +3,7 @@
 
 #include "hellomath/fft.h"
 #include "hellomath/hellomath.h"
+#include "hellomath/arm_math.h"
 
 #define USE_BACKGROUND_NORMALIZATION (1)
 #define BACKGROUND_NOISE_MAX_ATTENUATION (-2048)
@@ -48,6 +49,12 @@ const static uint8_t k_coeffs[454] = {255,255,127,127,255,127,127,255,127,127,25
 
 const static uint8_t k_fft_index_pairs[40][2] = {{1,1},{2,3},{3,5},{5,7},{7,9},{9,11},{11,13},{13,15},{15,18},{17,20},{20,23},{22,26},{25,29},{28,32},{31,36},{34,40},{38,44},{42,48},{46,53},{50,58},{55,63},{60,68},{65,74},{70,80},{76,87},{82,94},{89,102},{96,109},{104,118},{111,127},{120,136},{129,147},{138,157},{149,169},{159,181},{171,194},{183,208},{196,223},{210,238},{225,255}};
 
+
+extern void arm_rfft_q15(const arm_rfft_instance_q15 * S,q15_t * pSrc,
+                         q15_t * pDst);
+
+extern arm_status arm_rfft_init_q15(arm_rfft_instance_q15 *S, uint32_t fftLenReal, uint32_t ifftFlagR, uint32_t bitReverseFlag);
+
 typedef struct {
     int16_t * buf;
     int16_t * pbuf_write;
@@ -76,6 +83,7 @@ typedef struct {
     int16_t last_speech_energy_diff;
     
     int32_t log_liklihood_of_speech;
+    arm_rfft_instance_q15 fft_instance;
 
 
 } TinyTensorFeatures_t;
@@ -92,6 +100,10 @@ void tinytensor_features_initialize(void * results_context, tinytensor_audio_fea
     _this.results_callback = results_callback;
     _this.speech_detector_callback = speech_detector_callback;
     _this.results_context = results_context;
+    
+    arm_rfft_init_q15(&_this.fft_instance, FFT_SIZE, 0, 0);
+
+
 }
 
 void tinytensor_features_deinitialize(void) {
@@ -310,8 +322,8 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
 
 
 static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_t * melbank, const int16_t * samples, const uint32_t num_samples) {
-    int16_t fr[FFT_SIZE] = {0};
-    int16_t fi[FFT_SIZE] = {0};
+    int16_t input_signal[FFT_SIZE] = {0};
+    int16_t fft_output[2*FFT_SIZE] = {0};
     const int16_t preemphasis_coeff = PREEMPHASIS;
     uint32_t i;
 
@@ -328,31 +340,32 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
 
     tiny_tensor_features_add_to_buffer(samples,num_samples);
     
-    if (!tiny_tensor_features_consume_oldest_samples(fr,FFT_UNPADDED_SIZE,NUM_SAMPLES_TO_RUN_FFT)) {
+    if (!tiny_tensor_features_consume_oldest_samples(input_signal,FFT_UNPADDED_SIZE,NUM_SAMPLES_TO_RUN_FFT)) {
         return 0;
     }
     
  
     //"preemphasis", and apply window as you go
-    memcpy(fi,fr,sizeof(fi));
+    //make use of FFT buffers
+    memcpy(fft_output,input_signal,sizeof(input_signal));
     for (i = 1; i < FFT_UNPADDED_SIZE; i++) {
 
-        temp32 = fr[i] - MUL16(preemphasis_coeff,fi[i-1]);
+        temp32 = input_signal[i] - MUL16(preemphasis_coeff,fft_output[i-1]);
         temp16 = temp32 >> 1; //never overflow
         
         //APPLY WINDOW
-        fr[i]  = MUL16(temp16,k_hanning[i]);
+        input_signal[i]  = MUL16(temp16,k_hanning[i]);
     }
     
-    fr[0] = MUL16(k_hanning[0],fr[0]);
+    input_signal[0] = MUL16(k_hanning[0],input_signal[0]);
 
-    memset(fi,0,sizeof(fi));
+    memset(fft_output,0,sizeof(fft_output));
    
     
     //PRESCALE THE FFT TO MINIMIZE UNDERFLOW
     max = 0;
     for (i = 0; i < FFT_UNPADDED_SIZE; i++) {
-        temp16 = fr[i];
+        temp16 = input_signal[i];
         if (temp16 < 0) {
             temp16 = -temp16;
         }
@@ -372,22 +385,34 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
     
     if (temp16 > 0) {
         for (i = 0; i < FFT_UNPADDED_SIZE; i++) {
-            fr[i] <<= temp16;
+            input_signal[i] <<= temp16;
         }
     }
     
     
     //PERFORM FFT
-    fft(fr,fi,FFT_SIZE_2N);
+    //fft(input_signal,fft_output,FFT_SIZE_2N);
+
+    
+    arm_rfft_q15(&_this.fft_instance, &input_signal[0], &fft_output[0]);
+    
+    //printf("foo=%d,%d,%d\n",fft_output[513],fft_output[0],fft_output[512]);
+    //deinterleave
+    for (i = 0; i < FFT_SIZE; i++) {
+        input_signal[i] = fft_output[2*i];
+        fft_output[i] = fft_output[2*i + 1];
+    }
+    
+    //memset(fft_output,0,sizeof(fft_output));
     
     //get "speech" energy ratio
-    get_speech_energy_ratio(fr,fi,temp16);
+    get_speech_energy_ratio(input_signal,fft_output,temp16);
 
     //update counter
     _this.speech_frame_counter++;
 
     //GET MEL FEATURES (one time slice in the mel spectrogram)
-    tinytensor_features_get_mel_bank(melbank,fr,fi,temp16);
+    tinytensor_features_get_mel_bank(melbank,input_signal,fft_output,temp16);
     
     //GET MAX
     temp16 = MIN_INT_16;
@@ -499,7 +524,7 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
                 temp32 = -INT8_MAX;
             }
             
-            melbank8[i] = (int8_t)temp32;
+            melbank8[i] = (int16_t)temp32;
         }
         
         if (_this.results_callback) {
