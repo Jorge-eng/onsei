@@ -5,7 +5,7 @@
 #include <sndfile.hh>
 #include <vector>
 #include "tinytensor_features.h"
-
+#include "tinytensor_types.h"
 using namespace std;
 
 
@@ -22,7 +22,7 @@ typedef struct  {
 void results_callback(void * context, int16_t * melbins) {
     CallbackContext * p = static_cast<CallbackContext *>(context);
     if (p->file) {
-        fwrite(melbins,1,NUM_MEL_BINS,p->file);
+        fwrite(melbins,sizeof(Weight_t),NUM_MEL_BINS,p->file);
     }
 }
 
