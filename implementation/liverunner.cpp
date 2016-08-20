@@ -17,7 +17,7 @@
 
 #if HAVE_NET
 
-#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny2.c"
+#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny_727.c"
 
 
 #endif
