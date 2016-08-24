@@ -91,7 +91,6 @@ cbks = [ModelCheckpoint(modelWeights, monitor='val_loss')]
 
 print(labelTrain.shape)
 print(labelTest.shape)
-pdb.set_trace()
 
 # Train
 history = model.fit(feaTrain, labelTrain, batch_size=batchSize,
