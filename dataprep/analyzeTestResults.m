@@ -1,18 +1,20 @@
 
-probFile = '../net/prob_all_small_sigm_okay_sense+alexa_tiny.mat';
-testFile = 'testingFeats_okay_sense+alexa_tiny.mat';
-for ep = 1:200
-    [mat,p] = compileTestResults(probFile, testFile, 0.1, ep);
+probFile = '../net/prob_all_lstm_small_dist_okay_sense_tiny_819_dist3.mat';
+testFile = 'testingFeats_okay_sense_tiny.mat';
+data = [];
+for ep = 51:300
+    [mat, data] = compileTestResults(probFile, testFile, 0.2, ep, data);
     for j = 1:size(mat,3), subplot(size(mat,3),1,j), imagesc(mat(:,:,j),[0 1]), end
     ep, pause
 end
 %%
 clear cd1 cd2 fa
-probFile = '../net/prob_all_24x24_okay_sense_tiny_816.mat';
+probFile = '../net/prob_all_lstm_small_okay_sense_tiny_819_15.mat';
 testFile = 'testingFeats_okay_sense_tiny.mat';
-decTh = 0.5;%1e-6;
+decTh = 0.5;
+data = [];
 for ep = 1:300, ep
-    [mat,p] = compileTestResults(probFile,testFile, decTh, ep);
+    [mat,data] = compileTestResults(probFile,testFile, decTh, ep, data);
     mat(isnan(mat)) = 0;
     cd1(ep) = 0;
     cd2(ep) = 0;
@@ -27,7 +29,7 @@ end
 clear mats
 for ep = 1:length(ii)
     %figure
-    [mat,p] = compileTestResults(probFile, testFile, decTh, ii(ep));
+    [mat,data] = compileTestResults(probFile, testFile, decTh, ii(ep), data);
     mats(:,:,:,ep) = mat;
     for j = 1:size(mat,3), subplot(size(mat,3),1,j), imagesc(mat(:,:,j),[0 1]), end
     ii(ep), cd2(ii(ep)), fa(ii(ep)), pause
