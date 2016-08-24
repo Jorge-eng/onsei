@@ -73,7 +73,7 @@ def wav2fbank_batch(wavDir, matcher=None):
     for f in audioFiles:
         logM.append(wav2fbank(f))
 
-    return logM
+    return logM, audioFiles
 
 def find_bin_files(wavDir, matcher=None):
 
@@ -105,5 +105,5 @@ def bin2fbank_batch(dirName, matcher=None):
     for f in files:
         logM.append(load_bin(f))
 
-    return logM
+    return logM, files
 

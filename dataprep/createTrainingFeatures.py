@@ -20,8 +20,9 @@ def load_features(dirName, matchers):
 
     features = np.array([])
     labels = np.array([])
+    fileNames = []
     for c, m in enumerate(matchers):
-        fea = feaReader(dirName, '*'+m+'*')
+        fea,files = feaReader(dirName, '*'+m+'*')
         if len(fea) == 0:
             continue
         fea = np.stack(fea, axis=2)
@@ -29,11 +30,13 @@ def load_features(dirName, matchers):
         if len(features) == 0:
             features = fea
             labels = lab
+            fileNames = files
         else:
             features = np.append(features, fea, axis=2)
             labels = np.append(labels, lab, axis=0)
+            fileNames.extend(files)
 
-    return features, labels
+    return features, labels, fileNames
 
 def get_conditions(kws=None):
         
@@ -41,7 +44,7 @@ def get_conditions(kws=None):
                ]
      
     negConds = ['kwRevClip',
-                'speechClip',
+                'speechAlignedClip','speechRandomClip',
                 'backClip',
                 'earlyImplantClip','lateImplantClip',
                 'partialEarlyClip','partialLateClip',
@@ -57,6 +60,87 @@ def get_conditions(kws=None):
 
     return posMatchers, negMatchers
  
+def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000, frameSamples=240):
+    
+    posMatchers, negMatchers = get_conditions()
+    maxLab = np.max(labels_pos)
+    nFr100 = np.int(np.ceil(0.1*np.float(Fs)/frameSamples))
+
+    # Positive
+    labelsPosDistributed = np.zeros((len(labels_pos),nFr))
+    for idx, fn in enumerate(fn_pos):
+        anno = np.loadtxt(fn, delimiter=',')
+        condition = [x for x in posMatchers if x in fn]        
+        labVec = np.tile(np.nan,(nFr,))
+        if condition[0] is 'kwClip':
+            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frMid = np.int(np.round(anno[1]*nFr))
+            frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
+            labVec[[frStart-nFr100,frStart]] = 0
+            labVec[[frMid-nFr100,frMid]] = labels_pos[idx]+maxLab
+            labVec[frEnd-nFr100:frEnd] = labels_pos[idx]
+        labelsPosDistributed[idx,:] = labVec        
+        
+    # Negative 
+    labelsNegDistributed = np.zeros((len(labels_neg),nFr))
+    for idx, fn in enumerate(fn_neg):
+        anno = np.loadtxt(fn, delimiter=',')
+        condition = [x for x in negMatchers if x in fn]        
+        labVec = np.tile(np.nan,(nFr,))
+        if condition[0] is 'kwRevClip':
+            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frMid = np.int(np.round(anno[1]*nFr))
+            frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
+            labVec[[frStart-nFr100,frStart]] = 0
+            labVec[[frMid-nFr100,frMid]] = 0
+            labVec[[frEnd-nFr100,frEnd-1]] = 0
+        elif condition[0] is 'speechAlignedClip':
+            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frMid = np.int(np.round(anno[1]*nFr))
+            frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
+            labVec[[frStart-nFr100,frStart]] = 0
+            labVec[[frMid-nFr100,frMid]] = 0
+            labVec[[frEnd-nFr100,frEnd-1]] = 0
+        elif condition[0] is 'speechRandomClip':
+            randIdx = np.random.permutation(nFr)[:3]
+            labVec[randIdx] = 0
+        elif condition[0] is 'backClip':
+            randIdx = np.random.permutation(nFr)[:3]
+            labVec[randIdx] = 0
+        elif condition[0] is 'earlyImplantClip':
+            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frMid = np.int(np.round(anno[1]*nFr))
+            frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
+            labVec[[frStart-nFr100,frStart]] = 0
+            labVec[[frMid-nFr100,frMid]] = 0
+            labVec[[frEnd-nFr100,frEnd-1]] = 0
+        elif condition[0] is 'lateImplantClip':
+            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
+            labVec[[frStart-nFr100,frStart]] = 0
+            labVec[[frEnd-nFr100,frEnd-1]] = 0
+        elif condition[0] is 'partialEarlyClip':
+            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
+            labVec[[frStart-nFr100,frStart]] = 0
+            labVec[[frEnd-nFr100,frEnd-1]] = 0
+        elif condition[0] is 'partialLateClip':
+            frMid = np.int(np.round(anno[1]*nFr))
+            frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
+            labVec[[frMid-nFr100,frMid]] = 0
+            labVec[[frEnd-nFr100,frEnd-1]] = 0
+        elif condition[0] is 'shiftEarlyClip':
+            randIdx = np.random.permutation(nFr)[:2]
+            frEnd = np.int(np.minimum(nFr, np.round(anno[1]*nFr)))
+            labVec[randIdx] = 0
+            labVec[[frEnd-nFr100,frEnd-1]] = 0
+        elif condition[0] is 'shiftLateClip':
+            frStart = np.int(np.floor(anno[0]*nFr)) 
+            labVec[[frStart-nFr100,frStart]] = 0
+        labelsNegDistributed[idx,:] = labVec        
+        
+    return labelsPosDistributed, labelsNegDistributed
+
 if __name__ == '__main__':
 
     # Input audio directory
@@ -66,16 +150,21 @@ if __name__ == '__main__':
         kws = sys.argv[3].split('+')
     else:
         kws = None
+    timeDistributed = True
 
     posMatchers, negMatchers = get_conditions(kws=kws)
 
     # Positive examples
-    features_pos, labels_pos = load_features(dirName, posMatchers)
-    labels_pos = labels_pos + 1 # labels 1, 2, ...
-
+    features_pos, labels_pos, fn_pos = load_features(dirName, posMatchers)
     # Negative examples
-    features_neg, labels_neg = load_features(dirName, negMatchers)
+    features_neg, labels_neg, fn_neg = load_features(dirName, negMatchers)
+
+    labels_pos = labels_pos + 1 # labels 1, 2, ...
     labels_neg = labels_neg * 0 # labels all 0
+    if timeDistributed is True:
+        fn_pos = [str.replace(x,'.wav','.csv') for x in fn_pos]
+        fn_neg = [str.replace(x,'.wav','.csv') for x in fn_neg]
+        labels_pos, labels_neg = time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, features_pos.shape[1])
 
     savemat(outName,
             {'features_pos': features_pos, 'labels_pos': labels_pos,

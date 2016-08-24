@@ -27,7 +27,7 @@ def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=10, offs
         logM = audioproc.wav2fbank(wavFile)
         feaStream, starts = fbank_stream(logM, winLen, winShift)
     elif os.path.isdir(wavFile): # currently assuming each clip is winLen
-        logM = audioproc.wav2fbank_batch(wavFile)
+        logM, files = audioproc.wav2fbank_batch(wavFile)
         starts = [1]*len(logM)
         feaStream = np.array(logM)
 

@@ -29,6 +29,12 @@ irDir = 'IR';
 d = dir(fullfile(irDir,'*16k.wav'));
 irFiles = {d.name};
 
+vars = {'kwClip','kwRevClip','backClip',...
+        'speechAlignedClip','speechRandomClip',...
+        'earlyImplantClip','lateImplantClip',...
+        'partialEarlyClip','partialLateClip',...
+        'shiftEarlyClip','shiftLateClip'};
+    
 for j = 1:length(fileNames)
     disp(['File ' num2str(j) ' out of ' num2str(length(fileNames))])
     fileLoc = find(strcmp(fileName, fileNames{j}));
@@ -40,19 +46,16 @@ for j = 1:length(fileNames)
     clipLenIn = round(clipLen_s * FsIn);
     clipLen = round(clipLen_s * Fs);
 
+    % Initialize 
     [~,fileField] = fileparts(fileNames{j});
+    
+    annoField = ['annotation_' fileField];
     fileField = ['file_' fileField];
-    data.(fileField).kwClip = {};
-    data.(fileField).kwRevClip = {};
-    data.(fileField).backClip = {};
-    data.(fileField).speechClip = {};
-    data.(fileField).earlyImplantClip = {};
-    data.(fileField).lateImplantClip = {};
-    data.(fileField).partialEarlyClip = {};
-    data.(fileField).partialLateClip = {};
-    data.(fileField).shiftEarlyClip = {};
-    data.(fileField).shiftLateClip = {};
-
+    for v = 1:length(vars)
+        data.(fileField).(vars{v}) = {};
+        data.(annoField).(vars{v}) = {};
+    end
+    
     ii = find(strcmp('background', label(fileLoc)));
     background = [];
     for k = 1:length(ii)
@@ -95,6 +98,10 @@ for j = 1:length(fileNames)
         padIn = clipLenIn - cdIn;
         pad = round(padIn * Fs/FsIn);
         
+        % For partials 
+        kwMidIn = midPt(idx);
+        kwMid = round(kwMidIn * Fs/FsIn);
+        
         % keyword
         kw = audioGet(fn, [csIn-padIn+1 csIn-padIn+clipLenIn]);
         
@@ -109,6 +116,7 @@ for j = 1:length(fileNames)
         noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
         mix = applyRandomIR(kwVoc + noise, irDir, irFiles);
         data.(fileField).kwClip{end+1} = mix;
+        data.(annoField).kwClip{end+1} = [pad pad+kwMid pad+cd]/clipLen;
         
         % reversed keyword
         x = kwVoc;
@@ -118,8 +126,10 @@ for j = 1:length(fileNames)
         noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
         mix = applyRandomIR(x + noise, irDir, irFiles);
         data.(fileField).kwRevClip{end+1} = mix;
+        data.(annoField).kwRevClip{end+1} = [pad pad+cd-kwMid pad+cd]/clipLen;
         
-        % speech implants
+        % speech implants ---
+        % Keyword alignment
         starts = 1 + floor(rand(1, alignedSpeechPerKw)*(length(speech)-clipLen));
         x = kw;
         out = x(pad:pad+cd,:);
@@ -132,8 +142,10 @@ for j = 1:length(fileNames)
             x = applyRandomShift(x, Fs);
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
             mix = applyRandomIR(x + noise, irDir, irFiles);
-            data.(fileField).speechClip{end+1} = mix;
+            data.(fileField).speechAlignedClip{end+1} = mix;
+            data.(annoField).speechAlignedClip{end+1} = [pad pad+kwMid pad+cd]/clipLen;
         end
+        % Random alignment 
         starts = 1 + floor(rand(1, randomSpeechPerKw)*(length(speech)-clipLen));
         for n = 1:randomSpeechPerKw
             if starts(n) < 1
@@ -143,13 +155,11 @@ for j = 1:length(fileNames)
             x = applyRandomShift(x, Fs);
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
             mix = applyRandomIR(x + noise, irDir, irFiles);
-            data.(fileField).speechClip{end+1} = mix;
+            data.(fileField).speechRandomClip{end+1} = mix;
+            data.(annoField).speechRandomClip{end+1} = [1 clipLen]/clipLen;
         end
         
-        % partials --- 
-        kwMidIn = midPt(idx);
-        kwMid = round(kwMidIn * Fs/FsIn);
-        
+        % Partials --- 
         % partial implant early
         x = kw;
         impInd = pad:pad+kwMid;
@@ -163,6 +173,7 @@ for j = 1:length(fileNames)
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
             mix = applyRandomIR(x + noise, irDir, irFiles);
             data.(fileField).earlyImplantClip{end+1} = mix;
+            data.(annoField).earlyImplantClip{end+1} = [pad pad+kwMid pad+cd]/clipLen;
         end
         % partial late - missing early part
         x = kw;
@@ -174,6 +185,7 @@ for j = 1:length(fileNames)
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
             mix = applyRandomIR(x + noise, irDir, irFiles);
             data.(fileField).partialLateClip{end+1} = mix;
+            data.(annoField).partialLateClip{end+1} = [pad pad+kwMid pad+cd]/clipLen;
         end
         % partial implant late
         x = kw;
@@ -188,6 +200,7 @@ for j = 1:length(fileNames)
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
             mix = applyRandomIR(x + noise, irDir, irFiles);
             data.(fileField).lateImplantClip{end+1} = mix;
+            data.(annoField).lateImplantClip{end+1} = [pad pad+kwMid pad+cd]/clipLen;
         end
         % partial early -  missing late part
         x = kw;
@@ -199,6 +212,7 @@ for j = 1:length(fileNames)
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
             mix = applyRandomIR(x + noise, irDir, irFiles);
             data.(fileField).partialEarlyClip{end+1} = mix;
+            data.(annoField).partialEarlyClip{end+1} = [pad pad+kwMid pad+cd]/clipLen;
         end
         % Partials shifted to boundaries --
         % The end
@@ -217,6 +231,7 @@ for j = 1:length(fileNames)
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
             mix = applyRandomIR(kwSh + noise, irDir, irFiles);
             data.(fileField).shiftLateClip{end+1} = mix;
+            data.(annoField).shiftLateClip{end+1} = [clipLen-kwMid clipLen]/clipLen;
         end
         % The beginning
         if csIn+kwMidIn+clipLenIn <= auInfo.TotalSamples
@@ -234,6 +249,7 @@ for j = 1:length(fileNames)
             noise = getRandomNoise(noiseDir, noiseFiles, noiseScales, clipLen, nCh);
             mix = applyRandomIR(kwSh + noise, irDir, irFiles);
             data.(fileField).shiftEarlyClip{end+1} = mix;
+            data.(annoField).shiftEarlyClip{end+1} = [1 cd-kwMid]/clipLen;
         end
             
     end
@@ -250,6 +266,7 @@ for j = 1:length(fileNames)
         x = applyRandomShift(x, Fs);
         mix = applyRandomIR(x + noise, irDir, irFiles);
         data.(fileField).backClip{end+1} = mix;
+        data.(annoField).backClip{end+1} = [1 clipLen]/clipLen;
     end
     
     disp(['Saving ' fileField '...'])
