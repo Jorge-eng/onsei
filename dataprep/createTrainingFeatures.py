@@ -65,11 +65,16 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000
     posMatchers, negMatchers = get_conditions()
     maxLab = np.max(labels_pos)
     nFr100 = np.int(np.ceil(0.1*np.float(Fs)/frameSamples))
+    nFr75 = np.int(0.075*np.float(Fs)/frameSamples)
 
     # Positive
     labelsPosDistributed = np.zeros((len(labels_pos),nFr))
     for idx, fn in enumerate(fn_pos):
-        anno = np.loadtxt(fn, delimiter=',')
+        try:
+            anno = np.loadtxt(fn, delimiter=',')
+        except:
+            print('Could not find '+fn)
+            pass
         condition = [x for x in posMatchers if x in fn]        
         labVec = np.tile(np.nan,(nFr,))
         if condition[0] is 'kwClip':
@@ -77,14 +82,18 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
-            labVec[[frMid-nFr100,frMid]] = labels_pos[idx]+maxLab
+            labVec[[frMid-nFr75,frMid]] = labels_pos[idx]+maxLab
             labVec[frEnd-nFr100:frEnd] = labels_pos[idx]
         labelsPosDistributed[idx,:] = labVec        
         
     # Negative 
     labelsNegDistributed = np.zeros((len(labels_neg),nFr))
     for idx, fn in enumerate(fn_neg):
-        anno = np.loadtxt(fn, delimiter=',')
+        try:
+            anno = np.loadtxt(fn, delimiter=',')
+        except:
+            print('Could not find '+fn)
+            pass
         condition = [x for x in negMatchers if x in fn]        
         labVec = np.tile(np.nan,(nFr,))
         if condition[0] is 'kwRevClip':
@@ -92,14 +101,14 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
-            labVec[[frMid-nFr100,frMid]] = 0
+            labVec[[frMid-nFr75,frMid]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'speechAlignedClip':
             frStart = np.int(np.floor(anno[0]*nFr)) 
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
-            labVec[[frMid-nFr100,frMid]] = 0
+            labVec[[frMid-nFr75,frMid]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'speechRandomClip':
             randIdx = np.random.permutation(nFr)[:3]
@@ -112,7 +121,7 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
-            labVec[[frMid-nFr100,frMid]] = 0
+            labVec[[frMid-nFr75,frMid]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'lateImplantClip':
             frStart = np.int(np.floor(anno[0]*nFr)) 
@@ -127,7 +136,7 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000
         elif condition[0] is 'partialLateClip':
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
-            labVec[[frMid-nFr100,frMid]] = 0
+            labVec[[frMid-nFr75,frMid]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'shiftEarlyClip':
             randIdx = np.random.permutation(nFr)[:2]
@@ -162,8 +171,8 @@ if __name__ == '__main__':
     labels_pos = labels_pos + 1 # labels 1, 2, ...
     labels_neg = labels_neg * 0 # labels all 0
     if timeDistributed is True:
-        fn_pos = [str.replace(x,'.wav','.csv') for x in fn_pos]
-        fn_neg = [str.replace(x,'.wav','.csv') for x in fn_neg]
+        fn_pos = [str.split(x,'.wav')[0]+'.csv' for x in fn_pos]
+        fn_neg = [str.split(x,'.wav')[0]+'.csv' for x in fn_neg]
         labels_pos, labels_neg = time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, features_pos.shape[1])
 
     savemat(outName,
