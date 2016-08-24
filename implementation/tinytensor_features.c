@@ -26,6 +26,7 @@
 
 #define MOVING_AVG_COEFF (0.99f)
 #define MOVING_AVG_COEFF2 (0.99f)
+#define MOVING_AVG_COEFF3 (0.998f)
 
 #define SCALE_TO_8_BITS (7)
 
@@ -35,11 +36,11 @@
 #define SPEECH_ENERGY_HISTORY_SIZE (1 << SPEECH_ENERGY_HISTORY_SIZE_2N)
 #define SPEECH_ENERGY_HISTORY_MASK (SPEECH_ENERGY_HISTORY_SIZE - 1)
 
-#define ONE_OVER_VARIANCE_Q20 (2000)
+#define ONE_OVER_VARIANCE_Q20 (10000)
 #define LOG_LIKELIHOOD_OF_BACKGROUND_Q20 (-6)
-#define LOG_LIK_MAX (400)
+#define LOG_LIK_MAX (500)
 #define LOG_LIK_MIN (-21)
-#define START_SPEECH_THRESHOLD (100)
+#define START_SPEECH_THRESHOLD (20)
 #define STOP_SPEECH_THRESHOLD (-20)
 
 //hanning window
@@ -62,6 +63,7 @@ typedef struct {
     tinytensor_speech_detector_callback_t speech_detector_callback;
     uint8_t passed_first;
     int16_t max_mel_lpf;
+
     
     int16_t bins[3][160];
     uint32_t binidx;
@@ -77,6 +79,7 @@ typedef struct {
     int16_t last_speech_energy_average;
     int16_t last_speech_energy_diff;
     
+    int16_t log_energy_frac_lpf;
     int32_t log_liklihood_of_speech;
     uint8_t is_speech;
 
@@ -201,12 +204,12 @@ void tinytensor_features_get_mel_bank(int16_t * melbank,const int16_t * fr, cons
 }
 
 //120 - 800Hz
-#define SPEECH_BIN_START (3)
+#define SPEECH_BIN_START (4)
 #define SPEECH_BIN_END (20)
 #define ENERGY_END (FFT_SIZE/2)
 static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
     uint32_t i;
-    int32_t log_energy_frac;
+    int16_t log_energy_frac;
     uint64_t speech_energy = 0;
     uint64_t total_energy = 0;
     int32_t diff;
@@ -230,8 +233,27 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
     
     
     //log (a/b) = log(a) - log(b)
-    log_energy_frac = FixedPointLog2Q10(speech_energy) - FixedPointLog2Q10(total_energy);
+    temp32 = FixedPointLog2Q10(speech_energy) - FixedPointLog2Q10(total_energy);
     
+    if (temp32 > INT16_MAX) {
+        log_energy_frac = INT16_MAX;
+    }
+    else if (temp32 < -INT16_MAX) {
+        log_energy_frac = -INT16_MAX;
+    }
+    else {
+        log_energy_frac = (int16_t)temp32;
+    }
+    
+    /*
+    _this.log_energy_frac_lpf = MUL16(_this.log_energy_frac_lpf,TOFIX(MOVING_AVG_COEFF3,QFIXEDPOINT_INT16));
+    _this.log_energy_frac_lpf += MUL16(log_energy_frac,TOFIX(1.0 - MOVING_AVG_COEFF3,QFIXEDPOINT_INT16));
+
+    printf("%d,%d\n",_this.log_energy_frac_lpf,log_energy_frac);
+
+    log_energy_frac -= _this.log_energy_frac_lpf; //subtract lowpass filtered value
+    */
+
     //moving average of log energy fraction
     idx = _this.speech_frame_counter & SPEECH_ENERGY_HISTORY_MASK;
     _this.speech_energy_accumulator -= _this.speech_energy_history[idx];
@@ -286,7 +308,6 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
     }
     
 
-    
     if (temp32 > START_SPEECH_THRESHOLD && !_this.is_speech) {
         _this.is_speech = 1;
         if (_this.speech_detector_callback) {
