@@ -26,9 +26,12 @@ def load_batch(filePath, var='mfc'):
 def load_labels(filePath, var='labels'):
     data = loadmat(filePath, variable_names=[var])
     if var in data:
-        labels = data[var][0]
+        labels = data[var]
     else:
         labels = []
+
+    if len(labels) == 1:
+        labels = labels[0]
 
     return labels
 
@@ -93,7 +96,25 @@ def apply_norm(fea, offset, scale):
 
     return fea
 
+def distributed_categorical(labels, numClasses):
+
+    numSamps, numSteps = labels.shape
+    labelsTimeDistributed = np.zeros((numSamps,numSteps,numClasses))
+
+    for samp in range(numSamps):
+        lab = labels[samp]
+        iValid = ~np.isnan(lab)
+        labelsTimeDistributed[samp,iValid,:] = np_utils.to_categorical(lab[iValid], numClasses)
+
+    return labelsTimeDistributed
+
 def time_distribute_label(labels, timeSteps, numClasses, labelWindows=None, nullLabel=0):
+
+    # Examples:
+    # labelWindows = ((None, range(0,157)),)
+    #labelWindows = labelWindows + ((0, range(56,57)),)
+    #labelWindows = labelWindows + ((1, range(156,157)),)
+    #labelWindows = labelWindows + ((2, range(116,117)),)
 
     if labelWindows is None:
         labelWindows = ((1,[timeSteps]),)
@@ -101,13 +122,16 @@ def time_distribute_label(labels, timeSteps, numClasses, labelWindows=None, null
     labelsTimeDistributed = np_utils.to_categorical(np.tile(nullLabel, (labels.shape[0],1)), numClasses)
     labelsTimeDistributed = np.tile(labelsTimeDistributed[:,None,:], (1,timeSteps,1))
 
-    labels = np_utils.to_categorical(labels, numClasses)
-    nullLabels = np_utils.to_categorical(nullLabel+0*labels, numClasses)
+    lab = np_utils.to_categorical(labels, numClasses)
+    nullLab = np_utils.to_categorical(nullLabel+0*labels, numClasses)
+    midLab = np_utils.to_categorical(2*labels, numClasses)
     for w in labelWindows:
         if w[0] is 0:
-            labelWindow = np.tile(nullLabels[:,None,:], (1,len(w[1]),1))
+            labelWindow = np.tile(nullLab[:,None,:], (1,len(w[1]),1))
+        elif w[0] is 2:
+            labelWindow = np.tile(midLab[:,None,:], (1,len(w[1]),1))
         else:
-            labelWindow = np.tile(labels[:,None,:], (1,len(w[1]),1))
+            labelWindow = np.tile(lab[:,None,:], (1,len(w[1]),1))
         if w[0] is None:
             labelWindow = labelWindow * 0
         labelsTimeDistributed[:,w[1],:] = labelWindow
@@ -156,18 +180,15 @@ def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTe
     feaTest = np.concatenate((feaTestPos, feaTestNeg), axis=0)
     labelTest = np.concatenate((labelTestPos, labelTestNeg), axis=0)
 
-    numClasses = len(np.unique(labelTrain))
+    numClasses = len(np.unique(labelTrain[~np.isnan(labelTrain)]))
 
     typeInfo = str.split(modelType,'_')
     if len(typeInfo) > 1 and typeInfo[1]=='dist':
-        #labelWindows = ((None, range(0,40)),(None, range(50,123)),(1, range(143,153)))
-        labelWindows = ((None, range(0,157)),)
-        for t in range(36,137,20):
-            labelWindows = labelWindows + ((0, range(t,t+1)),)
-        labelWindows = labelWindows + ((1, range(156,157)),)
+        if labelTrain.ndim is not 2:
+            raise ValueError('label ndim should be 2 for time distributed')
 
-        labelTrain = time_distribute_label(labelTrain, feaTrain.shape[2], numClasses, labelWindows=labelWindows)
-        labelTest = time_distribute_label(labelTest, feaTrain.shape[2], numClasses, labelWindows=labelWindows)
+        labelTrain = distributed_categorical(labelTrain, numClasses)
+        labelTest = distributed_categorical(labelTest, numClasses)
     else:
         labelTrain = np.reshape(labelTrain, (len(labelTrain), 1))
         labelTest = np.reshape(labelTest, (len(labelTest), 1))
@@ -186,7 +207,8 @@ def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTe
     else:
         offset = np.tile(np.float64(0),feaTrain.shape[1])
         if feaTrain.dtype.kind == 'i':
-            scale = np.float32(np.power(2, 8*feaTrain.itemsize-1))
+            #scale = np.float32(np.power(2, 8*feaTrain.itemsize-1))
+            scale = np.float32(np.power(2, 8-1))
         else:
             scale = np.float32(1)
 
