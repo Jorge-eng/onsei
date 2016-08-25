@@ -25,7 +25,7 @@ features = np.array([])
 for i in idMatch:
     for c in condMatch:
         m = '*'+c+'*'+i+'*'
-        fea, lab = load_features(dirName, [m])
+        fea, lab, fn = load_features(dirName, [m])
         if len(fea) == 0:
             continue
         identity.extend([i]*fea.shape[2])
