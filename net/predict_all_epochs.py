@@ -38,7 +38,6 @@ def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=10, offs
 
     prob = model.predict_proba(feaStream, batch_size=128, verbose=verbose)
 
-    pdb.set_trace()
     return prob, starts
 
 def fbank_stream(logM, winLen, winShift=10):
@@ -73,9 +72,9 @@ def get_model(modelTag):
 
 if __name__ == '__main__':
     # Usage:
-    # $ python predict_spec.py audio in.wav out model_name [epoch]
-    # $ python predict_spec.py features in.mat out model_name [epoch]
-    # $ python predict_spec.py tinyfeats in.bin out model_name [epoch]
+    # $ python predict_all_epochs.py audio in.wav out model_name 
+    # $ python predict_all_epochs.py features in.mat out model_name 
+    # $ python predict_all_epochs.py tinyfeats in.bin out model_name 
 
     inType = sys.argv[1]
     inFile = sys.argv[2]
@@ -108,6 +107,7 @@ if __name__ == '__main__':
         prob.append(p)
 
 
+    print('Saving '+outFile)
     prob = np.array(prob)
     savemat(outFile, {'prob': prob})
 
