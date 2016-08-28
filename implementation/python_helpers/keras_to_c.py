@@ -90,7 +90,12 @@ class Layer(object):
         return p
 
     def get_activation(self):
-        activation = self.layers[0]['activation']
+        zero_layer = self.layers[0]
+
+        if zero_layer.has_key('layer'):
+            zero_layer = zero_layer['layer']
+            
+        activation = zero_layer['activation']
         names = [layer['name'] for layer in self.layers]
         
         if 'Activation' in names:
@@ -255,7 +260,7 @@ class Lstm(Layer):
         return 12
 
 
-layer_map = {'Dense' : Dense, 'Convolution2D' : ConvLayer, 'LSTM' : Lstm}
+layer_map = {'TimeDistributed' : Dense, 'Dense' : Dense, 'Convolution2D' : ConvLayer, 'LSTM' : Lstm}
 
 def create_layer_objects(organized_layers):
     layer_counts = defaultdict(int)
