@@ -104,7 +104,7 @@ if __name__ == '__main__':
         print(wf)
         model.load_weights(wf)
         p = model.predict_proba(feaStream, batch_size=128, verbose=1)
-        prob.append(p)
+        prob.append(np.float32(p))
 
 
     print('Saving '+outFile)
