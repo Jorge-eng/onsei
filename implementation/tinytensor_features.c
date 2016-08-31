@@ -4,6 +4,8 @@
 #include "hellomath/fft.h"
 #include "hellomath/hellomath.h"
 
+#define ABS(x)  ((x) < 0 ? -(x) : (x) )
+
 #define USE_BACKGROUND_NORMALIZATION (1)
 #define BACKGROUND_NOISE_MAX_ATTENUATION (-2048)
 
@@ -32,9 +34,13 @@
 
 #define NOMINAL_TARGET (50)
 
-#define SPEECH_ENERGY_HISTORY_SIZE_2N (3)
+#define SPEECH_ENERGY_HISTORY_SIZE_2N (6)
 #define SPEECH_ENERGY_HISTORY_SIZE (1 << SPEECH_ENERGY_HISTORY_SIZE_2N)
 #define SPEECH_ENERGY_HISTORY_MASK (SPEECH_ENERGY_HISTORY_SIZE - 1)
+
+#define SPEECH_ENERGY_VARIANCE_HISTORY_SIZE_2N (2)
+#define SPEECH_ENERGY_VARIANCE_HISTORY_SIZE (1 << SPEECH_ENERGY_VARIANCE_HISTORY_SIZE_2N)
+#define SPEECH_ENERGY_VARIANCE_HISTORY_MASK (SPEECH_ENERGY_VARIANCE_HISTORY_SIZE - 1)
 
 #define LOG_LIK_MAX (20000)
 #define LOG_LIK_MIN (-400000)
@@ -75,10 +81,10 @@ typedef struct {
     int32_t speech_energy_accumulator;
     int16_t speech_energy_history[SPEECH_ENERGY_HISTORY_SIZE];
     
+    int64_t speech_energy_variance_accumulator;
+    int32_t speech_energy_variance_history[SPEECH_ENERGY_VARIANCE_HISTORY_SIZE];
+    
     uint32_t speech_detector_counter;
-    uint32_t num_speech_frames;
-    uint32_t num_nonspeech_frames;
-    int16_t last_speech_energy_average;
     
     int32_t log_liklihood_of_speech;
     uint8_t is_speech;
@@ -98,7 +104,6 @@ void tinytensor_features_initialize(void * results_context, tinytensor_audio_fea
     _this.results_callback = results_callback;
     _this.speech_detector_callback = speech_detector_callback;
     _this.results_context = results_context;
-    _this.num_nonspeech_frames = NUM_NONSPEECH_FRAMES_TO_TURN_OFF + 1;
 }
 
 void tinytensor_features_deinitialize(void) {
@@ -204,37 +209,14 @@ void tinytensor_features_get_mel_bank(int16_t * melbank,const int16_t * fr, cons
 
 }
 
-//120 - 800Hz
-#define SPEECH_BIN_START (4)
-#define SPEECH_BIN_END (20)
+#define SPEECH_BIN_START (6)
+#define SPEECH_BIN_END (16)
 #define ENERGY_END (FFT_SIZE/2)
 
-static int32_t eval_gaussian_log_likelihood(const int32_t invL[2][2],const int32_t mu[2], int16_t x[2]) {
-    
-    int32_t r[2];
-    int32_t tempvec[2];
-    int64_t temp64;
-    
-    r[0] = (x[0] - mu[0]);
-    r[1] = (x[1] - mu[1]);
-    
-    temp64 = invL[0][0] * r[0] +  invL[0][1] * r[1];
-    temp64 >>= 24;
-    tempvec[0] = (int32_t)temp64;
-    
-    temp64 = invL[1][0] * r[0] +  invL[1][1] * r[1];
-    temp64 >>= 24;
-    tempvec[1] = (int32_t)temp64;
-    
-    
-    temp64 = tempvec[0] * tempvec[0] + tempvec[1] * tempvec[1];
-    
-    return (int32_t) -temp64;
-    
-}
+
 static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
     uint32_t i;
-    int16_t log_energy_frac;
+    int16_t log_speech;
     uint64_t speech_energy = 0;
     uint64_t total_energy = 0;
     int32_t diff;
@@ -242,19 +224,6 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
     int16_t avg;
     int16_t x[2];
     int32_t temp32;
-
-    //noise, from random conversations
-    const int32_t invL1[2][2] = {{115360633,        0},{-5622036,  1405942}};
-    const int32_t mu1[2] = { 0, -3561};
-    
-    //speech, from voicebunny dataset
-    const int32_t invL2[2][2] = {{4107585,        0},{-2538479,   634746}};
-    const int32_t mu2[2] = { -18, -4556};
-    
-    //empirical, but really due to the 1/sqrt(det(P)) in the multivariate normal
-    const int32_t logbias = -2000;
-    
-    int32_t l1,l2,loglik;
     
     for (i = SPEECH_BIN_START; i < SPEECH_BIN_END; i++) {
         speech_energy += fr[i] * fr[i] + fi[i] * fi[i];
@@ -267,128 +236,42 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t scale) {
     }
     
     
-    //log (a/b) = log(a) - log(b)
     temp32 = FixedPointLog2Q10(speech_energy) - FixedPointLog2Q10(total_energy);
     
     if (temp32 > INT16_MAX) {
-        log_energy_frac = INT16_MAX;
+        log_speech = INT16_MAX;
     }
     else if (temp32 < -INT16_MAX) {
-        log_energy_frac = -INT16_MAX;
+        log_speech = -INT16_MAX;
     }
     else {
-        log_energy_frac = (int16_t)temp32;
+        log_speech = (int16_t)temp32;
     }
     
-    /*
-    _this.log_energy_frac_lpf = MUL16(_this.log_energy_frac_lpf,TOFIX(MOVING_AVG_COEFF3,QFIXEDPOINT_INT16));
-    _this.log_energy_frac_lpf += MUL16(log_energy_frac,TOFIX(1.0 - MOVING_AVG_COEFF3,QFIXEDPOINT_INT16));
-
-    printf("%d,%d\n",_this.log_energy_frac_lpf,log_energy_frac);
-
-    log_energy_frac -= _this.log_energy_frac_lpf; //subtract lowpass filtered value
-    */
-
+    
     //moving average of log energy fraction
     idx = _this.speech_detector_counter & SPEECH_ENERGY_HISTORY_MASK;
     _this.speech_energy_accumulator -= _this.speech_energy_history[idx];
-    _this.speech_energy_history[idx] = log_energy_frac;
-    _this.speech_energy_accumulator += log_energy_frac;
+    _this.speech_energy_history[idx] = log_speech;
+    _this.speech_energy_accumulator += log_speech;
     
     avg = _this.speech_energy_accumulator >> SPEECH_ENERGY_HISTORY_SIZE_2N;
     
-    //moving average of diff of average (so we can compute 2nd derivitaive)
-    diff = avg - _this.last_speech_energy_average;
+    //compute avgerage variance
+    diff = log_speech - avg;
+    temp32 = diff * diff;
     
-    _this.last_speech_energy_average = avg;
+    idx = _this.speech_detector_counter & SPEECH_ENERGY_VARIANCE_HISTORY_MASK;
+    _this.speech_energy_variance_accumulator -= _this.speech_energy_variance_history[idx];
+    _this.speech_energy_variance_history[idx] = temp32;
+    _this.speech_energy_variance_accumulator += temp32;
 
-    /*
-    _this.speech_energy_diff_accumulator -= _this.speech_energy_diff_history[idx];
-    _this.speech_energy_diff_history[idx] = diff;
-    _this.speech_energy_diff_accumulator += diff;
-    
-    diffavg = _this.speech_energy_diff_accumulator >> SPEECH_ENERGY_HISTORY_SIZE_2N;
-    */
+    temp32 = _this.speech_energy_variance_accumulator >> SPEECH_ENERGY_VARIANCE_HISTORY_SIZE_2N;
+    temp32 >>= 16;
     
     
-    x[0] = diff;
-    x[1] = log_energy_frac;
-    
-
-    
-    l1 = eval_gaussian_log_likelihood(invL1,mu1,x);
-    l2 = eval_gaussian_log_likelihood(invL2,mu2,x);
-    
-    //l1 is speech, so when loglik goes negative, it's speech
-    loglik = l2 - l1 + logbias;
-
-    //compensate for the fact that we really should be using mixture models
-    //if log_energy_frac gets really negative, it means there is no speech
-    //what we really should have is mixture models, with another cluster down at lower energies
-    temp32 = log_energy_frac - LOG_ENERGY_FRAC_MIN_THRESHOLD > 0 ? 0 : LOG_ENERGY_FRAC_MIN_THRESHOLD - log_energy_frac;
-    loglik += temp32;
-    
-    _this.log_liklihood_of_speech += loglik;
-    
-    if (_this.log_liklihood_of_speech < LOG_LIK_MIN) {
-        _this.log_liklihood_of_speech = LOG_LIK_MIN;
-    }
-    
-    if (_this.log_liklihood_of_speech > LOG_LIK_MAX) {
-        _this.log_liklihood_of_speech = LOG_LIK_MAX;
-    }
-    
-    
-    if (_this.log_liklihood_of_speech < START_SPEECH_THRESHOLD && !_this.is_speech) {
-        _this.is_speech = 1;
-    }
-    
-    if (_this.log_liklihood_of_speech > STOP_SPEECH_THRESHOLD && _this.is_speech) {
-        _this.is_speech = 0;
-    }
-    
-    if (_this.is_speech) {
-        _this.num_nonspeech_frames = 0;
-        _this.num_speech_frames++;
-    }
-    else {
-        _this.num_speech_frames = 0;
-        _this.num_nonspeech_frames++;
-    }
-    
-    if (_this.num_nonspeech_frames == NUM_NONSPEECH_FRAMES_TO_TURN_OFF) {
-        if (_this.speech_detector_callback) {
-            _this.speech_detector_callback(_this.results_context,stop_speech);
-        }
-       // printf("stop_speech\r\n\r\n");
-    }
-    
-    if (_this.num_speech_frames == NUM_SPEECH_FRAMES_TO_TURN_ON) {
-        if (_this.speech_detector_callback) {
-            _this.speech_detector_callback(_this.results_context,start_speech);
-        }
-      //  printf("start_speech\r\n");
-    }
-    
-    //keep counters from getting too high and then eventually rolling over
-    if (_this.num_nonspeech_frames > NUM_NONSPEECH_FRAMES_TO_TURN_OFF) {
-        _this.num_nonspeech_frames = NUM_NONSPEECH_FRAMES_TO_TURN_OFF + 1;
-    }
-    
-    if (_this.num_speech_frames > NUM_SPEECH_FRAMES_TO_TURN_ON) {
-        _this.num_speech_frames = NUM_SPEECH_FRAMES_TO_TURN_ON + 1;
-    }
-    
-    if (log_energy_frac != 0) {
-     //   printf("%d,%d\n",diff,log_energy_frac);
-    //    printf("%d\n",_this.log_liklihood_of_speech);
-    }
-    
-    
-    
-    
+    printf("%d,%d\r\n",log_speech,temp32);
 }
-
 
 
 static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_t * melbank, const int16_t * samples, const uint32_t num_samples) {
