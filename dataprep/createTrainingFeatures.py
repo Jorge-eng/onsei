@@ -60,12 +60,12 @@ def get_conditions(kws=None):
 
     return posMatchers, negMatchers
  
-def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000, frameSamples=240):
+def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, mid_stagger_s=0.075, Fs=16000, frameSamples=240):
     
     posMatchers, negMatchers = get_conditions()
     maxLab = np.max(labels_pos)
     nFr100 = np.int(np.ceil(0.1*np.float(Fs)/frameSamples))
-    nFr75 = np.int(0.075*np.float(Fs)/frameSamples)
+    nFrMid = np.int(mid_stagger_s*np.float(Fs)/frameSamples)
 
     # Positive
     labelsPosDistributed = np.zeros((len(labels_pos),nFr))
@@ -82,7 +82,7 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
-            labVec[[frMid-nFr75,frMid]] = labels_pos[idx]+maxLab
+            labVec[[frMid-nFrMid,frMid]] = labels_pos[idx]+maxLab
             labVec[frEnd-nFr100:frEnd] = labels_pos[idx]
         labelsPosDistributed[idx,:] = labVec        
         
@@ -101,14 +101,14 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
-            labVec[[frMid-nFr75,frMid]] = 0
+            labVec[[frMid-nFrMid,frMid]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'speechAlignedClip':
             frStart = np.int(np.floor(anno[0]*nFr)) 
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
-            labVec[[frMid-nFr75,frMid]] = 0
+            labVec[[frMid-nFrMid,frMid]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'speechRandomClip':
             randIdx = np.random.permutation(nFr)[:3]
@@ -121,7 +121,7 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
-            labVec[[frMid-nFr75,frMid]] = 0
+            labVec[[frMid-nFrMid,frMid]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'lateImplantClip':
             frStart = np.int(np.floor(anno[0]*nFr)) 
@@ -136,7 +136,7 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, Fs=16000
         elif condition[0] is 'partialLateClip':
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
-            labVec[[frMid-nFr75,frMid]] = 0
+            labVec[[frMid-nFrMid,frMid]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'shiftEarlyClip':
             randIdx = np.random.permutation(nFr)[:2]
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     if timeDistributed is True:
         fn_pos = [str.split(x,'.wav')[0]+'.csv' for x in fn_pos]
         fn_neg = [str.split(x,'.wav')[0]+'.csv' for x in fn_neg]
-        labels_pos, labels_neg = time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, features_pos.shape[1])
+        labels_pos, labels_neg = time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, features_pos.shape[1], mid_stagger_s=0.060)
 
     savemat(outName,
             {'features_pos': features_pos, 'labels_pos': labels_pos,
