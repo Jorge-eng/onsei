@@ -8,15 +8,10 @@
 #include "tinytensor_net.h"
 #include "tinytensor_tensor.h"
 
-//#include "unit-test/data/model_jun22_smaller_sigm.c"
-//#include "unit-test/data/model_may25_lstm_large.c"
-//#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny.c"
-//#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny2.c"
-//#include "unit-test/data/model_may25_lstm_small_okay_sense_alexa_tiny3.c"
-//#include "unit-test/data/model_may25_lstm_small_alexa_tiny_726.c"
-#include "unit-test/data/model_may25_lstm_small_okay_sense_tiny_727.c"
-//#include "unit-test/data/model_may25_lstm_small_okay_sense_alexa_tiny_727.c"
-//#include "unit-test/data/model_may25_lstm_small_alexa_tiny_727.c"
+
+//#include "model_aug15_lstm_small_dist_okay_sense_tiny_825.c"
+#include "model_aug15_lstm_small_dist_okay_sense_stop_snooze_tiny_830.c"
+
 
 using namespace std;
 

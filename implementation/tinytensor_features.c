@@ -32,15 +32,11 @@
 
 #define NOMINAL_TARGET (50)
 
-#define SPEECH_ENERGY_HISTORY_SIZE_2N (7)
-#define SPEECH_ENERGY_HISTORY_SIZE (1 << SPEECH_ENERGY_HISTORY_SIZE_2N)
-#define SPEECH_ENERGY_HISTORY_MASK (SPEECH_ENERGY_HISTORY_SIZE - 1)
 
 #define SPEECH_LPF_CEILING (-1000)
 #define START_SPEECH_THRESHOLD (4000)
 #define STOP_SPEECH_THRESHOLD (1000)
 
-#define LOG_ENERGY_FRAC_MIN_THRESHOLD (-10000)
 
 #define NUM_NONSPEECH_FRAMES_TO_TURN_OFF   (50)
 #define NUM_SPEECH_FRAMES_TO_TURN_ON       (2)
@@ -269,20 +265,21 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t input_scal
         }
         
         _this.is_speech = 0;
-       // printf("stop_speech\r\n\r\n");
+         //printf("stop_speech,idx=%d\r\n\r\n",_this.speech_detector_counter);
     }
     
     if (_this.num_speech_frames == NUM_SPEECH_FRAMES_TO_TURN_ON && !_this.is_speech) {
         if (_this.speech_detector_callback) {
             _this.speech_detector_callback(_this.results_context,start_speech);
         }
-       // printf("start_speech\r\n");
+        //printf("start_speech,idx=%d\r\n",_this.speech_detector_counter);
         
         _this.is_speech = 1;
     }
     
     
-  //  printf("%d\n",_this.log_speech_lpf);
+    //printf("%d\n",_this.log_speech_lpf);
+    //printf("%d\n",log_energy_frac);
 
     
 }
