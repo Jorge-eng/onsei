@@ -7,6 +7,7 @@
 #include "tinytensor_features.h"
 #include "tinytensor_net.h"
 #include "tinytensor_tensor.h"
+#include "tinytensor_math.h"
 
 #include <iostream>
 #include <sys/time.h>
@@ -17,8 +18,20 @@
 
 #if HAVE_NET
 
-#include "model_aug15_lstm_small_dist_okay_sense_tiny_825.c"
-
+//#include "model_aug15_lstm_small_dist_okay_sense_tiny_825.c"
+#if QFIXEDPOINT == 15
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q15.c"
+#elif QFIXEDPOINT == 12
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q12.c"
+#elif QFIXEDPOINT == 10
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q10.c"
+#elif QFIXEDPOINT == 9
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q9.c"
+#elif QFIXEDPOINT == 7
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q7.c"
+#else
+#error "unsupported fixed point format"
+#endif
 
 #endif
 
@@ -29,7 +42,7 @@
 #define FEAT_OFFSET (0)
 #define MIN_FEAT_COUNT (200)
 #define SAMPLE_RATE  (16000)
-#define DETECTION_THRESHOLD (80)
+#define DETECTION_THRESHOLD (TOFIX(0.5f))
 #define FRAMES_PER_BUFFER (160)
 #define NUM_SECONDS     (3600)
 #define NUM_CHANNELS    (1)
@@ -140,11 +153,10 @@ static void feats_callback(void * context, int16_t * feats) {
     counter++;
     
     Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAG_LSTM_DAMPING);
-#define THRESHOLD (50)
     bool is_printing = false;
     
     for (int i = 1; i < out->dims[3]; i++) {
-        if (out->x[i] > THRESHOLD) {
+        if (out->x[i] > DETECTION_THRESHOLD) {
             is_printing = true;
             break;
         }
@@ -158,7 +170,7 @@ static void feats_callback(void * context, int16_t * feats) {
         }
         
         for (int i = 0; i < out->dims[3]; i++) {
-            if (i!=0)printf(",");
+            if (i!=0)printf("\t");
             printf("%d",out->x[i]);
         }
         

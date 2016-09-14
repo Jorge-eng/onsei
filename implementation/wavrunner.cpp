@@ -13,19 +13,34 @@
 #include "tinytensor_tensor.h"
 #include "tinytensor_math.h"
 
-#include "model_def.c" // May be a symlink
+
+//#include "model_aug15_lstm_small_dist_okay_sense_tiny_825.c"
+#if QFIXEDPOINT == 15
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q15.c"
+#elif QFIXEDPOINT == 12
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q12.c"
+#elif QFIXEDPOINT == 10
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q10.c"
+#elif QFIXEDPOINT == 9
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q9.c"
+#elif QFIXEDPOINT == 7
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q7.c"
+#else
+#error "unsupported fixed point format"
+#endif
+
 
 using namespace std;
 
 
 #define BUF_SIZE (1<<10)
+
 #define OPTIONAL_PRINT_THRESHOLD (TOFIX(0.1))
 extern "C" {
     void results_callback(void * context, int8_t * melbins);
 }
 
 static bool _is_printing_only_if_activity = false;
-
 typedef struct  {
     int8_t buf[NUM_MEL_BINS][MEL_FEAT_BUF_TIME_LEN];
     uint32_t bufidx;
@@ -36,6 +51,7 @@ typedef struct  {
 void results_callback(void * context, int16_t * melbins) {
     static uint32_t counter = 0;
     CallbackContext * p = static_cast<CallbackContext *>(context);
+    
     static bool last_is_printing = false;
     
     Tensor_t temp_tensor;
@@ -61,31 +77,37 @@ void results_callback(void * context, int16_t * melbins) {
     }
     
     if (is_printing) {
-        
+    
         if (!last_is_printing) {
             last_is_printing = true;
-        }
-        
+    }
+    
+    
+    
         if (_is_printing_only_if_activity) {
             printf("%d,",counter);
-        }
-        
+    }
+    
         for (int i = 0; i < out->dims[3]; i++) {
             if (i!=0)printf(",");
             printf("%d",out->x[i]);
-        }
-        
-        printf("\n");
     }
+   
+     
+    
+        printf("\n");
+            }
+            
     else {
         if (last_is_printing) {
             last_is_printing = false;
         }
     }
-    
+        
     out->delete_me(out);
     counter++;
-
+    
+    
     
     
 }
@@ -105,7 +127,6 @@ int main(int argc, char * argv[]) {
     
     tinytensor_features_initialize(&context,results_callback,NULL);
     const std::string inFile = argv[1];
-   
     
     if (inFile == "white") {
         _is_printing_only_if_activity = true;
@@ -127,49 +148,49 @@ int main(int argc, char * argv[]) {
         }
     }
     else {
+    SndfileHandle file = SndfileHandle (inFile) ;
+   /*
+    printf ("Opened file '%s'\n", inFile.c_str()) ;
+    printf ("    Sample rate : %d\n", file.samplerate ()) ;
+    printf ("    Channels    : %d\n", file.channels ()) ;
+    printf ("    Frames      : %d\n", file.frames ()) ;
+    */
+    std::vector<int16_t> mono_samples;
+    mono_samples.reserve(file.frames());
+    int16_t buf[BUF_SIZE];
     
-        SndfileHandle file = SndfileHandle (inFile) ;
-        /*
-         printf ("Opened file '%s'\n", inFile.c_str()) ;
-         printf ("    Sample rate : %d\n", file.samplerate ()) ;
-         printf ("    Channels    : %d\n", file.channels ()) ;
-         printf ("    Frames      : %d\n", file.frames ()) ;
-         */
-        std::vector<int16_t> mono_samples;
-        mono_samples.reserve(file.frames());
-        int16_t buf[BUF_SIZE];
+    if (file.samplerate () != 16000) {
+        std::cout << "only accepts 16khz inputs" << std::endl;
+        return 0;
+    }
+    
+    while (true) {
+        int count = file.read(buf, BUF_SIZE);
         
-        if (file.samplerate () != 16000) {
-            std::cout << "only accepts 16khz inputs" << std::endl;
-            return 0;
+        if (count <= 0) {
+            break;
         }
-        
-        while (true) {
-            int count = file.read(buf, BUF_SIZE);
-            
-            if (count <= 0) {
-                break;
-            }
-            
-            for (int i = 0; i < BUF_SIZE/file.channels(); i ++) {
-                mono_samples.push_back(buf[file.channels() * i]);
-            }
-        }
-        
-        
-        for (int i = 0; i < mono_samples.size() - NUM_SAMPLES_TO_RUN_FFT; i++) {
-            if (i % NUM_SAMPLES_TO_RUN_FFT == 0) {
                 
-                int16_t tempbuf[NUM_SAMPLES_TO_RUN_FFT];
-                memset(tempbuf,0xFF,sizeof(tempbuf));
-                for (int t= 0; t < NUM_SAMPLES_TO_RUN_FFT; t++) {
-                    tempbuf[t] = (int) (1.0 * mono_samples[i + t]);
-                }
-                
-                tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
+        for (int i = 0; i < BUF_SIZE/file.channels(); i ++) {
+            mono_samples.push_back(buf[file.channels() * i]);
+        }
+    }
+    
+    
+    for (int i = 0; i < mono_samples.size() - NUM_SAMPLES_TO_RUN_FFT; i++) {
+        if (i % NUM_SAMPLES_TO_RUN_FFT == 0) {
+            
+            int16_t tempbuf[NUM_SAMPLES_TO_RUN_FFT];
+            memset(tempbuf,0xFF,sizeof(tempbuf));
+            for (int t= 0; t < NUM_SAMPLES_TO_RUN_FFT; t++) {
+                tempbuf[t] = (int) (1.0 * mono_samples[i + t]);
             }
             
+            tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
         }
+        
+    }
+    
     }
     tinytensor_features_deinitialize();
     tinytensor_free_states(&context.state, &context.net);

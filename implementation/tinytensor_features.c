@@ -3,20 +3,16 @@
 
 #include "hellomath/fft.h"
 #include "hellomath/hellomath.h"
+#include "tinytensor_math.h"
 
 #define USE_BACKGROUND_NORMALIZATION (1)
 #define BACKGROUND_NOISE_MAX_ATTENUATION (-2048)
-
-//this controls how much less to "descale" the FFT output (NOT USED CURRENTLY)
-#define FFT_DESCALE_FACTOR (0)
 
 #define FFT_SIZE_2N (9)
 #define FFT_SIZE (1 << FFT_SIZE_2N)
 
 //0.95 in Q15
 #define PREEMPHASIS (31129)
-
-#define QFIXEDPOINT_INT16 (15)
 
 #define MUL16(a,b)\
 ((int16_t)(((int32_t)(a * b)) >> QFIXEDPOINT_INT16))
@@ -242,8 +238,8 @@ static void get_speech_energy_ratio(int16_t * fr,int16_t * fi,int16_t input_scal
     
     
     //shitty high-pass filter
-    _this.log_speech_lpf = MUL16(_this.log_speech_lpf,TOFIX(MOVING_AVG_COEFF3,QFIXEDPOINT_INT16));
-    _this.log_speech_lpf += MUL16(log_energy_frac,TOFIX(1.0 - MOVING_AVG_COEFF3,QFIXEDPOINT_INT16));
+    _this.log_speech_lpf = MUL16(_this.log_speech_lpf,TOFIXQ(MOVING_AVG_COEFF3,QFIXEDPOINT_INT16));
+    _this.log_speech_lpf += MUL16(log_energy_frac,TOFIXQ(1.0 - MOVING_AVG_COEFF3,QFIXEDPOINT_INT16));
     
     if (_this.log_speech_lpf > SPEECH_LPF_CEILING) {
         _this.log_speech_lpf = SPEECH_LPF_CEILING;
@@ -378,8 +374,8 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
     //slow to fall, quick to rise
 
     //average it -- this is the slow to fall part
-    _this.max_mel_lpf = MUL16(_this.max_mel_lpf,TOFIX(MOVING_AVG_COEFF2,QFIXEDPOINT_INT16));
-    _this.max_mel_lpf += MUL16(temp16,TOFIX(1.0 - MOVING_AVG_COEFF2,QFIXEDPOINT_INT16));
+    _this.max_mel_lpf = MUL16(_this.max_mel_lpf,TOFIXQ(MOVING_AVG_COEFF2,QFIXEDPOINT_INT16));
+    _this.max_mel_lpf += MUL16(temp16,TOFIXQ(1.0 - MOVING_AVG_COEFF2,QFIXEDPOINT_INT16));
     
     //this is the quick to rise part
     if (_this.max_mel_lpf < temp16) {
@@ -397,8 +393,8 @@ static uint8_t add_samples_and_get_mel(int16_t * maxmel,int16_t * avgmel, int16_
 
     //compute moving avergage
     for (i = 0; i < NUM_MEL_BINS; i++) {
-        _this.melbank_avg[i] = MUL16(_this.melbank_avg[i],TOFIX(MOVING_AVG_COEFF,QFIXEDPOINT_INT16));
-        _this.melbank_avg[i] += MUL16(melbank[i],TOFIX(1.0 - MOVING_AVG_COEFF,QFIXEDPOINT_INT16));
+        _this.melbank_avg[i] = MUL16(_this.melbank_avg[i],TOFIXQ(MOVING_AVG_COEFF,QFIXEDPOINT_INT16));
+        _this.melbank_avg[i] += MUL16(melbank[i],TOFIXQ(1.0 - MOVING_AVG_COEFF,QFIXEDPOINT_INT16));
     }
     
     //get AVG
@@ -445,7 +441,8 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
     int32_t nominal_offset;
     int32_t offset;
     int32_t offset_adjustment;
-    
+    const int8_t shift = 7 - QFIXEDPOINT;
+
     uint32_t i;
     if (add_samples_and_get_mel(&maxmel,&avgmel,melbank,samples,num_samples)) {
 
@@ -479,7 +476,18 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
                 temp32 = -INT8_MAX;
             }
             
+            
             melbank8[i] = (int8_t)temp32;
+            
+            if (shift < 0) {
+                melbank8[i] <<= -shift;
+            }
+            else {
+                melbank8[i] >>= shift;
+            }
+             
+            
+
         }
         
         if (_this.results_callback) {

@@ -8,6 +8,7 @@ from keras.models import Sequential
 from collections import defaultdict
 from keras.optimizers import Adam
 
+
 QFIXEDPOINT = 7
 
 k_activation_func_map = {'relu' : 'tinytensor_relu',
@@ -349,8 +350,8 @@ def save_model_to_c_from_file(json_name,h5file_name=None):
     
     for weight_file in h5file_name:
         model_name = weight_file.split('.')[0]
-        model_name = model_name.replace('+','_')
-        print 'model_name %s' % model_name
+    model_name = model_name.replace('+','_')
+    print 'model_name %s' % model_name
 
         model.load_weights(weight_file)    
         save_model_to_c(model,model_name)
@@ -372,10 +373,10 @@ def get_model(json_name,h5file_name=None):
     model = model_from_json(config_json)
 
     if h5file_name is not None:
-        weights_filename = h5file_name
-        print 'loading weights from %s' % weights_filename
-        model.load_weights(weights_filename)
+    weights_filename = h5file_name
 
+    print 'loading weights from %s' % weights_filename
+    model.load_weights(weights_filename)
     return model
 
 def get_model_scaling(model,input_shape):

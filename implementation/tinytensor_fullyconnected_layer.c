@@ -79,7 +79,7 @@ static void eval_fullyconnected(const void * context,void * layer_state,Tensor_t
         
 
         temp32 = accumulator;
-        
+
         
         //compensate for weight scaling
         bias_scaling_diff =  layer->weights->scale + in->scale - layer->biases->scale;
