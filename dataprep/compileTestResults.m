@@ -1,4 +1,4 @@
-function [decMat, data] = compileTestResults(probFile, feaFile, th, ep, data)
+function [decMat, numMat, totMat, data] = compileTestResults(probFile, feaFile, th, ep, data)
 
 if ~exist('data','var') || isempty(data)
     load(probFile) % -> prob
@@ -6,14 +6,16 @@ if ~exist('data','var') || isempty(data)
 else
     prob = data;
 end
-%prob = prob(:,:,:,1:2);
+prob = prob(:,:,:,1:4);
 
 nd = ndims(prob);
 if nd == 4 || (nd == 3 && ~exist('ep','var'))
     if nd == 4
-        prob = squeeze(max(prob(:,:,end-20:end,:),[],3));
+        %prob = squeeze(max(prob(:,:,end-7:end,:),[],3));
+        prob = squeeze(mean(prob(:,:,end-7:end,:),3));
     elseif nd == 3
-        prob = squeeze(max(prob(:,end-20:end,:),[],2));
+        %prob = squeeze(max(prob(:,end-7:end,:),[],2));
+        prob = squeeze(mean(prob(:,:,end-7:end,:),3));
     end
 end
 if exist('ep','var')
@@ -30,8 +32,8 @@ nCond = length(condMatch);
 id = cellstr(identity);
 cond = cellstr(sampleType);
 
-decMat = zeros(nId, nCond);
-probMat = zeros(nId, nCond);
+decMat = zeros(nId, nCond, size(prob,2)-1);
+numMat = zeros(nId, nCond, size(prob,2)-1);
 
 for l = 1:size(prob, 2)-1
     p = prob(:,l+1);
@@ -47,8 +49,8 @@ for l = 1:size(prob, 2)-1
             posRate = sum(dec) / length(dec);
             
             decMat(j, k, l) = posRate;
-            probMat(j, k, l) = mean(p(ii));
-            
+            numMat(j, k, l) = sum(dec);
+            totMat(j, k, l) = length(dec);
         end
     end
 end
