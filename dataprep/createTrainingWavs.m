@@ -37,18 +37,38 @@ for f = 1:length(fileVars)
     
     for v = 1:length(vars)
         var = vars{v};
+        if ~isfield(audioData, var)
+            continue
+        end
+        
         disp(['Creating ' var])
         
         for s = 1:length(audioData.(var))
             %wav = resample(data.(var){n}{s},16,48);
             wav = audioData.(var){s};
             anno = annoData.(var){s};
-    
+             
             wav = 1.0 * wav; % Avoid clipping
             fileRoot = fullfile(outDir,[var '_' kw '_' fileTag '_' num2str(s)]);
             audiowrite([fileRoot '.wav'], wav, Fs)
-            csvwrite([fileRoot '.csv'], anno)
+            
+            annowrite([fileRoot '.csv'], anno)
         end
         
     end
+end
+
+function annowrite(fileName, anno)
+
+if iscell(anno)
+    temp = '';
+    for ev = 1:length(anno)
+        temp = [temp ',' anno{ev}{1} ',' num2str(anno{ev}{2}(1)) ',' num2str(anno{ev}{2}(2))];
+    end
+    anno = temp(2:end);
+    fid = fopen(fileName, 'w');
+    fprintf(fid, '%s', anno);
+    fclose(fid);
+elseif isnumeric(anno)
+    csvwrite(fileName, anno)
 end
