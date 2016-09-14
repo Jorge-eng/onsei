@@ -50,7 +50,7 @@ static void free_state(const void * context, void ** state) {
 
 static int16_t hard_sigmoid(int32_t x,int8_t in_scale) {
     
-    int32_t temp32 = x * 6554; //0.2 Q15 * x Q7 = 0.2x Q22
+    int32_t temp32 = x * 6554; //0.2 Q15 * x Qx = 0.2x Qx
     
     if (in_scale > 0) {
         temp32 >>= in_scale;
@@ -59,7 +59,7 @@ static int16_t hard_sigmoid(int32_t x,int8_t in_scale) {
         temp32 <<= -in_scale;
     }
     
-    temp32 += 2097152; //0.5 in Q22
+    temp32 += (1 << (QFIXEDPOINT + 14)); //0.5 in Qx
     temp32 += 16384;//round
     temp32 >>= 15; //back to Q7
     
@@ -68,6 +68,8 @@ static int16_t hard_sigmoid(int32_t x,int8_t in_scale) {
     
     return (int16_t) temp32;
 }
+
+
 
 static void lstm_time_step_forwards(int32_t * cell_state,
                                     Weight_t * output,
@@ -127,7 +129,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
             
             accumulator32 = accumulate(total_len,w,input_vec);
             
-            bias32 = *b << QFIXEDPOINT; //to Q14 + QB FROM Q7 + QB
+            bias32 = *b << QFIXEDPOINT; //to Q2x + QB FROM Qx + QB
             
             temp8 = b_scale - input_scale - w_scale;
             
@@ -147,7 +149,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
                 accumulator32 <<= -w_scale;
             }
             
-            //Q14 + QI ---> Q7 + QI
+            //Q2x + QI ---> Qx + QI
             accumulator32 += (1 << (QFIXEDPOINT - 1));
             accumulator32 >>= QFIXEDPOINT;
             pre_activations[igate] = accumulator32;
@@ -169,11 +171,11 @@ static void lstm_time_step_forwards(int32_t * cell_state,
 
         
         //apply forget gate to prev cell state
-        temp32 = activation_forget_gate * cell_state[icell]; //Q7 x Q14 ---> Q21
-        temp32 >>= QFIXEDPOINT; //Q14
+        temp32 = activation_forget_gate * cell_state[icell]; //Qx x Q2x ---> Q3x
+        temp32 >>= QFIXEDPOINT; //Q2x
         
         //and add gated cell input
-        temp32 += (int32_t)activation_input_gate * (int32_t)activation_cell; //Q7 * Q7 --->Q14
+        temp32 += (int32_t)activation_input_gate * (int32_t)activation_cell; //Qx * Qx --->Q2x
         
         cell_state[icell] = temp32; //save result
         
@@ -181,13 +183,13 @@ static void lstm_time_step_forwards(int32_t * cell_state,
         //output hidden state
         //take cell output "c", apply activation function to it
         
-        //To Q7
+        //To Qx from Q2x
         temp32 >>= QFIXEDPOINT;
         
         output_activation(&h,&tempscale,temp32,0);
         assert(tempscale == 0);
-        //Q7 x Q7  = Q14
-        temp32 = (int16_t)h * (int16_t)activation_output_gate;
+        //Qx x Qx  = Q2x
+        temp32 = h * activation_output_gate;
         
         temp32 >>= QFIXEDPOINT;
         

@@ -45,7 +45,7 @@ void results_callback(void * context, int16_t * melbins) {
     temp_tensor.delete_me = 0;
    
     
-    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAGS_NONE);
+    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAG_LSTM_DAMPING);
     
     for (int i = 0; i < out->dims[3]; i++) {
         if (i!=0)printf(",");
