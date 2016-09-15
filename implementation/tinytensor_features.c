@@ -8,9 +8,6 @@
 #define USE_BACKGROUND_NORMALIZATION (1)
 #define BACKGROUND_NOISE_MAX_ATTENUATION (-2048)
 
-//this controls how much less to "descale" the FFT output (NOT USED CURRENTLY)
-#define FFT_DESCALE_FACTOR (0)
-
 #define FFT_SIZE_2N (9)
 #define FFT_SIZE (1 << FFT_SIZE_2N)
 
@@ -441,7 +438,8 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
     int32_t nominal_offset;
     int32_t offset;
     int32_t offset_adjustment;
-    
+    const int8_t shift = 7 - QFIXEDPOINT;
+
     uint32_t i;
     if (add_samples_and_get_mel(&maxmel,&avgmel,melbank,samples,num_samples)) {
 
@@ -475,7 +473,18 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
                 temp32 = -INT8_MAX;
             }
             
+            
             melbank8[i] = (int8_t)temp32;
+            
+            if (shift < 0) {
+                melbank8[i] <<= -shift;
+            }
+            else {
+                melbank8[i] >>= shift;
+            }
+             
+            
+
         }
         
         if (_this.results_callback) {
