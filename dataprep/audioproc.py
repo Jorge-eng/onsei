@@ -30,7 +30,7 @@ def wav2fbank(wavFile, fs=16000, maxLen_s=None):
         wav = wavFile
 
     winlen = 0.025
-    winstep = 0.010
+    winstep = 0.015
     nfft = np.int(np.power(2, np.ceil(np.log2(winlen*fs))))
     winfunc = lambda x: np.hanning(x)
     nfilt = 40
