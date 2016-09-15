@@ -52,36 +52,27 @@ def get_conditions(kws=None):
 
     return posMatchers, negMatchers
  
-def time_distribute_labels(labels_pos, features_pos, labels_neg, nFr, Fs=16000, frameSamples=240):
+def interpret_dist_labels(fileNames, nFr):
+
+    labelsDistributed = np.zeros((len(fileNames),nFr))
+    for idx, fn in enumerate(fileNames):
+        try:
+            anno = np.loadtxt(fn, dtype=str, delimiter=',')
+        except:
+            print('Could not find '+fn)
+            pass
+        labVec = np.tile(np.nan,(nFr,))
+        
+        for k in range(0, len(anno), 3):
+            bounds = [np.int(np.float(x)*nFr) for x in anno[k+1:k+3]]
+            if anno[k] == 'back':
+                labVec[bounds[0]:bounds[1]+1] = 0
+            elif anno[k] == 'speech':
+                labVec[bounds[0]:bounds[1]+1] = 1
     
-    posMatchers, negMatchers = get_conditions()
-    maxLab = np.max(labels_pos)
-
-    # Positive
-    labelsPosDistributed = np.zeros((len(labels_pos),nFr))
-    for idx in range(features_pos.shape[2]):
-        labVec = np.tile(np.nan,(nFr,))
-        f = features_pos[:,:,idx] 
-        
-        fSum = f.sum(axis=0)
-        iMask = np.where(fSum > fSum.min() + 0.5*(fSum.max()-fSum.min()))[0]
-        iMask = iMask[np.random.permutation(len(iMask))[:np.minimum(5,len(iMask))]]
-        labVec[iMask] = 1
-        labelsPosDistributed[idx,:] = labVec        
-        
-    nPosLabels = int(labelsPosDistributed[~np.isnan(labelsPosDistributed)].sum())
-    nNegLabelsPer = int(nPosLabels / labels_neg.shape[0])
-
-    pdb.set_trace()
-    # Negative 
-    labelsNegDistributed = np.zeros((len(labels_neg),nFr))
-    for idx in range(labels_neg.shape[0]):
-        labVec = np.tile(np.nan,(nFr,))
-        randIdx = np.random.permutation(nFr)[:nNegLabelsPer]
-        labVec[randIdx] = 0
-        labelsNegDistributed[idx,:] = labVec        
-        
-    return labelsPosDistributed, labelsNegDistributed
+        labelsDistributed[idx,:] = labVec        
+ 
+    return labelsDistributed
 
 if __name__ == '__main__':
 
@@ -100,7 +91,10 @@ if __name__ == '__main__':
     labels_pos = labels_pos + 1 # labels 1, 2, ...
     labels_neg = labels_neg * 0 # labels all 0
     if timeDistributed is True:
-        labels_pos, labels_neg = time_distribute_labels(labels_pos, features_pos, labels_neg, features_pos.shape[1])
+        fn_pos = [str.split(x,'.wav')[0]+'.csv' for x in fn_pos]
+        fn_neg = [str.split(x,'.wav')[0]+'.csv' for x in fn_neg]
+        labels_pos = interpret_dist_labels(fn_pos, features_pos.shape[1])
+        labels_neg = interpret_dist_labels(fn_neg, features_neg.shape[1])
 
     savemat(outName,
             {'features_pos': features_pos, 'labels_pos': labels_pos,
