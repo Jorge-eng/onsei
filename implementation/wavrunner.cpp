@@ -9,7 +9,7 @@
 #include "tinytensor_tensor.h"
 
 
-#include "model_aug15_lstm_small_dist_okay_sense_tiny_825.c"
+#include "model_def.c" // May be a symlink
 
 using namespace std;
 
