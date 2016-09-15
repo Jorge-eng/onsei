@@ -50,7 +50,7 @@ static void free_state(const void * context, void ** state) {
 
 static int16_t hard_sigmoid(int32_t x,int8_t in_scale) {
     
-    int32_t temp32 = x * 6554; //0.2 Q15 * x Qx = 0.2x Qx
+    int32_t temp32 = x * 6554; //0.2 Q15 * x Qx = 0.2x Q(x + 15)
     
     if (in_scale > 0) {
         temp32 >>= in_scale;
