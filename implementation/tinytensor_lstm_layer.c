@@ -3,7 +3,7 @@
 #include "tinytensor_math.h"
 #include <assert.h>
 
-#define DAMPING_FACTOR (250)
+#define DAMPING_FACTOR (255)
 
 typedef enum {
     inputgate,
