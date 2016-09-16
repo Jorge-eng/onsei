@@ -89,6 +89,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
     uint32_t icell;
     int32_t accumulator32;
     int32_t temp32;
+    int64_t temp64;
     int8_t temp8;
     Weight_t h;
     int8_t tempscale;
@@ -112,16 +113,9 @@ static void lstm_time_step_forwards(int32_t * cell_state,
     
     
     for (icell = 0; icell < num_cells; icell++) {
-//        printf("cell=%d\n",icell);
-        
-        if (icell == 3) {
-            int foo = 3;
-            foo++;
-        }
 
         for (igate = 0; igate < NUM_GATES; igate++) {
 
-            accumulator32 = 0;
             const Weight_t * w = weight_row_starts[igate];
             const Weight_t * b = bias_row_starts[igate];
             const int8_t w_scale = weights_scale[igate];
@@ -171,21 +165,15 @@ static void lstm_time_step_forwards(int32_t * cell_state,
 
         
         //apply forget gate to prev cell state
-        temp32 = activation_forget_gate * cell_state[icell]; //Qx x Q2x ---> Q3x
-        temp32 >>= QFIXEDPOINT; //Q2x
+        temp64 = activation_forget_gate * cell_state[icell]; //Qx x Qx ---> Q2x
         
         //and add gated cell input
-        temp32 += (int32_t)activation_input_gate * (int32_t)activation_cell; //Qx * Qx --->Q2x
+        temp64 += (int32_t)activation_input_gate * (int32_t)activation_cell; //Qx * Qx --->Q2x
+        temp32 = temp64 >> QFIXEDPOINT; //Q2x --> Qx
         
         cell_state[icell] = temp32; //save result
         
-        ///////////////////
-        //output hidden state
-        //take cell output "c", apply activation function to it
-        
-        //To Qx from Q2x
-        temp32 >>= QFIXEDPOINT;
-        
+        //output hidden state, take cell output "c", apply activation function to it
         output_activation(&h,&tempscale,temp32,0);
         assert(tempscale == 0);
         //Qx x Qx  = Q2x
@@ -204,11 +192,8 @@ static void lstm_time_step_forwards(int32_t * cell_state,
         
         output[icell] = (Weight_t)temp32;
         
-    
     }
 
-
-   
 }
 
 

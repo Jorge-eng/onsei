@@ -7,11 +7,22 @@
 #include "tinytensor_features.h"
 #include "tinytensor_net.h"
 #include "tinytensor_tensor.h"
-
+#include "tinytensor_math.h"
 
 //#include "model_aug15_lstm_small_dist_okay_sense_tiny_825.c"
-#include "model_aug15_lstm_small_dist_okay_sense_stop_snooze_tiny_830.c"
-
+#if QFIXEDPOINT == 15
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q15.c"
+#elif QFIXEDPOINT == 12
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q12.c"
+#elif QFIXEDPOINT == 10
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q10.c"
+#elif QFIXEDPOINT == 9
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q9.c"
+#elif QFIXEDPOINT == 7
+#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q7.c"
+#else
+#error "unsupported fixed point format"
+#endif
 
 using namespace std;
 

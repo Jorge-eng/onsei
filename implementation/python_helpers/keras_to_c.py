@@ -8,7 +8,8 @@ from collections import defaultdict
 from keras.optimizers import Adam
 
 
-QFIXEDPOINT = 7
+QFIXEDPOINT = 12
+QVAL = float(2 ** QFIXEDPOINT)
 
 k_activation_func_map = {'relu' : 'tinytensor_relu',
                          'sigmoid' : 'tinytensor_sigmoid',
@@ -31,7 +32,7 @@ def write_fixed_point_tensor(name,weights,f):
 
     scale = 0
     if the_max > 0:
-        scale = -int(np.ceil(np.log2(the_max + 1.0/128.0)))
+        scale = -int(np.ceil(np.log2(the_max + 1.0/QVAL)))
 
     if scale < -8:
         scale = -8

@@ -43,7 +43,7 @@ void tinytensor_descale(Weight_t * y, int8_t * out_scale, int32_t x, int8_t in_s
 void tinytensor_tanh(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale) {
     const static uint32_t k_max_len = sizeof(k_tanh_yvals) / sizeof(k_tanh_yvals[0]);
     const uint8_t sign = x < 0;
-    Weight_t yy;
+    int32_t yy;
     const int8_t shift = 15 - QFIXEDPOINT;
     *out_scale = 0;
     int32_t i;
@@ -118,11 +118,11 @@ void tinytensor_sigmoid(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_sc
 
 void tinytensor_vec_softmax_in_place(Weight_t * xvec, uint32_t len, int8_t in_scale) {
     uint32_t i;
-    int32_t temp32;
+    int64_t temp64;
     int32_t val;
-    int32_t expval;
+    int64_t expval;
     const int8_t shift = 10 - QFIXEDPOINT;
-    temp32 = 0;
+    temp64 = 0;
     for (i = 0; i < len; i++) {
         val = xvec[i];
         
@@ -152,7 +152,7 @@ void tinytensor_vec_softmax_in_place(Weight_t * xvec, uint32_t len, int8_t in_sc
             expval <<= -shift;
         }
         
-        temp32 += expval;
+        temp64 += expval;
     }
     
     for (i = 0; i < len; i++) {
@@ -186,7 +186,7 @@ void tinytensor_vec_softmax_in_place(Weight_t * xvec, uint32_t len, int8_t in_sc
         }
 
         
-        val = (expval << QFIXEDPOINT) / temp32;
+        val = (expval << QFIXEDPOINT) / temp64;
     
     
         if (val > MAX_WEIGHT) {
