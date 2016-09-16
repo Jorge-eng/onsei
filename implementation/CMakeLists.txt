@@ -67,4 +67,5 @@ add_executable(wavrunner
 wavrunner.cpp)
 
 target_link_libraries(wavrunner tensor hellomath ${SNDFILE_LIBRARIES})
+target_compile_features(wavrunner PRIVATE cxx_range_for)
 
