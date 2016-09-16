@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define QFIXEDPOINT (7)
+#define QFIXEDPOINT (12)
 #define QFIXEDPOINT_INT16 (15)
     
 #define TOFIX(x)\

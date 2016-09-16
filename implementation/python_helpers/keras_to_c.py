@@ -9,7 +9,7 @@ from collections import defaultdict
 from keras.optimizers import Adam
 
 
-QFIXEDPOINT = 7
+QFIXEDPOINT = 12
 
 k_activation_func_map = {'relu' : 'tinytensor_relu',
                          'sigmoid' : 'tinytensor_sigmoid',
