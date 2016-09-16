@@ -4,10 +4,14 @@
 #include <sstream>
 #include <sndfile.hh>
 #include <vector>
+#include <random>
+#include <algorithm>
+#include <iterator>
+#include <functional>
 #include "tinytensor_features.h"
 #include "tinytensor_net.h"
 #include "tinytensor_tensor.h"
-
+#include "tinytensor_math.h"
 
 #include "model_def.c" // May be a symlink
 
@@ -15,10 +19,12 @@ using namespace std;
 
 
 #define BUF_SIZE (1<<10)
-
+#define OPTIONAL_PRINT_THRESHOLD (TOFIX(0.1))
 extern "C" {
     void results_callback(void * context, int8_t * melbins);
 }
+
+static bool _is_printing_only_if_activity = false;
 
 typedef struct  {
     int8_t buf[NUM_MEL_BINS][MEL_FEAT_BUF_TIME_LEN];
@@ -30,7 +36,7 @@ typedef struct  {
 void results_callback(void * context, int16_t * melbins) {
     static uint32_t counter = 0;
     CallbackContext * p = static_cast<CallbackContext *>(context);
-    
+    static bool last_is_printing = false;
     
     Tensor_t temp_tensor;
     temp_tensor.dims[0] = 1;
@@ -45,82 +51,41 @@ void results_callback(void * context, int16_t * melbins) {
     
     Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAGS_NONE);
     
-    for (int i = 0; i < out->dims[3]; i++) {
-        if (i!=0)printf(",");
-        printf("%d",out->x[i]);
+    bool is_printing = !_is_printing_only_if_activity;
+    
+    for (int i = 1; i < out->dims[3]; i++) {
+        if (out->x[i] > OPTIONAL_PRINT_THRESHOLD) {
+            is_printing = true;
+            break;
+        }
     }
     
-    printf("\n");
+    if (is_printing) {
+        
+        if (!last_is_printing) {
+            last_is_printing = true;
+        }
+        
+        if (_is_printing_only_if_activity) {
+            printf("%d,",counter);
+        }
+        
+        for (int i = 0; i < out->dims[3]; i++) {
+            if (i!=0)printf(",");
+            printf("%d",out->x[i]);
+        }
+        
+        printf("\n");
+    }
+    else {
+        if (last_is_printing) {
+            last_is_printing = false;
+        }
+    }
     
     out->delete_me(out);
-    
+    counter++;
 
-    
-    return;
-    
-    //////////////////////////
-    for (uint32_t i = 0; i < NUM_MEL_BINS; i++) {
-        int32_t temp32 = melbins[i] + 0;
-        if (temp32 > MAX_WEIGHT) {
-            temp32 = MAX_WEIGHT;
-        }
-        p->buf[i][p->bufidx] = (Weight_t)temp32;
-    }
-    
-    
-    if (++(p->bufidx) >= MEL_FEAT_BUF_TIME_LEN) {
-        p->bufidx = 0;
-    }
-    
-    
-    
-    if (counter % 10) {
-        return;
-    }
-    
-    if (++counter < MEL_FEAT_BUF_TIME_LEN) {
-        return;
-    }
-   
-     
-    
-    const uint32_t dims[4] = {1,1,NUM_MEL_BINS,MEL_FEAT_BUF_TIME_LEN};
-    
-    Tensor_t * tensor_in = tinytensor_create_new_tensor(dims);
-    
-    Weight_t * px = tensor_in->x;
-    for (uint32_t i = 0; i < NUM_MEL_BINS; i++ ) {
-        uint32_t bufidx = p->bufidx;
-
-        for (uint32_t t = 0; t < MEL_FEAT_BUF_TIME_LEN; t++) {
-            *px = p->buf[i][bufidx];
-            
-            if (++bufidx >= MEL_FEAT_BUF_TIME_LEN) {
-                bufidx = 0;
-            }
-            
-            px++;
-        }
-    }
-        
-    
-    
-    /*
-     Tensor_t * transposed = tinytensor_create_new_transposed_tensor(tensor_in);
-     
-     if (tensor_in) {
-        tensor_in->delete_me(tensor_in);
-     }
-     */
-
-    Tensor_t * tensor_out = tinytensor_eval_net(&(p->net),tensor_in,NET_FLAG_LSTM_DAMPING);
-    
-    std::cout << (int32_t)tensor_out->x[0] << "," << (int32_t)tensor_out->x[1] << std::endl;
-    
-  
-    if (tensor_out) {
-        tensor_out->delete_me(tensor_out);
-    }
     
     
 }
@@ -140,50 +105,72 @@ int main(int argc, char * argv[]) {
     
     tinytensor_features_initialize(&context,results_callback,NULL);
     const std::string inFile = argv[1];
+   
     
-    SndfileHandle file = SndfileHandle (inFile) ;
-   /*
-    printf ("Opened file '%s'\n", inFile.c_str()) ;
-    printf ("    Sample rate : %d\n", file.samplerate ()) ;
-    printf ("    Channels    : %d\n", file.channels ()) ;
-    printf ("    Frames      : %d\n", file.frames ()) ;
-    */
-    std::vector<int16_t> mono_samples;
-    mono_samples.reserve(file.frames());
-    int16_t buf[BUF_SIZE];
-    
-    if (file.samplerate () != 16000) {
-        std::cout << "only accepts 16khz inputs" << std::endl;
-        return 0;
-    }
-    
-    while (true) {
-        int count = file.read(buf, BUF_SIZE);
+    if (inFile == "white") {
+        _is_printing_only_if_activity = true;
+        // First create an instance of an engine.
+#define MAGNITUDE (100)
+#define LEN (NUM_SAMPLES_TO_RUN_FFT)
+        random_device rnd_device;
+        // Specify the engine and distribution.
+        mt19937 mersenne_engine(rnd_device());
+        uniform_int_distribution<int16_t> dist(-MAGNITUDE, MAGNITUDE);
         
-        if (count <= 0) {
-            break;
-        }
-                
-        for (int i = 0; i < BUF_SIZE/file.channels(); i ++) {
-            mono_samples.push_back(buf[file.channels() * i]);
+        auto gen = std::bind(dist, mersenne_engine);
+        
+        for (int i = 0; i < 66 * 3600 * 10; i++) {
+            vector<int16_t> vec(NUM_SAMPLES_TO_RUN_FFT);
+            generate(begin(vec), end(vec), gen);
+            
+            tinytensor_features_add_samples(vec.data(), NUM_SAMPLES_TO_RUN_FFT);
         }
     }
+    else {
     
-    
-    for (int i = 0; i < mono_samples.size() - NUM_SAMPLES_TO_RUN_FFT; i++) {
-        if (i % NUM_SAMPLES_TO_RUN_FFT == 0) {
+        SndfileHandle file = SndfileHandle (inFile) ;
+        /*
+         printf ("Opened file '%s'\n", inFile.c_str()) ;
+         printf ("    Sample rate : %d\n", file.samplerate ()) ;
+         printf ("    Channels    : %d\n", file.channels ()) ;
+         printf ("    Frames      : %d\n", file.frames ()) ;
+         */
+        std::vector<int16_t> mono_samples;
+        mono_samples.reserve(file.frames());
+        int16_t buf[BUF_SIZE];
+        
+        if (file.samplerate () != 16000) {
+            std::cout << "only accepts 16khz inputs" << std::endl;
+            return 0;
+        }
+        
+        while (true) {
+            int count = file.read(buf, BUF_SIZE);
             
-            int16_t tempbuf[NUM_SAMPLES_TO_RUN_FFT];
-            memset(tempbuf,0xFF,sizeof(tempbuf));
-            for (int t= 0; t < NUM_SAMPLES_TO_RUN_FFT; t++) {
-                tempbuf[t] = (int) (1.0 * mono_samples[i + t]);
+            if (count <= 0) {
+                break;
             }
             
-            tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
+            for (int i = 0; i < BUF_SIZE/file.channels(); i ++) {
+                mono_samples.push_back(buf[file.channels() * i]);
+            }
         }
         
+        
+        for (int i = 0; i < mono_samples.size() - NUM_SAMPLES_TO_RUN_FFT; i++) {
+            if (i % NUM_SAMPLES_TO_RUN_FFT == 0) {
+                
+                int16_t tempbuf[NUM_SAMPLES_TO_RUN_FFT];
+                memset(tempbuf,0xFF,sizeof(tempbuf));
+                for (int t= 0; t < NUM_SAMPLES_TO_RUN_FFT; t++) {
+                    tempbuf[t] = (int) (1.0 * mono_samples[i + t]);
+                }
+                
+                tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
+            }
+            
+        }
     }
-    
     tinytensor_features_deinitialize();
     tinytensor_free_states(&context.state, &context.net);
     
