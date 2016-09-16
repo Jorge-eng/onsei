@@ -15,6 +15,9 @@
 
 
 //#include "model_aug15_lstm_small_dist_okay_sense_tiny_825.c"
+
+#if 0
+
 #if QFIXEDPOINT == 15
 #include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q15.c"
 #elif QFIXEDPOINT == 12
@@ -28,6 +31,11 @@
 #else
 #error "unsupported fixed point format"
 #endif
+
+#else
+#include "model_defs.c"
+#endif
+
 
 
 using namespace std;
