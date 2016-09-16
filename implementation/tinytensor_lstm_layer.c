@@ -260,7 +260,7 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
     
 
     
-    const int16_t dropout_weight = (1 << QFIXEDPOINT) - lstm_layer->incoming_dropout;
+    const int16_t dropout_weight = (1 << QFIXEDPOINT);// - lstm_layer->incoming_dropout;
     
     const uint32_t time_length = is_stateful ? 1 : in->dims[2];
     const uint32_t num_inputs = in->dims[3];
@@ -281,14 +281,6 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
     for (t = 0; t < time_length; t++) {
 
         MEMCPY(input,in_row,num_inputs*sizeof(Weight_t));
-        
-        //apply dropout
-        for (i = 0; i < num_inputs; i++) {
-            temp32 = dropout_weight * input[i];
-            temp32 >>= QFIXEDPOINT;
-            input[i] = (Weight_t)temp32;
-        }
-        
         MEMCPY(input + num_inputs,prev_hidden,num_hidden_units*sizeof(Weight_t));
         
         lstm_time_step_forwards(cell_state,
