@@ -33,7 +33,7 @@
 #endif
 
 #else
-#include "model_defs.c"
+#include "model_def.c"
 #endif
 
 
