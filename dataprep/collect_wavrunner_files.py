@@ -1,21 +1,21 @@
 import sys, os, glob
-from scipy.io import loadmat, savemat
+from scipy.io import savemat
 import numpy as np
 import pdb
 
 """
-python collect_wavrunner_epochs.py inDir outFile
+python collect_wavrunner_files.py inDir outFile 
 """
 
 inDir = sys.argv[1]
-outFile = sys.argv[2]+'.mat'
+outFile = os.path.join(inDir,sys.argv[2]+'.mat')
 
-allFiles = glob.glob(os.path.join(inDir,'*.mat'))
+allFiles = glob.glob(os.path.join(inDir,'*.csv'))
 allFiles.sort()
 
 prob = []
 for fn in allFiles:
-    data = loadmat(fn)['prob']
+    data = np.genfromtxt(fn, delimiter=',')
     prob.append(data)
 
 #prob = np.rollaxis(np.array(prob), 0, 3)
