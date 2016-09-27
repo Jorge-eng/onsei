@@ -73,6 +73,23 @@ def model_aug15_lstm_vad_dist(inputShape, numClasses):
 
     return model, optimizer, loss
 
+def model_aug30_lstm_med_dist(inputShape, numClasses):
+
+    optimizer = 'rmsprop'
+    #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
+    loss = 'categorical_crossentropy'
+
+    model = Sequential()
+
+    model.add(LSTM(48, return_sequences=True, input_shape=inputShape))
+    model.add(Dropout(0.2))
+    model.add(LSTM(48, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(TimeDistributed(Dense(numClasses)))
+    model.add(Activation('softmax'))
+
+    return model, optimizer, loss
+
 def model_aug30_lstm_large_dist(inputShape, numClasses):
 
     optimizer = 'rmsprop'
