@@ -4,6 +4,7 @@ inDir=$1
 modelTag=$2
 outTag=$3
 tmpDir=~/keyword/$3
+kws=$4
 
 mkdir -p tmpDir
 rm $tmpDir/*.csv $tmpDir/*.mat
@@ -18,5 +19,5 @@ for fn in `ls ../net/models/$modelTag\_ep*.c | sort -u`; do
     python ../dataprep/collect_wavrunner_files.py $tmpDir prob_$modelName
 done
 
-python ../dataprep/collect_wavrunner_epochs.py $tmpDir prob_$outTag
+python ../dataprep/collect_wavrunner_epochs.py $tmpDir prob_$outTag $kws
 
