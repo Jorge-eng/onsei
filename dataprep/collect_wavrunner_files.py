@@ -20,5 +20,5 @@ for fn in allFiles:
 
 #prob = np.rollaxis(np.array(prob), 0, 3)
 prob = np.array(prob)
-savemat(outFile, {'prob':prob})
+savemat(outFile, {'prob':prob,'allFiles':allFiles})
 
