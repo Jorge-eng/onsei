@@ -7,15 +7,12 @@ tmpDir=~/keyword/$3
 kws=$4
 
 mkdir -p tmpDir
-rm $tmpDir/*.csv $tmpDir/*.mat
+rm $tmpDir/*.mat
 
 for fn in `ls ../net/models/$modelTag\_ep*.c | sort -u`; do
     echo $fn
     modelName=`echo $fn | xargs -I{} basename {} | cut -d. -f1`
-    ln -sf $fn model_def.c
-    touch wavrunner.cpp
-    make wavrunner 1> /dev/null
-    ./batchrunner.sh $inDir $tmpDir
+    ./batchrunner.sh $inDir $tmpDir $fn
     python ../dataprep/collect_wavrunner_files.py $tmpDir prob_$modelName
 done
 
