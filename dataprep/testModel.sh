@@ -5,7 +5,10 @@ mkdir -p ../net/outputs/$modelName
 testDirs="testingWavs_kwClip_okay_sense
 testingWavs_kwClip_stop
 testingWavs_kwClip_snooze
-noiseDataset/16k"
+noiseDataset/16k
+reverberant_speech/16k"
+
+#speechDataset/16k"
 
 for td in $testDirs; do
     echo $td
