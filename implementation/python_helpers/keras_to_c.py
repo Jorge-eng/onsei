@@ -429,7 +429,6 @@ def save_model_to_c(model,name):
 
 if __name__ == '__main__':
     json_name = sys.argv[1]
-    pdb.set_trace()
     h5file_name = sys.argv[2] if (len(sys.argv) >= 3) else None
 
     save_model_to_c_from_file(json_name,h5file_name)
