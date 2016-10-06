@@ -12,7 +12,7 @@ using namespace std;
 #define BUF_SIZE (1<<10)
 
 extern "C" {
-    void results_callback(void * context, int16_t * melbins);
+    void results_callback(void * context, SpeechTransition_t transition);
 }
 
 typedef struct  {
