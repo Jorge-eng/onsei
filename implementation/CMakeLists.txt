@@ -55,6 +55,11 @@ tinyfeats.cpp)
 
 target_link_libraries(tinyfeats tensor hellomath ${SNDFILE_LIBRARIES})
 
+###########
+add_executable(vadrunner
+vadrunner.cpp)
+
+target_link_libraries(vadrunner tensor hellomath ${SNDFILE_LIBRARIES})
 
 ###########
 add_executable(liverunner 
