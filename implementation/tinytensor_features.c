@@ -26,7 +26,7 @@
 
 #define SCALE_TO_8_BITS (7)
 
-#define NOMINAL_TARGET (50)
+#define NOMINAL_TARGET (35)
 
 #define SPEECH_ENERGY_HISTORY_SIZE_2N (7)
 #define SPEECH_ENERGY_HISTORY_SIZE (1 << SPEECH_ENERGY_HISTORY_SIZE_2N)
@@ -448,14 +448,20 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
 
         avgmel >>= SCALE_TO_8_BITS;
         maxmel >>= SCALE_TO_8_BITS;
-        //general idea is that as maxmel increases (say due to some LOUD THINGS happening)
-        //that the offset backs off quickly
-
+        //general idea is that as 
+        //1) the difference between the time averaged value of the mel bins 
+        //   and the target is how much all the bins should be boosted up (to a point)
+        //
+        //2) but if maxmel increases (say due to some LOUD THINGS happening)
+        //that the offset backs off quickly.  
         nominal_offset = NOMINAL_TARGET - avgmel;
 
+        //maxmel == max-averaged feature (quick to rise, slow to fall, basically upper bound of the features) 
+        //if maxmel + offset > 127 then bring it back to 127,
         offset_adjustment = maxmel + nominal_offset - INT8_MAX;
 
-
+        //offset_adjustment can never be negative. 
+        //this means that offset adjustment can never INCREASE the offset
         if (offset_adjustment < 0) {
             offset_adjustment = 0;
         }
@@ -463,11 +469,12 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
         offset = nominal_offset - offset_adjustment;
         
         //printf("%d\n",offset);
-        for (i = 0; i <NUM_MEL_BINS; i++) {
+        for (i = 0; i < NUM_MEL_BINS; i++) {
             temp32 = melbank[i];
             temp32 >>= SCALE_TO_8_BITS;
             temp32 += offset;
 
+            //CHECK THAT THE FEAUTRES DO NOT SATURATE AN 8-BIT NUMBER
             if (temp32 > INT8_MAX) {
                 temp32 = INT8_MAX;
             }
@@ -479,6 +486,7 @@ void tinytensor_features_add_samples(const int16_t * samples, const uint32_t num
             
             melbank8[i] = (int8_t)temp32;
             
+            //SCALE FEATURES FROM Q7 to QFIXEDPOINT
             if (shift < 0) {
                 melbank8[i] <<= -shift;
             }
