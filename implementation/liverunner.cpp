@@ -17,22 +17,7 @@
 
 
 #if HAVE_NET
-
-//#include "model_aug15_lstm_small_dist_okay_sense_tiny_825.c"
-#if QFIXEDPOINT == 15
-#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q15.c"
-#elif QFIXEDPOINT == 12
-#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q12.c"
-#elif QFIXEDPOINT == 10
-#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q10.c"
-#elif QFIXEDPOINT == 9
-#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q9.c"
-#elif QFIXEDPOINT == 7
-#include "model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_q7.c"
-#else
-#error "unsupported fixed point format"
-#endif
-
+#include "model_def.c"
 #endif
 
 #define MIN_PROB_TO_USE_FOR_SUM (40)
@@ -126,14 +111,34 @@ typedef struct {
     int8_t buf[NUM_MEL_BINS][MEL_FEAT_BUF_TIME_LEN];
     uint32_t bufidx;
     SequentialNetworkStates_t state;
+    bool is_speech;
 } FeatsCallbackContext;
+
+void vad_callback(void * context, SpeechTransition_t transition) {
+    FeatsCallbackContext * p  = (FeatsCallbackContext *) context;
+    
+    if (transition == start_speech) {
+        
+        if (!p->is_speech) {
+            std::cout << "START VAD" << std::endl;
+        }
+        
+        p->is_speech = true;
+    }
+    
+    if (transition == stop_speech) {
+        if (p->is_speech) {
+            std::cout << "END VAD" << std::endl;
+        }
+        
+        p->is_speech = false;
+    }
+}
 
 static void feats_callback(void * context, int16_t * feats) {
     FeatsCallbackContext * p = (FeatsCallbackContext *) context;
     static uint32_t counter = 0;
-    static Weight_t outbuf[OUTBUF_SUM_LEN] = {0};
-    static uint32_t ioutbuf = 0;
-    static uint32_t off_count = 0;
+
     static bool last_is_printing = false;
     //desire to have the dims as 40 x 199
     //data comes in as 40 x 1 vectors, soo
@@ -187,95 +192,6 @@ static void feats_callback(void * context, int16_t * feats) {
     out->delete_me(out);
 
     return;
-    ////////////////////////////
-    
-    const static uint32_t dims[4] = {1,1,NUM_MEL_BINS,MEL_FEAT_BUF_TIME_LEN};
-    //get feats
-
-    for (uint32_t i = 0; i < NUM_MEL_BINS; i++) {
-        p->buf[i][p->bufidx] = feats[i] + FEAT_OFFSET;
-    }
-    
-    
-    if (++(p->bufidx) >= MEL_FEAT_BUF_TIME_LEN) {
-        p->bufidx = 0;
-    }
-    
-    if (off_count) {
-        off_count--;
-    }
-
-    if (counter % NET_RUN_PERIOD) {
-        return;
-    }
-    
-  
-    
-#if HAVE_NET
-    
-    Tensor_t * tensor_in = tinytensor_create_new_tensor(dims);
-    
-    Weight_t * px = tensor_in->x;
-    for (uint32_t i = 0; i < NUM_MEL_BINS; i++ ) {
-        uint32_t bufidx = p->bufidx;
-        
-        for (uint32_t t = 0; t < MEL_FEAT_BUF_TIME_LEN; t++) {
-            *px = p->buf[i][bufidx];
-            
-            if (++bufidx >= MEL_FEAT_BUF_TIME_LEN) {
-                bufidx = 0;
-            }
-            
-            px++;
-        }
-    }
-    
-    bool okay_to_run = false;
-    uint32_t feat_count = 0;
-    const uint32_t len = tensor_in->dims[0]*tensor_in->dims[1]*tensor_in->dims[2]*tensor_in->dims[3];
-    for (uint32_t i = 0; i < len; i++) {
-        if (tensor_in->x[i] > MIN_FEAT + FEAT_OFFSET) {
-            feat_count++;
-        }
-    }
-    
-    if (feat_count > MIN_FEAT_COUNT) {
-        okay_to_run = true;
-    }
-    
-    if (!okay_to_run) {
-        memset(outbuf,0,sizeof(outbuf));
-        tensor_in->delete_me(tensor_in);
-        return;
-    }
-
-    
-    Tensor_t * tensor_out = tinytensor_eval_net(&(p->net),tensor_in,NET_FLAGS_NONE);
-
-    outbuf[ioutbuf++ % OUTBUF_SUM_LEN] = tensor_out->x[1];
-    
-    int outsum = 0;
-    for (uint32_t i = 0; i < OUTBUF_SUM_LEN; i++) {
-        if (outbuf[i] > MIN_PROB_TO_USE_FOR_SUM) {
-            outsum += outbuf[i];
-        }
-    }
-
-    
-
-    printf("%4.2f,%4.2f,%d\n",tensor_out->x[0] / 128.0,tensor_out->x[1] / 128.0,outsum);
-    tensor_out->delete_me(tensor_out);
-
-    if (outsum > DETECTION_THRESHOLD && !off_count) {
-        printf("THRESHOLD!\n");
-        putchar('\a');
-        fflush(0);
-        
-        off_count = 3 * NET_RUN_PERIOD;
-        
-    }
-
-#endif
 }
 
 
@@ -310,7 +226,7 @@ int main(void) {
     double              average;
     
     
-    tinytensor_features_initialize(&featsContext, feats_callback,NULL);
+    tinytensor_features_initialize(&featsContext, feats_callback,vad_callback);
     
     data.maxFrameIndex = totalFrames = NUM_SECONDS * SAMPLE_RATE; /* Record for a few seconds. */
     data.frameIndex = 0;
