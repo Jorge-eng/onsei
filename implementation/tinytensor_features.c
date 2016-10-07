@@ -13,7 +13,7 @@
 
 //#define PREEMPHASIS (0) 
 //#define PREEMPHASIS (13107) //0.4 in Q15
-#define PREEMPHASIS (31130) //0.95 in Q15
+#define PREEMPHASIS (31129) //0.95 in Q15
 
 #define MUL16(a,b)\
 ((int16_t)(((int32_t)(a * b)) >> QFIXEDPOINT_INT16))
