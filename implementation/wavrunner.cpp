@@ -54,7 +54,29 @@ typedef struct  {
     uint32_t bufidx;
     ConstSequentialNetwork_t net;
     SequentialNetworkStates_t state;
+    bool is_speech;
 } CallbackContext ;
+
+void vad_callback(void * context, SpeechTransition_t transition) {
+    CallbackContext * p = static_cast<CallbackContext *>(context);
+    
+    if (transition == start_speech) {
+        
+        if (!p->is_speech) {
+            //std::cout << "START VAD" << std::endl;
+        }
+        
+        p->is_speech = true;
+    }
+    
+    if (transition == stop_speech) {
+        if (p->is_speech) {
+            //std::cout << "END VAD" << std::endl;
+        }
+        
+        p->is_speech = false;
+    }
+}
 
 void results_callback(void * context, int16_t * melbins) {
     static uint32_t counter = 0;
@@ -73,7 +95,12 @@ void results_callback(void * context, int16_t * melbins) {
     temp_tensor.delete_me = 0;
    
     
-    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAGS_NONE);
+    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAG_LSTM_DAMPING);
+    
+    //just suppress okay sense
+    if (!p->is_speech) {
+        out->x[1] = 0;
+    }
     
     bool is_printing = !_is_printing_only_if_activity;
     

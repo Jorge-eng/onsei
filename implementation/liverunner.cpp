@@ -158,6 +158,12 @@ static void feats_callback(void * context, int16_t * feats) {
     counter++;
     
     Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAG_LSTM_DAMPING);
+    
+    //just suppress okay sense
+    if (!p->is_speech) {
+        out->x[1] = 0;
+    }
+    
     bool is_printing = false;
     
     for (int i = 1; i < out->dims[3]; i++) {
