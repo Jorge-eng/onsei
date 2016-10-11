@@ -73,10 +73,7 @@ void tinytensor_tanh(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale
     else {
         dx = x - (i << 7);
         assert(dx >= 0);
-        if (dx > 0) {
-            int foo = 3;
-            foo++;
-        }
+        
         yy = k_tanh_yvals[i] + MUL16(dx, k_tanh_slopes[i]);
     }
     

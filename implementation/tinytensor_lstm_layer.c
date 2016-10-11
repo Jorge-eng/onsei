@@ -268,6 +268,13 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
     for (t = 0; t < time_length; t++) {
 
         MEMCPY(input,in_row,num_inputs*sizeof(Weight_t));
+        
+        //apply dropout to input only
+        for (i = 0 ; i < num_inputs; i++) {
+            temp32 = dropout_weight * input[i];
+            input[i] = temp32 >> QFIXEDPOINT;
+        }
+        
         MEMCPY(input + num_inputs,prev_hidden,num_hidden_units*sizeof(Weight_t));
         
         lstm_time_step_forwards(cell_state,

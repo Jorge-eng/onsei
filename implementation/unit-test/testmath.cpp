@@ -1,14 +1,19 @@
 #include "gtest/gtest.h"
 #include "../tinytensor_math.h"
+#include <math.h>
 
 class TestMath : public ::testing::Test {
 protected:
     
-    
+    int idx;
     virtual void SetUp() {
+        idx = INT32_MIN;
     }
     
     virtual void TearDown() {
+        if (idx != INT32_MIN) {
+            std::cout << "idx = " << idx << std::endl;
+        }
     }
     
 };
@@ -18,28 +23,40 @@ class DISABLED_TestMath : public TestMath {};
 
 TEST_F(TestMath, SoftMax) {
   
-    const Weight_t x[8] = {123, -86,  57,  45,   7, 105, -59,  -4};
     
+    int i;
+    const float fx[8] = {1.921875, -1.34375 ,  0.890625,  0.703125,  0.109375,  1.640625,
+        -0.921875, -0.0625};
+    
+    
+    float expfx[8];
+    
+    for (i = 0; i < 8; i++) {
+        expfx[i] = exp(fx[i]);
+    }
+    
+    float sum = 0.0;
+    
+    for (i = 0; i < 8; i++) {
+        sum += expfx[i];
+    }
+    for (i = 0; i < 8; i++) {
+        expfx[i] /= sum;
+    }
     
     Weight_t x1[8];
-    Weight_t x2[8];
-    
-    memcpy(x1,x,sizeof(x1));
-    memcpy(x2,x,sizeof(x2));
 
-    const Weight_t y1[8] = {30,  5, 18, 16, 12, 26,  7, 11};
-    const Weight_t y2[8] = {69,  0,  8,  6,  1, 39,  0,  1};
+    for (i = 0; i < 8; i++) {
+        x1[i] = fx[i] * (1 << QFIXEDPOINT);
+    }
     
     tinytensor_vec_softmax_in_place(x1, 8, 0);
-    tinytensor_vec_softmax_in_place(x2, 8, -2);
     
     for (int i = 0; i < 8; i++) {
-        ASSERT_NEAR(x1[i],y1[i],14);
+        ASSERT_NEAR(x1[i],expfx[i] * (1 << QFIXEDPOINT),14);
     }
     
-    for (int i = 0; i < 8; i++) {
-        ASSERT_NEAR(x2[i],y2[i],14);
-    }
+   
 
 }
 
@@ -53,6 +70,33 @@ TEST_F(TestMath,SoftMax2) {
     int foo = 3;
     foo++;
 
+    
+    
+}
+
+
+TEST_F(TestMath,TestTanh) {
+    
+    const float qfixedpoint = (1 << QFIXEDPOINT);
+    for (int i = -500; i < 500; i++) {
+        idx = i;
+        float f = i / 100.0;
+    
+        float yref = tanh(f);
+        
+        int32_t x = (int)(f * qfixedpoint);
+        Weight_t y;
+        int8_t out_scale,in_scale = 0;
+        
+        tinytensor_tanh(&y, &out_scale, x, in_scale);
+        
+        float yy = (float)y;
+        yy /= qfixedpoint;
+        ASSERT_NEAR(yref,yy,0.001);
+        
+    }
+    
+    idx = INT32_MIN;
     
     
 }
