@@ -20,6 +20,25 @@ protected:
 
 class DISABLED_TestMath : public TestMath {};
 
+TEST_F(TestMath,TestExpQ12) {
+    Weight_t x[20] = {-28672, -25653, -22635, -19617, -16599, -13581, -10563,  -7545,
+        -4527,  -1509,   1509,   4527,   7545,  10563,  13581,  16599,
+        19617,  22635,  25653,  28672};
+    
+    int32_t ref[20] = {  3,       7,      16,      34,      71,     148,     310,
+        649,    1356,    2833,    5920,   12369,   25844,   53998,
+        112820,  235719,  492495, 1028983, 2149883, 4491809};
+    
+    for (int i = 0; i < 20; i++) {
+        int32_t y = tinytensor_exp_q12(x[i]);
+        
+        const int tol = 10 + (0.05 * ref[i]);
+        
+        ASSERT_NEAR(y,ref[i],tol);
+    }
+    
+    
+}
 
 TEST_F(TestMath, SoftMax) {
   

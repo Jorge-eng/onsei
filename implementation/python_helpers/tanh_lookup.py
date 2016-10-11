@@ -16,7 +16,7 @@ Q = 15
 
 dx = np.array(x_end * (2 ** Q) / (2 ** N)).astype(int)
 xvals = (np.arange(1 + 2**N) * dx).astype(int)
-
+print xvals
 slopes = []
 yvals = []
 for i in range(1,len(xvals)):
