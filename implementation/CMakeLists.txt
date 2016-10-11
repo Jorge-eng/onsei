@@ -49,6 +49,14 @@ unit-test/testmath.cpp
 
 target_link_libraries(unit-test gtest tensor hellomath)
 
+#copy resources over
+add_custom_command(
+TARGET unit-test POST_BUILD
+COMMAND ${CMAKE_COMMAND} -E copy_directory
+${CMAKE_SOURCE_DIR}/unit-test/runtime_data
+$<TARGET_FILE_DIR:unit-test>
+)
+
 ###########
 add_executable(tinyfeats
 tinyfeats.cpp)

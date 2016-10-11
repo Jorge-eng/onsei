@@ -112,6 +112,11 @@ static void lstm_time_step_forwards(int32_t * cell_state,
     
     for (icell = 0; icell < num_cells; icell++) {
 
+        if (icell == 7) {
+            int foo = 3;
+            foo++;
+        }
+        
         for (igate = 0; igate < NUM_GATES; igate++) {
 
             const Weight_t * w = weight_row_starts[igate];
@@ -163,7 +168,7 @@ static void lstm_time_step_forwards(int32_t * cell_state,
 
         
         //apply forget gate to prev cell state
-        temp64 = activation_forget_gate * cell_state[icell]; //Qx x Qx ---> Q2x
+        temp64 = (int64_t)activation_forget_gate * cell_state[icell]; //Qx x Qx ---> Q2x
         
         //and add gated cell input
         temp64 += (int32_t)activation_input_gate * (int32_t)activation_cell; //Qx * Qx --->Q2x
@@ -263,11 +268,18 @@ static void eval_helper(const void * context, Tensor_t * out,const Tensor_t * in
 
     //our "large" stack variable
     //which isn't that large
-    Weight_t input[LSTM_MAX_HIDDEN_UNITS];
+    Weight_t input[LSTM_MAX_HIDDEN_UNITS] = {0};
     
     for (t = 0; t < time_length; t++) {
 
         MEMCPY(input,in_row,num_inputs*sizeof(Weight_t));
+        
+        //apply dropout to input only
+        for (i = 0 ; i < num_inputs; i++) {
+            temp32 = dropout_weight * input[i];
+            input[i] = temp32 >> QFIXEDPOINT;
+        }
+        
         MEMCPY(input + num_inputs,prev_hidden,num_hidden_units*sizeof(Weight_t));
         
         lstm_time_step_forwards(cell_state,

@@ -39,7 +39,7 @@
 
 #define LOG_ENERGY_FRAC_MIN_THRESHOLD (-10000)
 
-#define NUM_NONSPEECH_FRAMES_TO_TURN_OFF   (50)
+#define NUM_NONSPEECH_FRAMES_TO_TURN_OFF   (33)
 #define NUM_SPEECH_FRAMES_TO_TURN_ON       (2)
 
 //hanning window
