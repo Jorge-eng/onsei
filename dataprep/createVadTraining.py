@@ -57,6 +57,7 @@ def interpret_dist_labels(fileNames, nFr):
     labelsDistributed = np.zeros((len(fileNames),nFr))
     for idx, fn in enumerate(fileNames):
         try:
+            # comprised of triplets: class_name,frame_start_pct,frame_end_pct
             anno = np.loadtxt(fn, dtype=str, delimiter=',')
         except:
             print('Could not find '+fn)
