@@ -98,8 +98,8 @@ TEST_F(TestRecurrentNet,TestTheWholeDeal) {
             err += abs(tensor_out->x[j] - ref[j]);
         }
         
-        if (i > 10) {
-            ASSERT_LT(err,100);
+        if (i > 2) {
+            ASSERT_LT(err,5);
         }
         
         /*
