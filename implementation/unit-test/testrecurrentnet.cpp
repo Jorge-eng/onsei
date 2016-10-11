@@ -92,7 +92,17 @@ TEST_F(TestRecurrentNet,TestTheWholeDeal) {
         
         tensor_out = tinytensor_eval_stateful_net(&net, &states, tensor_in,NET_FLAGS_NONE);
 
+        int err = 0;
         
+        for (uint32_t j = 0; j < tensor_out->dims[3]; j++) {
+            err += abs(tensor_out->x[j] - ref[j]);
+        }
+        
+        if (i > 10) {
+            ASSERT_LT(err,100);
+        }
+        
+        /*
         for (uint32_t j = 0; j < tensor_out->dims[3]; j++) {
             if (j != 0) std::cout << ",";
             std::cout << tensor_out->x[j];
@@ -101,8 +111,9 @@ TEST_F(TestRecurrentNet,TestTheWholeDeal) {
             std::cout << ",";
             std::cout << ref[j];
         }
-        
-        std::cout << std::endl;
+         std::cout << std::endl;
+
+        */
         
         
         tensor_out->delete_me(tensor_out);
