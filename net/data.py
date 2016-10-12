@@ -208,7 +208,8 @@ def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTe
         offset = np.tile(np.float64(0),feaTrain.shape[1])
         if feaTrain.dtype.kind == 'i':
             #scale = np.float32(np.power(2, 8*feaTrain.itemsize-1))
-            scale = np.float32(np.power(2, 8-1))
+            #scale = np.float32(np.power(2, 8-1))
+            scale = np.float32(np.power(2, 12))
         else:
             scale = np.float32(1)
 
