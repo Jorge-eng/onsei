@@ -1,15 +1,21 @@
+# Usage ./testModelPy.sh model_name epoch [make_input]
 
 modelName=$1
 mkdir -p ../net/outputs/$modelName\_ep$2
 
 #testDirs="reverberant_speech/16k"
-testDirs="TED"
+#testDirs="TED"
 
 #testDirs="testingWavs_kwClip_okay_sense
 #testingWavs_kwClip_stop
 #testingWavs_kwClip_snooze
 #noiseDataset/16k
 #reverberant_speech/16k"
+
+testDirs="testingWavs_kwClip_okay_sense
+noiseDataset/16k
+reverberant_speech/16k
+TED"
 
 #testingWavs_adversarial
 
