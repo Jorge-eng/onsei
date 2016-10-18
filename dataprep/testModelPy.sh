@@ -3,8 +3,9 @@
 modelName=$1
 mkdir -p ../net/outputs/$modelName\_ep$2
 
-#testDirs="reverberant_speech/16k"
-#testDirs="TED"
+#testDirs="fa_pool"
+#testDirs="testingWavs_adversarial"
+#testDirs="speechDataset/16k"
 
 testDirs="testingWavs_kwClip_okay_sense
 testingWavs_kwClip_stop
@@ -13,24 +14,6 @@ noiseDataset/16k
 reverberant_speech/16k
 TED"
 
-#testDirs="testingWavs_kwClip_okay_sense
-#noiseDataset/16k
-#reverberant_speech/16k
-#TED"
-
-#testDirs="testingWavs_kwClip_stop
-#testingWavs_kwClip_snooze"
-
-#testDirs="fa_pool"
-
-#testingWavs_adversarial
-
-#testDirs="testingWavs_kwClip_okay_sense
-#testingWavs_kwClip_stop
-#testingWavs_kwClip_snooze
-#noiseDataset/16k"
-
-##speechDataset/16k"
 
 for td in $testDirs; do
     echo $td
