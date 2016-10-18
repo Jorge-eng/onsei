@@ -1,6 +1,6 @@
 
-probFile = '../net/prob_all_lstm_small_dist_okay_sense+stop+snooze_tiny_830.mat';
-testFile = 'testingFeats_okay_sense+stop+snooze_tiny.mat';
+probFile = '../net/prob_all_model_aug30_lstm_med_dist_TRAIN_00_1007.mat';
+testFile = 'testingFeats_okay_sense+stop+snooze_tiny2.mat';
 data = [];
 for ep = 1:300
     [mat, num, tot, data] = compileTestResults(probFile, testFile, 0.2, ep, data);
@@ -9,9 +9,9 @@ for ep = 1:300
 end
 %%
 clear cd1 cd2 fa cm
-probFile = '../net/prob_all_lstm_small_dist_okay_sense+stop+snooze_tiny_830.mat';
-testFile = 'testingFeats_okay_sense+stop+snooze_tiny.mat';
-decTh = 0.5;
+probFile = '../net/prob_all_model_aug30_lstm_med_dist_okay_sense+stop+snooze_tiny_fa8_1014.mat';
+testFile = 'testingFeats_okay_sense+stop+snooze_tiny_fa8.mat';
+decTh = 0.50;
 data = [];
 figure
 for ep = 1:300, ep
@@ -35,7 +35,7 @@ for ep = 1:length(ii)
     %figure
     [mat,num,tot,data] = compileTestResults(probFile, testFile, decTh, ii(ep), data);
     mats(:,:,:,ep) = mat;
-    figure, set(gcf,'WindowStyle','docked')
+    figure, set(gcf,'WindowStyle','docked'), set(gcf,'Name',['ep' num2str(ii(ep))])
     for j = 1:size(mat,3), subplot(size(mat,3),1,j), imagesc(mat(:,:,j),[0 1]), end
     ii(ep),% cd2(ii(ep)), fa(ii(ep)), pause
     
@@ -58,5 +58,18 @@ end
 
 % TOP 3: 105, 96, 266
 
-%ed:
+%Med:
 % 175, 217
+% 96, 125, 272
+
+% 40_1007
+% 57(56) 161(160)
+
+% 40_pre_1008
+% 43(42)* 45(44) 82(81) 133(132)* 191(190) 255(254)
+
+% 95_pre_1008
+% 57(56)* 101(100) 103(102)*
+
+% med: 91(90) , 259(258)
+% 24x24: 207(206), 261(260), 274(273)
