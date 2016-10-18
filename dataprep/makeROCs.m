@@ -44,15 +44,25 @@ counts = 1:2:15;
 %%
 clear posRate
 for j = 1:length(posDirs)
-    dirName = fullfile('../net/outputs',modelName,posDirs{j})
-    [num, tot] = runnerCsvToROC(dirName, ths, counts, fileType);
+    if 0
+        dirName = fullfile('../net/outputs',modelName,posDirs{j})
+        [num, tot] = runnerCsvToROC(dirName, ths, counts, fileType);
+    else
+        dn = strsplit(posDirs{j},'/');
+        load(fullfile('../net/outputs',modelName,['eval_' dn{1} '.mat']))
+    end
     posRate(:,:,j) = squeeze(sum(num(:,:,:,j))) / size(num,1);
 end
 %%
 clear faRate faNum
 for j = 1:length(negDirs)
-    dirName = fullfile('../net/outputs',modelName,negDirs{j})
-    [num, tot] = runnerCsvToROC(dirName, ths, counts, fileType);
+    if 0
+        dirName = fullfile('../net/outputs',modelName,negDirs{j})
+        [num, tot] = runnerCsvToROC(dirName, ths, counts, fileType);
+    else
+        dn = strsplit(negDirs{j},'/');
+        load(fullfile('../net/outputs',modelName,['eval_' dn{1} '.mat']))
+    end
     for k = 1:size(num,4)
         faRate(:,:,k,j) = squeeze(sum(num(:,:,:,k))) / (sum(tot)*0.015/60/60);
         faNum(:,:,k,j) = squeeze(sum(num(:,:,:,k)));
