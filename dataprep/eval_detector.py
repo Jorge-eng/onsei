@@ -1,4 +1,6 @@
 import sys, os, glob
+TOP_DIR = os.path.dirname(os.path.abspath(__file__))
+NET_PATH = os.path.join(TOP_DIR, '../net')
 import numpy as np
 from scipy.signal import convolve
 from scipy.io import loadmat, savemat
@@ -39,15 +41,18 @@ def eval_dir(inDir, ths, counts, nKw):
 
     return num, tot
 
-def eval_all(modelTag, nKw=3):
+def eval_all(netOutDir, nKw=3, deleteInput=False):
 
     testDirs, ths, counts = params()
-    netOutDir = os.path.join('../net/outputs', modelTag)
 
     for td in testDirs:
 
         inDir = os.path.join(netOutDir, td)
         num, tot = eval_dir(inDir, ths, counts, nKw)
+
+        if deleteInput:
+            for f in glob.glob(os.path.join(netOutDir, td, '*.mat')):
+                os.remove(f)
 
         outFile = os.path.join(netOutDir, 'eval_'+td.split('/')[0]+'.mat')
         savemat(outFile, {'tot':tot,'num':num})
@@ -68,5 +73,11 @@ def params():
 
 if __name__ == '__main__':
 
-    eval_all(sys.argv[1])
+    if len(sys.argv) > 2:
+        nKw = eval(sys.argv[2])
+    else:
+        nKw = 3
+    netOutDir = os.path.join(NET_PATH, 'outputs', sys.argv[1])
+
+    eval_all(netOutDir, nKw=nKw, deleteInput=False)
 
