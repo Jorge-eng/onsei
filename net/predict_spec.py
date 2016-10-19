@@ -6,6 +6,7 @@ DATA_PATH = os.path.join(TOP_DIR, '../dataprep')
 sys.path.append(DATA_PATH)
 
 import data
+from keras.models import model_from_json
 from scipy.io import loadmat, savemat
 from scipy.io import wavfile
 import audioproc
@@ -18,25 +19,33 @@ except:
     print('Warning: pyplot failed to import')
     pass
 
-def predict_wav_stream(wavFile, model, modelType, winLen=None, winShift=10, offset=0., scale=1., verbose=0):
+def get_input(inFile, inType, modelType, offset=0., scale=1., winLen=None, winShift=10):
 
     if winLen is None:
         winLen = model.input_shape[3]
 
-    if os.path.isfile(wavFile):
-        logM = audioproc.wav2fbank(wavFile)
-        feaStream, starts = fbank_stream(logM, winLen, winShift)
-    elif os.path.isdir(wavFile): # currently assuming each clip is winLen
-        logM, files = audioproc.wav2fbank_batch(wavFile)
-        starts = [1]*len(logM)
-        feaStream = np.array(logM)
+    if inType == 'tinyfeats':
+        feaStream = audioproc.load_bin(inFile)
+        if 'dist' not in modelType:
+            feaStream, starts = fbank_stream(feaStream, winLen)
+    elif inType == 'audio':
+        if os.path.isfile(inFile):
+            feaStream = audioproc.wav2fbank(inFile)
+            nFiles = 1
+            if 'dist' not in modelType:
+                feaStream, starts = fbank_stream(feaStream, winLen)
+        elif os.path.isdir(inFile): # assumes each clip is winLen
+            feaStream, files = audioproc.wav2fbank_batch(inFile)
+            nFiles = len(files)
+        if 'dist' in modelType:
+            feaStream = np.reshape(feaStream, (nFiles, feaStream.shape[0], feaStream.shape[1]))
+    elif inType == 'features':
+        feaStream = data.load_batch(inFile, var='features')
 
     feaStream = data.apply_norm(feaStream, offset, scale)
     feaStream = data.reshape_for_model(feaStream, modelType)
 
-    prob = model.predict_proba(feaStream, batch_size=128, verbose=verbose)
-
-    return prob, starts
+    return feaStream
 
 def fbank_stream(logM, winLen, winShift=10):
 
@@ -52,31 +61,11 @@ def fbank_stream(logM, winLen, winShift=10):
 
     return stream, starts
 
-def detect_events(prob, detWinLen=2, detWait=10, detTh=1.5):
-
-    detect = np.zeros((prob.shape[0],), dtype='float32')
-
-    waiting = False
-    waitCount = 0
-    for t in range(prob.shape[0]):
-        if t < detWinLen-1:
-            continue
-        if waitCount >= detWait:
-            waiting = False
-            waitCount = 0
-        if waiting:
-            waitCount += 1
-            continue
-        signal = np.sum(prob[t-(detWinLen-1):t+1,1])
-        if signal >= detTh:
-            detect[t] = 1
-            waiting = True
-
-    return detect
-
 def detect_online(wav,prob_prev,model,modelType,winLen=None,offset=0.,scale=1.,detWait=10,detTh=1.5,waitCount=0,waiting=False):
 
-    prob, starts = predict_wav_stream(wav, model, modelType, winLen, offset=offset, scale=scale, verbose=0)
+    feaStream = get_input(wav, 'audio', modelType, offset=offset, scale=scale, winLen=winLen)
+    prob = model.predict_proba(feaStream, batch_size=128, verbose=verbose)
+
     prob = prob[0, :]
 
     detect = np.float32(0)
@@ -118,21 +107,33 @@ def wav2detect(wavFile,model,modelType,winLen,offset=0.,scale=1.,winLen_s=1.6,wi
         detect = np.append(detect, ans)
         startIdx += shiftSamples
 
-
     return detect
 
-def get_model(modelTag, epoch=None):
+def get_info(modelTag):
 
     infoFile = os.path.join(MODEL_PATH, modelTag+'.mat')
-
     info = loadmat(infoFile)
+
+    return info
+
+def get_arch(info):
+
+    if isinstance(info, str):
+        info = get_info(info)
+
     modelDef = os.path.join(NET_PATH, info['modelDef'][0])
-    modelWeights = os.path.join(NET_PATH, info['modelWeights'][0])
     modelType = info['modelType'][0]
     winLen = int(info['winLen'][0])
     offset = info['offset'][0]
     scale = info['scale'][0]
 
+    model = model_from_json(open(modelDef).read())
+
+    return model, modelType, winLen, offset, scale
+
+def get_weights(info, epoch=None):
+
+    modelWeights = os.path.join(NET_PATH, info['modelWeights'][0])
     if 'epoch' in modelWeights:
         if epoch is None:
             val_loss = info['val_loss'][0]
@@ -141,8 +142,15 @@ def get_model(modelTag, epoch=None):
         print('Choosing epoch {:03d}'.format(epoch))
         modelWeights = modelWeights.format(**{'epoch':epoch})
         print(modelWeights)
- 
-    model = data.load_model(modelDef, modelWeights)
+
+    return modelWeights
+
+def get_model(modelTag, epoch=None):
+
+    info = get_info(modelTag)
+    modelWeights = get_weights(info, epoch)
+    model, modelType, winLen, offset, scale = get_arch(info)
+    model.load_weights(modelWeights)
 
     return model, modelType, winLen, offset, scale
 
@@ -167,37 +175,10 @@ if __name__ == '__main__':
 
     model, modelType, winLen, offset, scale = get_model(modelTag, epoch=epoch)
 
-    if inType == 'audio':
+    feaStream = get_input(inFile, inType, modelType, offset=offset, scale=scale, winLen=winLen)
 
-        prob, startTimes = predict_wav_stream(inFile, model, modelType, winLen=winLen, offset=offset, scale=scale)
+    prob = model.predict_proba(feaStream, verbose=1)
 
-        # Batch sequence detection
-        detect = detect_events(prob, detWinLen=2, detWait=10, detTh=1.5)
-
-        # Online sequence detection
-        #detect = wav2detect(inFile, model, modelType, winLen, offset, scale, winLen_s=1.6, winShift_s=0.2, detTh=1.5)
-
-        savemat(outFile, {'prob': prob, 'startTimes': startTimes, 'detect': detect})
-
-    elif inType == 'features':
-
-        features = data.load_batch(inFile, var='features')
-        features = data.apply_norm(features, offset, scale)
-        features = data.reshape_for_model(features, modelType)
-
-        prob = model.predict_proba(features, batch_size=128, verbose=1)
-
-        savemat(outFile, {'prob': prob})
-
-    elif inType == 'tinyfeats':
-
-        features = audioproc.load_bin(inFile)
-
-        feaStream, starts = fbank_stream(features, winLen)
-        feaStream = data.apply_norm(feaStream, offset, scale)
-        feaStream = data.reshape_for_model(feaStream, modelType)
-
-        prob = model.predict_proba(feaStream, batch_size=128, verbose=1)
-
-        savemat(outFile, {'prob': prob})
+    print('Saving '+outFile)
+    savemat(outFile, {'prob': prob})
 
