@@ -73,10 +73,8 @@ def params():
 
 if __name__ == '__main__':
 
-    if len(sys.argv) > 2:
-        nKw = eval(sys.argv[2])
-    else:
-        nKw = 3
+    nKw = eval(sys.argv[2]) if len(sys.argv) > 2 else 3
+
     netOutDir = os.path.join(NET_PATH, 'outputs', sys.argv[1])
 
     eval_all(netOutDir, nKw=nKw, deleteInput=False)
