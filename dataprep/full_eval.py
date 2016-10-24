@@ -43,6 +43,9 @@ def get_model_info(modelTag):
 def compile_model(modelDef):
     return model_from_json(open(modelDef).read())
 
+# Parallelize from command line:
+# for i in `seq 0 10 240`; do THEANO_FLAGS=device=cpu python full_eval.py modelTag nKw $i 10 & done
+
 nWorkers = np.minimum(1, multiprocessing.cpu_count())
 sys.setrecursionlimit(10000)
 
