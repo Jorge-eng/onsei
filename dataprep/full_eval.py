@@ -43,7 +43,7 @@ def get_model_info(modelTag):
 def compile_model(modelDef):
     return model_from_json(open(modelDef).read())
 
-nWorkers = np.minimum(8, multiprocessing.cpu_count())
+nWorkers = np.minimum(1, multiprocessing.cpu_count())
 sys.setrecursionlimit(10000)
 
 modelTag = sys.argv[1]
@@ -51,11 +51,20 @@ nKw = eval(sys.argv[2]) if len(sys.argv) > 2 else 3
 
 modelDef, modelType, winLen, offset, scale = get_model_info(modelTag)
 
+#from multiprocessing import Process
+#pids = [Process(target=compile_model, args=(modelDef,)) for _ in range(nWorkers)]
+#[p.start() for p in pids]
+#[p.join() for p in pids]
+
 models = Parallel(n_jobs=nWorkers)(delayed(compile_model)(modelDef) for _ in range(nWorkers))
 
 tag = os.path.join(MODEL_PATH, modelTag)
 weightFiles = glob.glob(tag+'_ep*.h5')
 weightFiles.sort()
+startEpoch = eval(sys.argv[3]) if len(sys.argv) > 3 else 0
+nEpoch = eval(sys.argv[4]) if len(sys.argv) > 4 else len(weightFiles)
+
+weightFiles = weightFiles[startEpoch:startEpoch+nEpoch]
 
 testDirs, ths, counts = eval_detector.params()
 
@@ -78,6 +87,10 @@ for wf in weightFiles:
         testDir = os.path.join(netOutDir, td)
         if not os.path.exists(testDir):
             os.makedirs(testDir)
+
+        #pids = [Process(target=file_prob, args=(model, fn, modelType, offset, scale, winLen, testDir)) for model, fn in zip(models, chunks(files, nWorkers))]
+        #[p.start() for p in pids]
+        #[p.join() for p in pids]
 
         Parallel(n_jobs=nWorkers)(delayed(file_prob)(model, fn, modelType, offset, scale, winLen, testDir) for model, fn in zip(models, chunks(files, nWorkers)))
 
