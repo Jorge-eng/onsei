@@ -8,7 +8,9 @@
 %modelName = 'model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_fa_1006_ep077';
 %modelName = 'model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_ep216';
 %modelName = 'model_aug30_lstm_med_dist_okay_sense+stop+snooze_tiny_912_ep216';
-modelName = 'model_aug30_lstm_med_dist_okay_sense+stop+snooze_tiny_fa8_1014_ep130';
+modelName = 'model_aug30_lstm_med_dist_okay_sense+stop+snooze_tiny_end0_1022_ep052';
+%modelName = 'model_aug30_lstm_med_dist_okay_sense+stop+snooze_tiny_end0_1022_ep075';
+
 %modelName = 'model_aug30_lstm_med_dist_okay_sense+stop+snooze_tiny_fa8_1014_ep105';
 %modelName = 'model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_fa8_1014_ep105';
 
@@ -72,20 +74,21 @@ end
 %%
 kws = {'OKAY SENSE','STOP','SNOOZE'};
 xLim = [1 3 3];
-for pl = 1:size(faRate, 4)
+for dset = 1:size(faRate, 4)
     figure
     %set(gcf,'Name',modelName)
     set(gcf,'WindowStyle','docked')
     for kw = 1:length(posDirs)
         subplot(1,length(posDirs),kw)
-        plot(faRate(1:length(counts),:,kw,pl), posRate(1:length(counts),:,kw,1), '*-')
-        set(gca,'xlim',[0 xLim(pl)],'ylim',[0 1]), grid on
+        plot(faRate(1:length(counts),:,kw,dset), posRate(1:length(counts),:,kw,1), '*-')
+        set(gca,'xlim',[0 xLim(dset)],'ylim',[0 1]), grid on
         title(kws{kw})
         legend(strsplit(num2str(ths_pct)),'location','southeast')
         ylabel('Detection rate')
         xlabel('False alarms / hour')
     end
 end
+%%
 %{
 %%
 
