@@ -6,7 +6,7 @@ from scipy.io import savemat
 import pdb
 import matplotlib.pyplot as plt
 
-""" Usage: 
+""" Usage:
 python createTrainingFeatures.py /path/to/audio/clips
 """
 
@@ -39,16 +39,17 @@ def load_features(dirName, matchers):
     return features, labels, fileNames
 
 def get_conditions(kws=None):
-        
+
     posConds = ['kwClip',
                ]
-     
+
     negConds = ['kwRevClip',
                 'speechAlignedClip','speechRandomClip',
                 'backClip',
                 'earlyImplantClip','lateImplantClip',
                 'partialEarlyClip','partialLateClip',
                 'shiftEarlyClip','shiftLateClip',
+                'falseAlarmClip',
                  ]
 
     if kws is not None:
@@ -59,9 +60,9 @@ def get_conditions(kws=None):
         negMatchers = negConds
 
     return posMatchers, negMatchers
- 
+
 def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, mid_stagger_s=0.075, Fs=16000, frameSamples=240):
-    
+
     posMatchers, negMatchers = get_conditions()
     maxLab = np.max(labels_pos)
     nFr100 = np.int(np.ceil(0.1*np.float(Fs)/frameSamples))
@@ -75,18 +76,19 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, mid_stag
         except:
             print('Could not find '+fn)
             pass
-        condition = [x for x in posMatchers if x in fn]        
+        condition = [x for x in posMatchers if x in fn]
         labVec = np.tile(np.nan,(nFr,))
-        if condition[0] is 'kwClip':
-            frStart = np.int(np.floor(anno[0]*nFr)) 
+        if 'kwClip' in condition[0]:
+            frStart = np.int(np.floor(anno[0]*nFr))
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
             labVec[[frMid-nFrMid,frMid]] = labels_pos[idx]+maxLab
-            labVec[frEnd-nFr100:frEnd] = labels_pos[idx]
-        labelsPosDistributed[idx,:] = labVec        
-        
-    # Negative 
+            labVec[frEnd-nFr100:frEnd-2] = labels_pos[idx]
+            labVec[frEnd-1:frEnd] = 0
+        labelsPosDistributed[idx,:] = labVec
+
+    # Negative
     labelsNegDistributed = np.zeros((len(labels_neg),nFr))
     for idx, fn in enumerate(fn_neg):
         try:
@@ -94,17 +96,17 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, mid_stag
         except:
             print('Could not find '+fn)
             pass
-        condition = [x for x in negMatchers if x in fn]        
+        condition = [x for x in negMatchers if x in fn]
         labVec = np.tile(np.nan,(nFr,))
         if condition[0] is 'kwRevClip':
-            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frStart = np.int(np.floor(anno[0]*nFr))
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
             labVec[[frMid-nFrMid,frMid]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'speechAlignedClip':
-            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frStart = np.int(np.floor(anno[0]*nFr))
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
@@ -113,23 +115,28 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, mid_stag
         elif condition[0] is 'speechRandomClip':
             randIdx = np.random.permutation(nFr)[:3]
             labVec[randIdx] = 0
+            labVec[-nFr100:] = 0
+        elif condition[0] is 'falseAlarmClip':
+            randIdx = np.random.permutation(nFr)[:3]
+            labVec[randIdx] = 0
+            labVec[-nFr100:] = 0
         elif condition[0] is 'backClip':
             randIdx = np.random.permutation(nFr)[:3]
             labVec[randIdx] = 0
         elif condition[0] is 'earlyImplantClip':
-            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frStart = np.int(np.floor(anno[0]*nFr))
             frMid = np.int(np.round(anno[1]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
             labVec[[frMid-nFrMid,frMid]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'lateImplantClip':
-            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frStart = np.int(np.floor(anno[0]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'partialEarlyClip':
-            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frStart = np.int(np.floor(anno[0]*nFr))
             frEnd = np.int(np.minimum(nFr, np.round(anno[2]*nFr)))
             labVec[[frStart-nFr100,frStart]] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
@@ -144,10 +151,10 @@ def time_distribute_labels(labels_pos, fn_pos, labels_neg, fn_neg, nFr, mid_stag
             labVec[randIdx] = 0
             labVec[[frEnd-nFr100,frEnd-1]] = 0
         elif condition[0] is 'shiftLateClip':
-            frStart = np.int(np.floor(anno[0]*nFr)) 
+            frStart = np.int(np.floor(anno[0]*nFr))
             labVec[[frStart-nFr100,frStart]] = 0
-        labelsNegDistributed[idx,:] = labVec        
-        
+        labelsNegDistributed[idx,:] = labVec
+
     return labelsPosDistributed, labelsNegDistributed
 
 if __name__ == '__main__':
@@ -158,7 +165,9 @@ if __name__ == '__main__':
     if len(sys.argv) > 3:
         kws = sys.argv[3].split('+')
     else:
+        print('Warning: No keywords specified. Mapping all kwClips to single class')
         kws = None
+
     timeDistributed = True
 
     posMatchers, negMatchers = get_conditions(kws=kws)
