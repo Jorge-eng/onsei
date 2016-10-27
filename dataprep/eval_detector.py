@@ -43,7 +43,8 @@ def eval_dir(inDir, ths, counts, nKw):
 
 def eval_all(netOutDir, nKw=3, deleteInput=False):
 
-    testDirs, ths, counts = params()
+    posDirs, negDirs, ths, counts = params()
+    testDirs = posDirs + negDirs
 
     for td in testDirs:
 
@@ -59,17 +60,17 @@ def eval_all(netOutDir, nKw=3, deleteInput=False):
 
 def params():
 
-    testDirs = ['testingWavs_kwClip_okay_sense',
+    posDirs = ['testingWavs_kwClip_okay_sense',
                 'testingWavs_kwClip_stop',
-                'testingWavs_kwClip_snooze',
-                'noiseDataset/16k',
-                'reverberant_speech/16k',
-                'TED']
+                'testingWavs_kwClip_snooze']
+    negDirs = ['noiseDataset/16k',
+               'reverberant_speech/16k',
+               'TED']
 
     ths = np.array([0.2, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98])
     counts = np.arange(1, 16, 2)
 
-    return testDirs, ths, counts
+    return posDirs, negDirs, ths, counts
 
 if __name__ == '__main__':
 
