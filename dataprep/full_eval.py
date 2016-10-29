@@ -18,7 +18,7 @@ def file_prob(model, files, modelType, offset, scale, winLen, testDir):
         feaStream = get_input(fn, 'tinyfeats', modelType, offset=offset, scale=scale, winLen=winLen)
 
         typeInfo = modelType.split('_')
-        if True:#len(typeInfo) > 1 and typeInfo[1] == 'stateful':
+        if len(typeInfo) > 1 and typeInfo[1] == 'stateful':
             prob = predict_stateful(model, feaStream, reset_states=True)
         else:
             prob = model.predict_proba(feaStream, verbose=0)
