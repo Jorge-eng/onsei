@@ -24,20 +24,23 @@ def get_input(inFile, inType, modelType, offset=0., scale=1., winLen=None, winSh
     if winLen is None:
         winLen = model.input_shape[3]
 
+    typeInfo = modelType.split('_')
+    timeDistributed = (len(typeInfo) > 1) and any([x in typeInfo[1] for x in ['dist','stateful']])
+
     if inType == 'tinyfeats':
         feaStream = audioproc.load_bin(inFile)
-        if 'dist' not in modelType:
+        if not timeDistributed:
             feaStream, starts = fbank_stream(feaStream, winLen)
     elif inType == 'audio':
         if os.path.isfile(inFile):
             feaStream = audioproc.wav2fbank(inFile)
             nFiles = 1
-            if 'dist' not in modelType:
+            if not timeDistributed:
                 feaStream, starts = fbank_stream(feaStream, winLen)
         elif os.path.isdir(inFile): # assumes each clip is winLen
             feaStream, files = audioproc.wav2fbank_batch(inFile)
             nFiles = len(files)
-        if 'dist' in modelType:
+        if timeDistributed:
             feaStream = np.reshape(feaStream, (nFiles, feaStream.shape[0], feaStream.shape[1]))
     elif inType == 'features':
         feaStream = data.load_batch(inFile, var='features')

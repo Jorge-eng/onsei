@@ -191,7 +191,7 @@ def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTe
     numClasses = len(np.unique(labelTrain[~np.isnan(labelTrain)]))
 
     typeInfo = str.split(modelType,'_')
-    if len(typeInfo) > 1 and (typeInfo[1]=='dist' or typeInfo[1]=='stateful'):
+    if (len(typeInfo) > 1) and any([x in typeInfo[1] for x in ['dist','stateful']]):
         if labelTrain.ndim is not 2:
             raise ValueError('label ndim should be 2 for time distributed')
 
