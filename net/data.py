@@ -39,7 +39,7 @@ def reshape_for_model(data, modelType='cnn'):
 
     if modelType=='cnn':
         data = data.reshape(data.shape[0], 1, data.shape[1], data.shape[2])
-    elif modelType=='rnn' or modelType=='rnn_dist':
+    elif modelType.split('_')[0]=='rnn':
         data = np.swapaxes(data, 1, 2)
 
     return data
@@ -138,6 +138,14 @@ def time_distribute_label(labels, timeSteps, numClasses, labelWindows=None, null
 
     return labelsTimeDistributed
 
+def cut_to_batch(features, labels, batchSize):
+
+    batchMultiple = np.int(np.float(features.shape[0])/batchSize) * batchSize
+    features = features[:batchMultiple]
+    labels = labels[:batchMultiple]
+
+    return features, labels
+
 def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=None, permuteBeforeSplit=(True,True)):
 
     # pos
@@ -183,7 +191,7 @@ def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTe
     numClasses = len(np.unique(labelTrain[~np.isnan(labelTrain)]))
 
     typeInfo = str.split(modelType,'_')
-    if len(typeInfo) > 1 and typeInfo[1]=='dist':
+    if len(typeInfo) > 1 and (typeInfo[1]=='dist' or typeInfo[1]=='stateful'):
         if labelTrain.ndim is not 2:
             raise ValueError('label ndim should be 2 for time distributed')
 

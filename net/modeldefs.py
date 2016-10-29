@@ -8,7 +8,7 @@ from keras.optimizers import SGD
 import numpy as np
 import pdb
 
-def model_may25_lstm_small(inputShape, numClasses):
+def model_may25_lstm_small(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
     #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
@@ -25,7 +25,7 @@ def model_may25_lstm_small(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_aug16_lstm_24x24(inputShape, numClasses):
+def model_aug16_lstm_24x24(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
     #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
@@ -42,7 +42,7 @@ def model_aug16_lstm_24x24(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_aug15_lstm_small_dist(inputShape, numClasses):
+def model_aug15_lstm_small_dist(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
     #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
@@ -59,7 +59,41 @@ def model_aug15_lstm_small_dist(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_aug15_lstm_vad_dist(inputShape, numClasses):
+def model_oct09_lstm_24x24_dist(inputShape, numClasses, batchSize=None):
+
+    optimizer = 'rmsprop'
+    #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
+    loss = 'categorical_crossentropy'
+
+    model = Sequential()
+
+    model.add(LSTM(24, return_sequences=True, input_shape=inputShape))
+    model.add(Dropout(0.2))
+    model.add(LSTM(24, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(TimeDistributed(Dense(numClasses)))
+    model.add(Activation('softmax'))
+
+    return model, optimizer, loss
+
+def model_oct09_lstm_36x12_dist(inputShape, numClasses, batchSize=None):
+
+    optimizer = 'rmsprop'
+    #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
+    loss = 'categorical_crossentropy'
+
+    model = Sequential()
+
+    model.add(LSTM(36, return_sequences=True, input_shape=inputShape))
+    model.add(Dropout(0.2))
+    model.add(LSTM(12, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(TimeDistributed(Dense(numClasses)))
+    model.add(Activation('softmax'))
+
+    return model, optimizer, loss
+
+def model_aug15_lstm_vad_dist(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
     #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
@@ -73,7 +107,7 @@ def model_aug15_lstm_vad_dist(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_aug30_lstm_med_dist(inputShape, numClasses):
+def model_aug30_lstm_med_dist(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
     #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
@@ -90,7 +124,27 @@ def model_aug30_lstm_med_dist(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_aug30_lstm_large_dist(inputShape, numClasses):
+def model_aug30_lstm_med_stateful(inputShape, numClasses, batchSize=None):
+
+    if batchSize is None:
+        ValueError('batchSize must be specified for stateful nets')
+
+    optimizer = 'rmsprop'
+    #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
+    loss = 'categorical_crossentropy'
+
+    model = Sequential()
+
+    model.add(LSTM(48, return_sequences=True, stateful=True, batch_input_shape=(batchSize,)+inputShape))
+    model.add(Dropout(0.2))
+    model.add(LSTM(48, return_sequences=True))
+    model.add(Dropout(0.2))
+    model.add(TimeDistributed(Dense(numClasses)))
+    model.add(Activation('softmax'))
+
+    return model, optimizer, loss
+
+def model_aug30_lstm_large_dist(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
     #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
@@ -107,7 +161,7 @@ def model_aug30_lstm_large_dist(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_aug10_lstm_small_sigm(inputShape, numClasses):
+def model_aug10_lstm_small_sigm(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
     #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
@@ -124,7 +178,7 @@ def model_aug10_lstm_small_sigm(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_aug07_lstm_med(inputShape, numClasses):
+def model_aug07_lstm_med(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
     #optimizer = SGD(lr=0.1, decay=0.0, momentum=0.9, nesterov=True)
@@ -141,7 +195,7 @@ def model_aug07_lstm_med(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_may25_lstm_large(inputShape, numClasses):
+def model_may25_lstm_large(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
     loss = 'categorical_crossentropy'
@@ -157,7 +211,7 @@ def model_may25_lstm_large(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_may24_large(inputShape, numClasses):
+def model_may24_large(inputShape, numClasses, batchSize=None):
 
     #optimizer = SGD(lr=0.01, decay=0.0, momentum=0.9, nesterov=True)
     optimizer = 'rmsprop'
@@ -208,7 +262,7 @@ def model_may24_large(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_may24_small(inputShape, numClasses):
+def model_may24_small(inputShape, numClasses, batchSize=None):
 
     #optimizer = SGD(lr=0.003, decay=0.0, momentum=0.9, nesterov=True)
     optimizer = 'rmsprop'
@@ -250,7 +304,7 @@ def model_may24_small(inputShape, numClasses):
     return model, optimizer, loss
 
 
-def model_may31_small_sigm(inputShape, numClasses):
+def model_may31_small_sigm(inputShape, numClasses, batchSize=None):
 
     #optimizer = SGD(lr=0.003, decay=0.0, momentum=0.9, nesterov=True)
     optimizer = 'rmsprop'
@@ -292,7 +346,7 @@ def model_may31_small_sigm(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_jun17_small_sigm(inputShape, numClasses):
+def model_jun17_small_sigm(inputShape, numClasses, batchSize=None):
 
     #optimizer = SGD(lr=0.003, decay=0.0, momentum=0.9, nesterov=True)
     optimizer = 'rmsprop'
@@ -334,7 +388,7 @@ def model_jun17_small_sigm(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_jun22_smaller_sigm(inputShape, numClasses):
+def model_jun22_smaller_sigm(inputShape, numClasses, batchSize=None):
 
     optimizer = SGD(lr=0.005, decay=1e-7, momentum=0.9, nesterov=True)
     #optimizer = 'rmsprop'
@@ -373,7 +427,7 @@ def model_jun22_smaller_sigm(inputShape, numClasses):
 
     return model, optimizer, loss
 
-def model_jun30_cnn_lstm(inputShape, numClasses):
+def model_jun30_cnn_lstm(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
     loss = 'categorical_crossentropy'

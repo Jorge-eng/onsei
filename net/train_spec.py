@@ -30,6 +30,7 @@ else:
 
 batchSize = 8
 numEpoch = 300
+typeInfo = modelType.split('_')
 
 modelDef = 'models/'+modelName+modelTag+'.json'
 modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:03d}.h5'
@@ -39,6 +40,12 @@ modelInfo = 'models/'+modelName+modelTag+'.mat'
 	inFile, modelType,
 	negRatioTrain=10, negRatioTest=10,
 	permuteBeforeSplit=(True,True), testSplit=0.15, normalize=normalize)
+
+
+# If stateful, must pare training to a multiple of batchSize
+if len(typeInfo) > 1 and typeInfo[1] == 'stateful':
+    feaTrain, labelTrain = data.cut_to_batch(feaTrain, labelTrain, batchSize)
+    feaTest, labelTest = data.cut_to_batch(feaTest, labelTest, batchSize)
 
 print(modelInfo)
 print('normalize:', normalize)
@@ -50,9 +57,9 @@ print(feaTest.shape[0], 'test samples')
 inputShape = feaTrain.shape[1:]
 numClasses = labelTrain.shape[-1]
 
-if modelType == 'cnn':
+if typeInfo[0] == 'cnn':
     winLen = inputShape[2]
-elif modelType == 'rnn' or modelType == 'rnn_dist':
+elif typeInfo[0] == 'rnn':
     winLen = inputShape[0]
 
 # class weights
@@ -71,7 +78,7 @@ print('classWeight:', classWeight)
 def build_model(inputShape, numClasses):
 
     modeldef_fcn = getattr(modeldefs, modelName)
-    model, optimizer, loss = modeldef_fcn(inputShape, numClasses)
+    model, optimizer, loss = modeldef_fcn(inputShape, numClasses, batchSize=batchSize)
 
     model.compile(loss=loss, optimizer=optimizer)
 
