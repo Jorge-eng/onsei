@@ -154,6 +154,39 @@ def get_model(modelTag, epoch=None):
 
     return model, modelType, winLen, offset, scale
 
+def predict_stateful(model, feaStream, reset_states=True):
+
+    batchSize, chunkSize, nBands = model.input_shape
+    nClasses = model.output_shape[2]
+
+    if reset_states:
+        model.reset_states()
+
+    # Chop up to chunks of size chunkSize
+    numChunks = np.int(np.float(feaStream.shape[1]) / chunkSize)
+    feaStream = np.reshape(feaStream[:,:numChunks*chunkSize,:], (numChunks, chunkSize, nBands))
+    numBatches = np.int(np.float(numChunks / batchSize))
+
+    if numChunks < batchSize: # Padding to batchSize, if required
+        # Should be zero padding instead?
+        numTiles = np.ceil(batchSize / np.float(numChunks))
+        feaStream = np.tile(feaStream, (numTiles, 1, 1))
+        feaStream = feaStream[:batchSize,:,:]
+        numBatches = 1
+
+    # predict batchSize chunks at a time
+    prob = np.zeros((numBatches*batchSize, chunkSize, nClasses))
+    for startIdx in range(0, numBatches*batchSize, batchSize):
+        idx = range(startIdx, startIdx+batchSize)
+        prob[idx,:,:] = model.predict_proba(feaStream[idx,:,:], verbose=0)
+
+    if numChunks < batchSize: # If it had been padded, take only the unpadded part
+        prob = prob[:numChunks,:,:]
+
+    prob = np.reshape(prob, (1, prob.shape[0]*chunkSize, nClasses))
+
+    return prob
+
 
 if __name__ == '__main__':
     # Usage:

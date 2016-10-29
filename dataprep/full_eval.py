@@ -6,7 +6,7 @@ sys.path.append(NET_PATH)
 
 from keras.models import model_from_json
 from scipy.io import loadmat, savemat
-from predict_spec import get_arch, get_input
+from predict_spec import get_arch, get_input, predict_stateful
 import eval_detector
 import numpy as np
 import multiprocessing
@@ -16,7 +16,12 @@ import pdb
 def file_prob(model, files, modelType, offset, scale, winLen, testDir):
     for fn in files:
         feaStream = get_input(fn, 'tinyfeats', modelType, offset=offset, scale=scale, winLen=winLen)
-        prob = model.predict_proba(feaStream, verbose=1)
+
+        typeInfo = modelType.split('_')
+        if True:#len(typeInfo) > 1 and typeInfo[1] == 'stateful':
+            prob = predict_stateful(model, feaStream, reset_states=True)
+        else:
+            prob = model.predict_proba(feaStream, verbose=0)
 
         outFile = os.path.join(testDir, os.path.basename(fn)+'.mat')
         print('Saving '+outFile)
