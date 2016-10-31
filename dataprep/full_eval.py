@@ -19,7 +19,7 @@ def file_prob(model, files, modelType, offset, scale, winLen, testDir):
 
         typeInfo = modelType.split('_')
         if len(typeInfo) > 1 and typeInfo[1] == 'stateful':
-            prob = predict_stateful(model, feaStream, reset_states=True)
+            prob = predict_stateful(model, feaStream, reset_states=False)
         else:
             prob = model.predict_proba(feaStream, verbose=0)
 
@@ -92,7 +92,7 @@ def eval_epochs(modelTag):
 
     sortIdx, meanFa = rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.88, kwWeights=[0.6,0.2,0.2])
 
-    return falseAlarm, truePos
+    return falseAlarm, truePos, sortIdx, meanFa
 
 def rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.88, kwWeights=[0.6,0.2,0.2]):
 
@@ -186,4 +186,6 @@ if __name__ == '__main__':
             Parallel(n_jobs=nWorkers)(delayed(file_prob)(model, fn, modelType, offset, scale, winLen, testDir) for model, fn in zip(models, chunks(files, nWorkers)))
 
         eval_detector.eval_all(netOutDir, nKw=nKw, deleteInput=True)
+
+    falseAlarm, truePos, sortIdx, meanFa = eval_epochs(modelTag)
 
