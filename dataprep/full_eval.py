@@ -12,6 +12,12 @@ import numpy as np
 import multiprocessing
 from joblib import Parallel, delayed
 import pdb
+try:
+    import matplotlib.pyplot as plt
+except:
+    print('Warning: pyplot failed to import')
+    pass
+
 
 def file_prob(model, files, modelType, offset, scale, winLen, testDir):
     for fn in files:
@@ -104,6 +110,18 @@ def rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.88, kwWeights=[0.6,0.2,
     meanFa = meanFa[:,sortIdx]
 
     return sortIdx, meanFa
+
+def plot_eval():
+
+    posDirs, negDirs, ths, counts = eval_detector.params()
+    kws = ['Okay Sense','Stop','Snooze']
+    xLim = [1, 10, 10]
+    for dirIdx, negDir in enumerate(negDirs):
+        fig = plt.figure()
+        for kwIdx, kw in enumerate(kws):
+            plt.subplot(1, len(kws), kwIdx+1)
+            plt.plot(faRate[:,:,kwIdx,dirIdx], posRate[:,:,kwIdx,dirIdx], '*-')
+
 
 def collapse(fa, pos, numNegSets, nKw, truePosPts):
 
