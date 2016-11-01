@@ -54,6 +54,27 @@ def get_model_info(modelTag):
 def compile_model(modelDef):
     return model_from_json(open(modelDef).read())
 
+def eval_model(epochDir, posDirs=None, negDirs=None):
+
+    posRate = []
+    for kw, posDir in enumerate(posDirs):
+        dn = os.path.join(epochDir, 'eval_'+posDir.split('/')[0]+'.mat')
+        data = loadmat(dn)
+        posRate.append(data['num'][:,:,:,kw].sum(axis=0) / data['num'].shape[0])
+
+    faNum = []
+    faRate = []
+    for j, negDir in enumerate(negDirs):
+        dn = os.path.join(epochDir, 'eval_'+negDir.split('/')[0]+'.mat')
+        data = loadmat(dn)
+        faNum.append([])
+        faRate.append([])
+        for kw in range(0, data['num'].shape[3]):
+            faNum[-1].append(data['num'][:,:,:,kw].sum(axis=0))
+            faRate[-1].append(faNum[-1][-1] / (data['tot'].sum()*0.015/60/60))
+
+    return faRate, posRate
+
 def eval_epochs(modelTag):
 
     posDirs, negDirs, ths, counts = eval_detector.params()
@@ -65,38 +86,22 @@ def eval_epochs(modelTag):
 
     falseAlarm = []
     truePos = []
-    #falseAlarm = np.zeros((len(counts),len(ths),len(posDirs),len(epochDirs)))
-    #truePos = np.zeros((len(counts),len(ths),len(posDirs),len(epochDirs)))
-
     for ep, epochDir in enumerate(epochDirs):
-        posRate = []
-        for kw, posDir in enumerate(posDirs):
-            dn = os.path.join(epochDir, 'eval_'+posDir.split('/')[0]+'.mat')
-            data = loadmat(dn)
-            posRate.append(data['num'][:,:,:,kw].sum(axis=0) / data['num'].shape[0])
-            #posRate[:,:,kw] = data['num'][:,:,:,kw].sum(axis=0) / data['num'].shape[0]
 
-        faNum = []
-        faRate = []
-        for j, negDir in enumerate(negDirs):
-            dn = os.path.join(epochDir, 'eval_'+negDir.split('/')[0]+'.mat')
-            data = loadmat(dn)
-            faNum.append([])
-            faRate.append([])
-            for kw in range(0, data['num'].shape[3]):
-                faNum[-1].append(data['num'][:,:,:,kw].sum(axis=0))
-                faRate[-1].append(faNum[-1][-1] / (data['tot'].sum()*0.015/60/60))
-                #faNum[:,:,kw,j] = data['num'][:,:,:,kw].sum(axis=0)
-                #faRate[:,:,kw,j] = faNum[:,:,kw,j] / (data['tot'].sum()*0.015/60/60)
+        faRate, posRate = eval_model(epochDir, posDirs, negDirs)
 
         fa, tp = collapse(faRate, posRate, len(negDirs), len(posDirs), truePosPts)
+
         falseAlarm.append(fa)
         truePos.append(tp)
 
     falseAlarm = np.rollaxis(np.array(falseAlarm),0,4)
     truePos = np.rollaxis(np.array(truePos),0,4)
 
-    sortIdx, meanFa = rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.88, kwWeights=[0.6,0.2,0.2])
+    sortIdx, meanFa = rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.87, kwWeights=[0.8,0.1,0.1])
+
+    faRate, posRate = eval_model(epochDirs[sortIdx[0]], posDirs, negDirs)
+    plot_eval(faRate, posRate, outDir=epochDirs[sortIdx[0]])
 
     return falseAlarm, truePos, sortIdx, meanFa
 
@@ -111,17 +116,27 @@ def rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.88, kwWeights=[0.6,0.2,
 
     return sortIdx, meanFa
 
-def plot_eval():
+def plot_eval(faRate, posRate, outDir='.'):
 
     posDirs, negDirs, ths, counts = eval_detector.params()
     kws = ['Okay Sense','Stop','Snooze']
     xLim = [1, 10, 10]
     for dirIdx, negDir in enumerate(negDirs):
-        fig = plt.figure()
+        negDir = negDir.split('/')[0]
+        fig = plt.figure(figsize=(20,5))
+        fig.canvas.set_window_title(negDir)
         for kwIdx, kw in enumerate(kws):
-            plt.subplot(1, len(kws), kwIdx+1)
-            plt.plot(faRate[:,:,kwIdx,dirIdx], posRate[:,:,kwIdx,dirIdx], '*-')
-
+            ax = plt.subplot(1, len(kws), kwIdx+1)
+            h = plt.plot(faRate[dirIdx][kwIdx], posRate[kwIdx],'*-')
+            ax.set_title(kw)
+            ax.set_xlabel('False alarms / hr')
+            ax.set_ylabel('Detection rate')
+            ax.set_xlim((0, xLim[kwIdx]))
+            ax.set_ylim((0, 1))
+            ax.legend(h, ths, loc='lower right')
+            ax.grid(True)
+        fig.savefig(os.path.join(outDir,'eval_{}.pdf'.format(negDir)))
+    #plt.show()
 
 def collapse(fa, pos, numNegSets, nKw, truePosPts):
 
