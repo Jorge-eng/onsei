@@ -6,7 +6,7 @@ sys.path.append(NET_PATH)
 
 from keras.models import model_from_json
 from scipy.io import loadmat, savemat
-from predict_spec import get_arch, get_input, predict_stateful
+from predict_spec import get_arch, get_input, get_model, predict_stateful
 import eval_detector
 import numpy as np
 import multiprocessing
@@ -20,18 +20,25 @@ except:
 
 
 def file_prob(model, files, modelType, offset, scale, winLen, testDir):
-    for fn in files:
-        feaStream = get_input(fn, 'tinyfeats', modelType, offset=offset, scale=scale, winLen=winLen)
 
-        typeInfo = modelType.split('_')
-        if len(typeInfo) > 1 and typeInfo[1] == 'stateful':
-            prob = predict_stateful(model, feaStream, reset_states=False)
-        else:
-            prob = model.predict_proba(feaStream, verbose=0)
+    for fn in files:
+        prob = predict_file(fn, model, modelType, offset, scale, winLen, reset_states=False)
 
         outFile = os.path.join(testDir, os.path.basename(fn)+'.mat')
         print('Saving '+outFile)
         savemat(outFile, {'prob': prob})
+
+def predict_file(fn, model, modelType, offset, scale, winLen, reset_states=False):
+
+    feaStream = get_input(fn, 'tinyfeats', modelType, offset=offset, scale=scale, winLen=winLen)
+
+    typeInfo = modelType.split('_')
+    if len(typeInfo) > 1 and typeInfo[1] == 'stateful':
+        prob = predict_stateful(model, feaStream, reset_states=reset_states)
+    else:
+        prob = model.predict_proba(feaStream, verbose=0)
+
+    return prob
 
 def chunks(l, n):
     z = int(np.ceil(np.float(len(l)) / n))
@@ -160,6 +167,22 @@ def collapse(fa, pos, numNegSets, nKw, truePosPts):
 
     return falseAlarm, truePos
 
+def count_detections(modelTag, epoch, inDir, h, th, nKw=3):
+
+    model, modelType, winLen, offset, scale = get_model(modelTag, epoch=epoch)
+
+    files = glob.glob(os.path.expanduser(os.path.join('~/keyword', inDir, 'bin', '*.bin')))
+    if len(files)==0:
+        raise ValueError('No valid files found in '+inDir)
+
+    tot = []
+    num = []
+    for fn in files:
+        prob = predict_file(fn, model, modelType, offset, scale, winLen, reset_states=False)[0]
+        tot.append(prob.shape[0])
+        num.append(eval_detector.detector(prob[:,1:1+nKw], h, th))
+
+    return num, tot
 
 if __name__ == '__main__':
 
