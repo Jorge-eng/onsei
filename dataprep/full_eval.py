@@ -114,7 +114,7 @@ def eval_epochs(modelTag):
         plot_eval(faRate, posRate, outDir=outDir)
 
         print('{idx}: {ep}'.format(idx=rank,ep=topEpochs[-1]))
-        print('FAR: '+' '.join(['{:0.2f}'.format(x) for x in meanFa[idx]]))
+        print('FAR: '+' '.join(['{:0.2f}'.format(x) for x in meanFa[:,rank]]))
 
     return falseAlarm, truePos, sortIdx, meanFa, topEpochs
 
