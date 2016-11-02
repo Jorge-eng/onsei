@@ -1,15 +1,16 @@
-# ./batchrunner inDir outDir
+# ./batchrunner inDir outDir modelTag
 
 inDir=$1
 outDir=$2
-modelFile=$3
+modelTag=$3
+modelTag=`echo $modelTag | sed "s/+/_/g"`
 
 mkdir -p $outDir
 rm $outDir/*.csv
 
 cd ../implementation
 
-ln -sf $modelFile model_def.c
+ln -sf ../net/models/$modelTag\.c model_def.c
 touch wavrunner.cpp
 make wavrunner 1> /dev/null
 
