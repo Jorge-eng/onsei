@@ -18,11 +18,11 @@ k_activation_func_map = {'relu' : 'tinytensor_relu',
                          'tanh' : 'tinytensor_tanh'}
 
 def write_header(f):
-    f.write('#include "tinytensor_lstm_layer.h"\n')    
-    f.write('#include "tinytensor_conv_layer.h"\n')    
-    f.write('#include "tinytensor_fullyconnected_layer.h"\n')    
+    f.write('#include "tinytensor_lstm_layer.h"\n')
+    f.write('#include "tinytensor_conv_layer.h"\n')
+    f.write('#include "tinytensor_fullyconnected_layer.h"\n')
     f.write('#include "tinytensor_math.h"\n')
-    f.write('#include "tinytensor_net.h"\n')    
+    f.write('#include "tinytensor_net.h"\n')
 
 
 def write_fixed_point_tensor(name,weights,f):
@@ -56,13 +56,13 @@ def write_fixed_point_tensor(name,weights,f):
     return weights_name,dims_name
 
 def write_conv_weights(name,weights,f):
-    
+
     w = copy.deepcopy(weights)
     for i in range(weights.shape[0]):
         for j in range(weights.shape[1]):
            w[i][j] = w[i][j][::-1,::-1]
 
-    weights_name,dims_name = write_fixed_point_tensor(name,w,f) 
+    weights_name,dims_name = write_fixed_point_tensor(name,w,f)
 
     return weights_name,dims_name
 
@@ -78,11 +78,11 @@ class Layer(object):
     def get_prev_dropout(self):
         if self.prevlayers == None:
             return 0.0
-        
+
         names = [layer['name'] for layer in self.prevlayers]
         if 'Dropout' not in names:
             return 0.0
-        
+
         idx = names.index('Dropout')
         p = 0.
         if idx != None:
@@ -95,17 +95,17 @@ class Layer(object):
 
         if zero_layer.has_key('layer'):
             zero_layer = zero_layer['layer']
-            
+
         activation = zero_layer['activation']
         names = [layer['name'] for layer in self.layers]
-        
+
         if 'Activation' in names:
             idx = names.index('Activation')
             if self.layers[idx].has_key('activation'):
                 activation = self.layers[idx]['activation']
-                
+
         return activation
-        
+
     def add_weights(self,w):
         self.weights.append(w)
 
@@ -117,11 +117,11 @@ class ConvLayer(Layer):
 
         if 'MaxPooling2D' not in names:
             return (1,1)
-        
+
         max_pool_layer = self.layers[names.index('MaxPooling2D')]
 
         return max_pool_layer['pool_size']
-            
+
     def write(self,input_shape,f):
 
 
@@ -154,11 +154,11 @@ class ConvLayer(Layer):
             s0 = 1
 
 
-        
+
         output_shape = (s0,s1,s2,s3)
 
         input_name,output_name = write_dims(input_shape,output_shape,self.name,f)
-        
+
         f.write('const static ConvLayer2D_t %s = {&%s,&%s,%s,%s,%s,TOFIX(%f),%s};\n' % (self.name.lower(),weights_name,bias_name,output_name,input_name,poolvar,self.dropout,k_activation_func_map[self.get_activation()]))
         f.write('\n\n\n')
 
@@ -167,12 +167,12 @@ class ConvLayer(Layer):
     def write_creation(self,f):
         objname = self.name.lower()
         f.write('tinytensor_create_conv_layer(&%s)' % (objname))
-                   
+
     def get_num_weights(self):
         return 2
 
 
-    
+
 class Dense(Layer):
     def write(self,input_shape,f):
         weights_name = self.name + '_full'
@@ -191,7 +191,7 @@ class Dense(Layer):
         hardmax = 0
         if activation == 'softmax':
             use_softmax = 1
-            
+
         activation_function = k_activation_func_map[activation]
         f.write('const static FullyConnectedLayer_t %s = {&%s,&%s,%s,%s,TOFIX(%f),%s,%d};\n' % (self.name.lower(),weights_name,bias_name,output_name,input_name,self.dropout,activation_function,use_softmax))
         f.write('\n\n\n')
@@ -200,7 +200,7 @@ class Dense(Layer):
     def write_creation(self,f):
         objname = self.name.lower()
         f.write('tinytensor_create_fullyconnected_layer(&%s)' % (objname))
-                   
+
     def get_num_weights(self):
         return 2
 
@@ -222,7 +222,7 @@ class Lstm(Layer):
             biasname = self.name + '_biases_' + gates[i]
 
             idx = 3*i
-            
+
             gi = w[idx]
             gr = w[idx + 1]
 
@@ -230,7 +230,7 @@ class Lstm(Layer):
             g = g.transpose()
             g = g.reshape((1,1,g.shape[0],g.shape[1]))
 
-                        
+
             b = w[idx + 2]
             b = b.reshape((1,1,1,b.shape[0]))
 
@@ -241,13 +241,13 @@ class Lstm(Layer):
 
         objname = self.name.lower()
         activation = self.get_activation()
-        
+
         activation_function = k_activation_func_map[activation]
 
         gates_names_ptrs = []
         for g in names:
             gates_names_ptrs.append('&' + g)
-            
+
         gates_names = ','.join(gates_names_ptrs)
         f.write('const static LstmLayer_t %s = {%s,%s,%s,TOFIX(%f),%s};\n\n\n' % (objname,gates_names,output_name,input_name,self.dropout,activation_function))
         return output_shape
@@ -272,8 +272,8 @@ def create_layer_objects(organized_layers):
         layer_counts[name] += 1
         layerobjs.append(layer_map[name](prev_layers,layers,layer_counts[name]))
         prev_layers = layers
-        
-    return layerobjs    
+
+    return layerobjs
 
 
 def write_uint32_array(name,values,f):
@@ -282,7 +282,7 @@ def write_uint32_array(name,values,f):
     f.write('const static uint32_t %s[%d] = {%s};\n' % (name,len(values),arrvalue))
 
 def write_dims(input_shape,output_shape,name,f):
-    
+
     input_name = '%s_input_dims' % name
     output_name = '%s_output_dims' % name
 
@@ -301,20 +301,23 @@ def write_sequential_network(layerobjs,model,f):
 
         for idx in range(weights_idx_begin,weights_idx):
             w = copy.deepcopy(model.get_weights()[idx])
-                            
+
             obj.add_weights(w)
 
         print '-----'
 
     write_header(f)
-    layer_input_shape = layerobjs[0].layers[0]['input_shape']
-
-    if len(layer_input_shape) == 2:
-        input_shape = (1,1,1,layer_input_shape[1])
+    if 'batch_input_shape' in layerobjs[0].layers[0]:
+        input_shape = (1,1,1,layerobjs[0].layers[0]['batch_input_shape'][2])
     else:
-        input_shape = (1,layer_input_shape[0],layer_input_shape[1],layer_input_shape[2])
+        layer_input_shape = layerobjs[0].layers[0]['input_shape']
 
-        
+        if len(layer_input_shape) == 2:
+            input_shape = (1,1,1,layer_input_shape[1])
+        else:
+            input_shape = (1,layer_input_shape[0],layer_input_shape[1],layer_input_shape[2])
+
+
     original_input_shape = input_shape
     for obj in layerobjs:
         print 'name=%s, dropout=%f' %(obj.name,obj.dropout)
@@ -347,13 +350,13 @@ def save_model_to_c_from_file(json_name,h5file_name=None):
     elif h5file_name is None:
         h5file_name = glob.glob(json_name.replace('.json','_ep*.h5'))
         h5file_name.sort()
-    
+
     for weight_file in h5file_name:
         model_name = weight_file.split('.')[0]
         model_name = model_name.replace('+','_')
         print 'model_name %s' % model_name
 
-        model.load_weights(weight_file)    
+        model.load_weights(weight_file)
         save_model_to_c(model,model_name)
 
 def save_all_to_c_from_files(json_name):
@@ -361,13 +364,13 @@ def save_all_to_c_from_files(json_name):
     model_name = model_name.replace('+','_')
     print 'model_name %s' % model_name
 
-    model = get_model(json_name) 
+    model = get_model(json_name)
 
 def get_model(json_name,h5file_name=None):
 
     with open(json_name,'r') as f:
         config_json = f.read()
-        
+
     print 'read model from %s' % json_name
     print 'compiling...'
     model = model_from_json(config_json)
@@ -390,7 +393,7 @@ def get_model_scaling(model,input_shape):
         x = 2 * np.random.rand(N).reshape(input_shape) - 1
         y.append(model.predict(x))
 
-    
+
     ranges = []
     for yy in y:
         ranges.append(np.max(yy) - np.min(yy))
