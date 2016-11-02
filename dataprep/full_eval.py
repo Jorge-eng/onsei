@@ -118,7 +118,7 @@ def eval_epochs(modelTag):
         print('{idx}: {ep}'.format(idx=rank,ep=topEpochs[-1]))
         print('FAR: '+' '.join(['{:0.2f}'.format(x) for x in meanFa[idx]]))
 
-return falseAlarm, truePos, sortIdx, meanFa, topEpochs
+    return falseAlarm, truePos, sortIdx, meanFa, topEpochs
 
 def rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.88, kwWeights=[0.6,0.2,0.2]):
 
