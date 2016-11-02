@@ -107,10 +107,18 @@ def eval_epochs(modelTag):
 
     sortIdx, meanFa = rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.87, kwWeights=[0.8,0.1,0.1])
 
-    faRate, posRate = eval_model(epochDirs[sortIdx[0]], posDirs, negDirs)
-    plot_eval(faRate, posRate, outDir=epochDirs[sortIdx[0]])
+    topEpochs = []
+    print('Top epochs:')
+    for rank in range(0, 5):
+        outDir = epochDirs[sortIdx[rank]]
+        topEpochs.append(outDir)
+        faRate, posRate = eval_model(outDir, posDirs, negDirs)
+        plot_eval(faRate, posRate, outDir=outDir)
 
-    return falseAlarm, truePos, sortIdx, meanFa
+        print('{idx}: {ep}'.format(idx=rank,ep=topEpochs[-1]))
+        print('FAR: '+' '.join(['{:0.2f}'.format(x) for x in meanFa[idx]]))
+
+return falseAlarm, truePos, sortIdx, meanFa, topEpochs
 
 def rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.88, kwWeights=[0.6,0.2,0.2]):
 
@@ -242,6 +250,4 @@ if __name__ == '__main__':
             Parallel(n_jobs=nWorkers)(delayed(file_prob)(model, fn, modelType, offset, scale, winLen, testDir) for model, fn in zip(models, chunks(files, nWorkers)))
 
         eval_detector.eval_all(netOutDir, nKw=nKw, deleteInput=True)
-
-    falseAlarm, truePos, sortIdx, meanFa = eval_epochs(modelTag)
 
