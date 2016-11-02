@@ -2,17 +2,15 @@ import sys, os
 TOP_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(TOP_DIR, 'models')
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 import glob
 from scipy.io import loadmat, savemat
 from predict_spec import get_arch, get_input
 import numpy as np
 import pdb
-
-try: # pyplot throws errors on ec2
-    import matplotlib.pyplot as plt
-except:
-    print('Warning: pyplot failed to import')
-    pass
 
 # Usage:
 # $ python predict_all_epochs.py audio in.wav out model_name

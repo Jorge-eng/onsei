@@ -1,14 +1,13 @@
 import sys, os, glob
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 from scipy.io import loadmat, savemat
 from predict_spec import get_model, get_input
 import numpy as np
 import pdb
-
-try: # pyplot throws errors on ec2
-    import matplotlib.pyplot as plt
-except:
-    print('Warning: pyplot failed to import')
-    pass
 
 # Usage:
 # $ python predict_all_files.py path/to/inputs path/to/outputs model_name [epoch]

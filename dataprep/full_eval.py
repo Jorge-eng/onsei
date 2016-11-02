@@ -4,6 +4,10 @@ NET_PATH = os.path.join(TOP_DIR, '../net')
 MODEL_PATH = os.path.join(NET_PATH, 'models')
 sys.path.append(NET_PATH)
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 from keras.models import model_from_json
 from scipy.io import loadmat, savemat
 from predict_spec import get_arch, get_input, get_model, predict_stateful
@@ -12,12 +16,6 @@ import numpy as np
 import multiprocessing
 from joblib import Parallel, delayed
 import pdb
-try:
-    import matplotlib.pyplot as plt
-except:
-    print('Warning: pyplot failed to import')
-    pass
-
 
 def file_prob(model, files, modelType, offset, scale, winLen, testDir):
 

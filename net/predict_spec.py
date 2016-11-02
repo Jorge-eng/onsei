@@ -5,6 +5,10 @@ NET_PATH = os.path.join(TOP_DIR, '../net')
 DATA_PATH = os.path.join(TOP_DIR, '../dataprep')
 sys.path.append(DATA_PATH)
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 import data
 from keras.models import model_from_json
 from scipy.io import loadmat, savemat
@@ -12,12 +16,6 @@ from scipy.io import wavfile
 import audioproc
 import numpy as np
 import pdb
-
-try: # pyplot throws errors on ec2
-    import matplotlib.pyplot as plt
-except:
-    print('Warning: pyplot failed to import')
-    pass
 
 def get_input(inFile, inType, modelType, offset=0., scale=1., winLen=None, winShift=10):
 
