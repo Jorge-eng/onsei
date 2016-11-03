@@ -28,18 +28,23 @@ if len(sys.argv) > 5:
 else:
     normalize = True
 
-batchSize = 8
-numEpoch = 300
 typeInfo = modelType.split('_')
 
 modelDef = 'models/'+modelName+modelTag+'.json'
 modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:03d}.h5'
 modelInfo = 'models/'+modelName+modelTag+'.mat'
 
+numEpoch = 2
+batchSize = 8
+negRatioTrain = 20
+negRatioTest = 10
+permuteBeforeSplit = (True, True)
+testSplit = 0.15
+# Load the train and test data
 (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale) = data.load_training(
 	inFile, modelType,
-	negRatioTrain=10, negRatioTest=10,
-	permuteBeforeSplit=(True,True), testSplit=0.15, normalize=normalize)
+	negRatioTrain=negRatioTrain, negRatioTest=negRatioTest,
+	permuteBeforeSplit=permuteBeforeSplit, testSplit=testSplit, normalize=normalize)
 
 
 # If stateful, must pare training to a multiple of batchSize
@@ -86,12 +91,18 @@ def build_model(inputShape, numClasses):
 
 model = build_model(inputShape, numClasses)
 
+modelParams = {'modelDef': modelDef, 'modelWeights': modelWeights,
+               'modelType': modelType, 'winLen': winLen,
+               'offset': offset, 'scale': scale}
+trainParams = {'inFile':inFile, 'batchSize': batchSize,
+                'negRatioTrain': negRatioTrain, 'permuteBeforeSplit': permuteBeforeSplit,
+                'testSplit': testSplit,'normalize': str(normalize), 'classWeight': w}
+
 # Save info required to run intermediate model during training
 print('Saving to '+modelInfo)
-savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights,
-                    'modelType': modelType,'winLen': winLen,
-                    'offset': offset,'scale': scale})
- # Write model definition to file
+savemat(modelInfo, dict(modelParams, **trainParams))
+
+# Write model definition to file
 open(modelDef, 'w').write(model.to_json())
 
 cbks = [ModelCheckpoint(modelWeights, monitor='val_loss')]
@@ -106,12 +117,12 @@ history = model.fit(feaTrain, labelTrain, batch_size=batchSize,
             class_weight=classWeight)
 
 # Save all info again plus training history (no way to append)
+modelParams = dict(modelParams,
+                   **{'train_acc':history.history['acc'],
+                      'train_loss':history.history['loss'],
+                      'val_acc':history.history['val_acc'],
+                      'val_loss':history.history['val_loss']})
+
 print('Saving to '+modelInfo)
-savemat(modelInfo, {'modelDef': modelDef,'modelWeights': modelWeights,
-                    'modelType': modelType,'winLen': winLen,
-                    'offset': offset,'scale': scale,
-                    'train_acc':history.history['acc'],
-                    'train_loss':history.history['loss'],
-                    'val_acc':history.history['val_acc'],
-                    'val_loss':history.history['val_loss']})
+savemat(modelInfo, dict(modelParams, **trainParams))
 
