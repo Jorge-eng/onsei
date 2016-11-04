@@ -15,8 +15,9 @@ else:
 pos, neg = get_conditions(kws=kws)
 condMatch = pos + neg
 
-idMatch = ['160517_07','160517_08','160606_03','160606_04',
-           'VoiceBunny_915641_AFDP9VS','VoiceBunny_916261_97VN760','VoiceBunny_916029_6M3QU0K',  
+idMatch = ['160517_07','160517_08','160606_03','160606_04','161018_01',
+           'VoiceBunny_915641_AFDP9VS','VoiceBunny_916261_97VN760','VoiceBunny_916029_6M3QU0K',
+           'VoiceBunny_930004_DQA1KBS',
           ]
 
 identity = []
