@@ -65,7 +65,7 @@ def eval_model(epochDir, posDirs=None, negDirs=None):
     for kw, posDir in enumerate(posDirs):
         dn = os.path.join(epochDir, 'eval_'+posDir.split('/')[0]+'.mat')
         data = loadmat(dn)
-        posRate.append(data['num'][:,:,:,kw].sum(axis=0) / data['num'].shape[0])
+        posRate.append(np.minimum(1, data['num'][:,:,:,kw]).sum(axis=0) / data['num'].shape[0])
 
     faNum = []
     faRate = []
