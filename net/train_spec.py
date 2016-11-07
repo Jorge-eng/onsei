@@ -34,7 +34,7 @@ modelDef = 'models/'+modelName+modelTag+'.json'
 modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:03d}.h5'
 modelInfo = 'models/'+modelName+modelTag+'.mat'
 
-numEpoch = 2
+numEpoch = 300
 batchSize = 8
 negRatioTrain = 20
 negRatioTest = 10
