@@ -1,18 +1,7 @@
+function makeROCs(modelTag, epoch)
 
-% first step: batchrunner of a particular model
-% on a particular condition.
-%
-% As a result, there will be dirNames for 
-% several conditions. Some negative, some positive.
-
-%modelName = 'model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_fa_1006_ep077';
-%modelName = 'model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_912_ep216';
-%modelName = 'model_aug30_lstm_med_dist_okay_sense+stop+snooze_tiny_912_ep216';
-modelName = 'model_aug30_lstm_med_dist_okay_sense+stop+snooze_tiny_fa8_1030_rat20_ep093';
+modelName = [modelTag '_ep' epoch];
 %modelName = 'model_aug30_lstm_med_dist_okay_sense+stop+snooze_tiny_end0_1022_ep075';
-
-%modelName = 'model_aug30_lstm_med_dist_okay_sense+stop+snooze_tiny_fa8_1014_ep105';
-%modelName = 'model_aug30_lstm_med_dist_okay_sense_stop_snooze_tiny_fa8_1014_ep105';
 
 % The number of posDirs will be the number of keywords 
 % in the model outputs
@@ -53,7 +42,7 @@ for j = 1:length(posDirs)
         dn = strsplit(posDirs{j},'/');
         load(fullfile('../net/outputs',modelName,['eval_' dn{1} '.mat']))
     end
-    posRate(:,:,j) = squeeze(sum(num(:,:,:,j))) / size(num,1);
+    posRate(:,:,j) = squeeze(sum(min(1,num(:,:,:,j)))) / size(num,1);
 end
 %%
 clear faRate faNum
