@@ -103,7 +103,7 @@ def eval_epochs(modelTag):
     falseAlarm = np.rollaxis(np.array(falseAlarm),0,4)
     truePos = np.rollaxis(np.array(truePos),0,4)
 
-    sortIdx, meanFa = rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.87, kwWeights=[0.8,0.1,0.1])
+    sortIdx, meanFa = rank_epochs(falseAlarm, truePos, truePosPts, tpBar=[0.87, 0.87, 0.87], kwWeights=[0.8, 0.1, 0.1])
 
     topEpochs = []
     print('Top epochs:')
@@ -120,8 +120,14 @@ def eval_epochs(modelTag):
 
 def rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.88, kwWeights=[0.6,0.2,0.2]):
 
-    tpIdx = np.where(truePosPts >= tpBar)[0][0]
-    meanFa = falseAlarm[tpIdx,:,:,:].mean(axis=1)
+    (nPts, nKw, nSets, nEp) = falseAlarm.shape
+    if len(tpBar) < nKw:
+        tpBar = [tpBar]*nKw
+
+    meanFa = np.zeros((nKw, nEp))
+    for kw in range(nKw):
+        tpIdx = np.where(truePosPts >= tpBar[kw])[0][0]
+        meanFa[kw, :] = falseAlarm[tpIdx,kw,:,:].mean(axis=0) # mean across datasets
 
     sortIdx = np.argsort(np.dot(kwWeights, meanFa))
     #sortIdx = np.argsort(meanFa[0])
