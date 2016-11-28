@@ -34,12 +34,12 @@ modelDef = 'models/'+modelName+modelTag+'.json'
 modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:03d}.h5'
 modelInfo = 'models/'+modelName+modelTag+'.mat'
 
-numEpoch = 300
+numEpoch = 252
 batchSize = 8
 negRatioTrain = 20
 negRatioTest = 10
 permuteBeforeSplit = (True, True)
-testSplit = 0.15
+testSplit = 0.10
 # Load the train and test data
 (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale) = data.load_training(
 	inFile, modelType,

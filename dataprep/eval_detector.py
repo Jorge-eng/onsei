@@ -6,7 +6,7 @@ from scipy.signal import convolve
 from scipy.io import loadmat, savemat
 import pdb
 
-def detector(data, h, th):
+def detector(data, h, th, wait=70):
 
     th = np.tile(th, 2)
     h = np.ones((h,),dtype='float32')
@@ -18,6 +18,7 @@ def detector(data, h, th):
         det = convolve(det, h, mode='same')
         det = np.float32(det == len(h))
         det = np.diff(det) > 0
+        det[:wait] = False
         num.append(len(np.where(det)[0]))
 
     return num
