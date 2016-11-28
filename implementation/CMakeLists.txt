@@ -10,11 +10,12 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 find_package(SndFile REQUIRED)
 find_package(PortAudio REQUIRED)
+find_package(RapidJSON REQUIRED)
 
 add_definitions(-DUSE_CPP_DEBUG_LOGGING)
 add_definitions(-DNO_EQUALIZATION)
 
-include_directories (${SNDFILE_INCLUDE_DIRS} ${PORTAUDIO_INCLUDE_DIRS} "gtest/include/" "gtest" "./")
+include_directories (${SNDFILE_INCLUDE_DIRS} ${PORTAUDIO_INCLUDE_DIRS} ${RAPIDJSON_INCLUDE_DIRS} "gtest/include/" "gtest" "./")
 message(STATUS "${SNDFILE_INCLUDE_DIRS}")
 message(STATUS "${SNDFILE_LIBRARIES}")
 
@@ -81,4 +82,10 @@ wavrunner.cpp)
 
 target_link_libraries(wavrunner tensor hellomath ${SNDFILE_LIBRARIES})
 target_compile_features(wavrunner PRIVATE cxx_range_for)
+
+#############
+add_executable(serverfeatsrunner
+serverfeatsrunner.cpp)
+
+target_link_libraries(serverfeatsrunner tensor hellomath ${RAPIDJSON_LIBRARIES}) 
 
