@@ -17,7 +17,7 @@ condMatch = pos + neg
 
 idMatch = ['160517_07','160517_08','160606_03','160606_04','161018_01',
            'VoiceBunny_915641_AFDP9VS','VoiceBunny_916261_97VN760','VoiceBunny_916029_6M3QU0K',
-           'VoiceBunny_930004_DQA1KBS',
+           'VoiceBunny_930004_DQA1KBS','VoiceBunny_932739_FPD408K','VoiceBunny_932741_A57CA4G',
           ]
 
 identity = []
