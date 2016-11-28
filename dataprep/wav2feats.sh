@@ -17,9 +17,6 @@ fi
 if [ $1 = "train" ]; then
     echo "createTrainingFeatures.py $inDir $outName $3"
     python createTrainingFeatures.py $inDir $outName $3
-
-    echo "copyToHelloServer.sh $outName\.mat onsei/net"
-    ~/copyToHelloServer.sh $outName\.mat onsei/net
 elif [ $1 = "test" ]; then
     echo "createTestGrid.py $inDir $outName $3" 
     python createTestGrid.py $inDir $outName $3 #${@:4}
