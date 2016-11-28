@@ -31,8 +31,7 @@ falseAlarmClip"
 
 conditions="okay_sense stop snooze"
 
-sourceDir=~/keyword/newdir
-destDir=~/keyword/newnewdir
+destDir=~/keyword/okay_sense+stop+snooze/train/wav
 mkdir -p $destDir
 
 for k in $conditions; do
