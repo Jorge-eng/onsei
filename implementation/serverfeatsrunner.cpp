@@ -18,68 +18,93 @@
 
 #include "model_def.c"
 
+std::string base64_decode(std::string const& encoded_string);
 
 
 using namespace std;
 using namespace rapidjson;
 
-#define BUF_SIZE (1<<10)
 
-#define OPTIONAL_PRINT_THRESHOLD (TOFIX(0.1))
-extern "C" {
-    void results_callback(void * context, int8_t * melbins);
-}
-
-static bool _is_printing_only_if_activity = false;
-typedef struct  {
-    int8_t buf[NUM_MEL_BINS][MEL_FEAT_BUF_TIME_LEN];
-    uint32_t bufidx;
-    ConstSequentialNetwork_t net;
-    SequentialNetworkStates_t state;
-} CallbackContext ;
-
-void results_callback(void * context, int16_t * melbins) {
-    static uint32_t counter = 0;
-    CallbackContext * p = static_cast<CallbackContext *>(context);
-    
-    static bool last_is_printing = false;
-    
-    Tensor_t temp_tensor;
-    temp_tensor.dims[0] = 1;
-    temp_tensor.dims[1] = 1;
-    temp_tensor.dims[2] = 1;
-    temp_tensor.dims[3] = NUM_MEL_BINS;
-    
-    temp_tensor.x = melbins;
-    temp_tensor.scale = 0;
-    temp_tensor.delete_me = 0;
-   
-    
-    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAGS_NONE);
-    
-    
-        
-    out->delete_me(out);
-    counter++;
-    
-    
-    
-    
-}
-
-static void do_something_with_the_text(const std::string & str) {
+static void do_something_with_the_text(const std::string & str,const std::string desired_keyword) {
     Document d;
     d.Parse(str.c_str());
     
-    std::cout << d.IsObject() << std::endl;
+    std::string decoded = base64_decode(d["payload"].GetString());
+    std::string id = d["id"].GetString();
+    
+    const size_t pos = id.find("+");
+    if (pos == std::string::npos) {
+        return;
+    }
+
+    const std::string keyword = id.substr(pos + 1,id.size() - pos + 1);
+    
+    if (keyword != desired_keyword) {
+        return;
+    }
+    
+    ConstSequentialNetwork_t net = initialize_network();
+    SequentialNetworkStates_t state;
+    static int count = 0;
+    tinytensor_allocate_states(&state, &net);
+
+    const static uint32_t dims[4] = {1,1,1,NUM_MEL_BINS};
+    
+    Tensor_t * tensor_in = tinytensor_create_new_tensor(dims);
+    
+    
+    const int8_t * p = reinterpret_cast<const int8_t *>(decoded.data());
+    
+    std::vector<int16_t> feats;
+    feats.reserve(decoded.size());
+    
+    int istart = decoded.size() % NUM_MEL_BINS;
+
+    for (int i = istart; i < decoded.size(); i++) {
+        int16_t value = p[i];
+        value <<= 5; //from Q7 to Q12
+        feats.push_back(value);
+    }
+    
+    const int N = feats.size() / NUM_MEL_BINS;
+    
+    for (int i = 0; i < N; i++) {
+        
+        const int16_t * featvec = &feats[i*NUM_MEL_BINS];
+        memcpy(tensor_in->x,featvec,NUM_MEL_BINS * sizeof(Weight_t));
+        /*
+        for (int j = 0; j < 40; j++) {
+            if (j != 0) std::cout << ",";
+            std::cout << featvec[j];
+            
+        }
+        std::cout << std::endl;
+        */
+        
+        Tensor_t * tensor_out = tinytensor_eval_stateful_net(&net,&state,tensor_in,NET_FLAG_LSTM_DAMPING);
+        
+        std::cout << count;
+        
+        for (int j = 0; j < tensor_out->dims[3]; j++) {
+            std::cout << "," << tensor_out->x[j];
+        }
+        std::cout << std::endl;
+        
+    }
+    
+    count++;
+        
+    tinytensor_free_states(&state, &net);
+    
+
 
 }
 
 
 int main(int argc, char * argv[]) {
     
-    if (argc < 2) {
-        std::cout << "need to have input file specified" << std::endl;
+    if (argc < 3) {
+        std::cout << "need to have input file specified and target keyord (okay_sense)" << std::endl;
         return 0;
     }
     
@@ -122,7 +147,7 @@ int main(int argc, char * argv[]) {
         
         std::string objecttext = text.substr(prevpos,pos-prevpos + 1);
         
-        do_something_with_the_text(objecttext);
+        do_something_with_the_text(objecttext,argv[2]);
         
         prevpos = pos + 1;
     }
@@ -131,17 +156,6 @@ int main(int argc, char * argv[]) {
     
     
     
-    /*
-    CallbackContext context;
-    memset(&context,0,sizeof(context));
-    context.net = initialize_network();
-    tinytensor_allocate_states(&context.state, &context.net);
-    
-    tinytensor_features_initialize(&context,results_callback,NULL);
- 
-    tinytensor_features_deinitialize();
-    tinytensor_free_states(&context.state, &context.net);
-    */
     
     return 0;
 }

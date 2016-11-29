@@ -85,7 +85,8 @@ target_compile_features(wavrunner PRIVATE cxx_range_for)
 
 #############
 add_executable(serverfeatsrunner
-serverfeatsrunner.cpp)
+serverfeatsrunner.cpp
+base64.cpp)
 
 target_link_libraries(serverfeatsrunner tensor hellomath ${RAPIDJSON_LIBRARIES}) 
 
