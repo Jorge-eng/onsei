@@ -131,7 +131,7 @@ int main(int argc, char * argv[]) {
         for (int i = 0; i < 66 * 3600 * 10; i++) {
             vector<int16_t> vec(NUM_SAMPLES_TO_RUN_FFT);
             generate(begin(vec), end(vec), gen);
-            
+            if (i % 400 == 0) vec[0] = 32767;
             tinytensor_features_add_samples(vec.data(), NUM_SAMPLES_TO_RUN_FFT);
         }
     }
