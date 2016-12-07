@@ -135,7 +135,7 @@ void vad_callback(void * context, SpeechTransition_t transition) {
     }
 }
 
-static void feats_callback(void * context, int16_t * feats) {
+static void feats_callback(void * context, int16_t * feats,uint32_t flags) {
     FeatsCallbackContext * p = (FeatsCallbackContext *) context;
     static uint32_t counter = 0;
 
@@ -159,6 +159,10 @@ static void feats_callback(void * context, int16_t * feats) {
     
     Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAG_LSTM_DAMPING);
     bool is_printing = false;
+    
+    if (flags & TINYFEATS_FLAGS_TRIGGER_PRIMARY_KEYWORD_INVALID) {
+        out->x[1] = 0;
+    }
     
     for (int i = 1; i < out->dims[3]; i++) {
         if (out->x[i] > DETECTION_THRESHOLD) {

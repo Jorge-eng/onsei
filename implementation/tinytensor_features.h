@@ -14,8 +14,10 @@ extern "C" {
 #define NUM_MEL_BINS (40)
 #define MEL_FEAT_BUF_TIME_LEN (157)
     
+#define TINYFEATS_FLAGS_NONE                            (0x00000000)
+#define TINYFEATS_FLAGS_TRIGGER_PRIMARY_KEYWORD_INVALID (0x00000001)
     
-typedef void(*tinytensor_audio_feat_callback_t)(void * context, int16_t * feats);
+typedef void(*tinytensor_audio_feat_callback_t)(void * context, int16_t * feats,uint32_t flags);
     
 typedef enum {
     start_speech,

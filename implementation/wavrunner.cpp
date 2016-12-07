@@ -25,7 +25,7 @@ using namespace std;
 
 #define OPTIONAL_PRINT_THRESHOLD (TOFIX(0.1))
 extern "C" {
-    void results_callback(void * context, int8_t * melbins);
+    void results_callback(void * context, int16_t * melbins,uint32_t flags);
 }
 
 static bool _is_printing_only_if_activity = false;
@@ -36,7 +36,7 @@ typedef struct  {
     SequentialNetworkStates_t state;
 } CallbackContext ;
 
-void results_callback(void * context, int16_t * melbins) {
+void results_callback(void * context, int16_t * melbins,uint32_t flags) {
     static uint32_t counter = 0;
     CallbackContext * p = static_cast<CallbackContext *>(context);
     
@@ -51,9 +51,13 @@ void results_callback(void * context, int16_t * melbins) {
     temp_tensor.x = melbins;
     temp_tensor.scale = 0;
     temp_tensor.delete_me = 0;
-   
     
-    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAGS_NONE);
+    
+    Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAG_LSTM_DAMPING);
+    
+    if (flags & TINYFEATS_FLAGS_TRIGGER_PRIMARY_KEYWORD_INVALID) {
+        out->x[1] = -100;
+    }
     
     bool is_printing = !_is_printing_only_if_activity;
     
@@ -65,33 +69,33 @@ void results_callback(void * context, int16_t * melbins) {
     }
     
     if (is_printing) {
-    
+        
         if (!last_is_printing) {
             last_is_printing = true;
-    }
-    
-    
-    
+        }
+        
+        
+        
         if (_is_printing_only_if_activity) {
             printf("%d,",counter);
-    }
-    
+        }
+        
         for (int i = 0; i < out->dims[3]; i++) {
             if (i!=0)printf(",");
             printf("%d",out->x[i]);
-    }
-   
-     
-    
+        }
+        
+        
+        
         printf("\n");
-            }
-            
+    }
+    
     else {
         if (last_is_printing) {
             last_is_printing = false;
         }
     }
-        
+    
     out->delete_me(out);
     counter++;
     
@@ -103,9 +107,15 @@ void results_callback(void * context, int16_t * melbins) {
 
 int main(int argc, char * argv[]) {
     
+    bool loop = false;
+    
     if (argc < 2) {
         std::cout << "need to have input file specified" << std::endl;
         return 0;
+    }
+    
+    if (argc >= 3 && std::string(argv[2]) == "loop") {
+        loop = true;
     }
     
     CallbackContext context;
@@ -136,50 +146,54 @@ int main(int argc, char * argv[]) {
         }
     }
     else {
-    SndfileHandle file = SndfileHandle (inFile) ;
-   /*
-    printf ("Opened file '%s'\n", inFile.c_str()) ;
-    printf ("    Sample rate : %d\n", file.samplerate ()) ;
-    printf ("    Channels    : %d\n", file.channels ()) ;
-    printf ("    Frames      : %d\n", file.frames ()) ;
-    */
-    std::vector<int16_t> mono_samples;
-    mono_samples.reserve(file.frames());
-    int16_t buf[BUF_SIZE];
-    
-    if (file.samplerate () != 16000) {
-        std::cout << "only accepts 16khz inputs" << std::endl;
-        return 0;
-    }
-    
-    while (true) {
-        int count = file.read(buf, BUF_SIZE);
+        SndfileHandle file = SndfileHandle (inFile) ;
+        /*
+         printf ("Opened file '%s'\n", inFile.c_str()) ;
+         printf ("    Sample rate : %d\n", file.samplerate ()) ;
+         printf ("    Channels    : %d\n", file.channels ()) ;
+         printf ("    Frames      : %d\n", file.frames ()) ;
+         */
+        std::vector<int16_t> mono_samples;
+        mono_samples.reserve(file.frames());
+        int16_t buf[BUF_SIZE];
         
-        if (count <= 0) {
-            break;
+        if (file.samplerate () != 16000) {
+            std::cout << "only accepts 16khz inputs" << std::endl;
+            return 0;
         }
-                
-        for (int i = 0; i < BUF_SIZE/file.channels(); i ++) {
-            mono_samples.push_back(buf[file.channels() * i]);
-        }
-    }
     
-    
-    for (int i = 0; i < mono_samples.size() - NUM_SAMPLES_TO_RUN_FFT; i++) {
-        if (i % NUM_SAMPLES_TO_RUN_FFT == 0) {
+        while (true) {
+            int count = file.read(buf, BUF_SIZE);
             
-            int16_t tempbuf[NUM_SAMPLES_TO_RUN_FFT];
-            memset(tempbuf,0xFF,sizeof(tempbuf));
-            for (int t= 0; t < NUM_SAMPLES_TO_RUN_FFT; t++) {
-                tempbuf[t] = (int) (1.0 * mono_samples[i + t]);
+            if (count <= 0) {
+                break;
             }
             
-            tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
+            for (int i = 0; i < BUF_SIZE/file.channels(); i ++) {
+                mono_samples.push_back(buf[file.channels() * i]);
+            }
         }
         
-    }
+        const int nloop = loop ? 1000 : 1;
+        for (int iloop = 0; iloop < nloop; iloop++) {
+            
+            for (int i = 0; i < mono_samples.size() - NUM_SAMPLES_TO_RUN_FFT; i++) {
+                if (i % NUM_SAMPLES_TO_RUN_FFT == 0) {
+                    
+                    int16_t tempbuf[NUM_SAMPLES_TO_RUN_FFT];
+                    memset(tempbuf,0xFF,sizeof(tempbuf));
+                    for (int t= 0; t < NUM_SAMPLES_TO_RUN_FFT; t++) {
+                        tempbuf[t] = (int) (1.0 * mono_samples[i + t]);
+                    }
+                    
+                    tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
+                }
+                
+            }
+        }
     
     }
+    
     tinytensor_features_deinitialize();
     tinytensor_free_states(&context.state, &context.net);
     
