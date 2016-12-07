@@ -188,7 +188,7 @@ class Dense(Layer):
         input_name,output_name = write_dims(input_shape,output_shape,self.name,f)
 
         activation = self.get_activation()
-        hardmax = 0
+        use_softmax = 0
         if activation == 'softmax':
             use_softmax = 1
 
@@ -373,6 +373,7 @@ def get_model(json_name,h5file_name=None):
 
     print 'read model from %s' % json_name
     print 'compiling...'
+    print config_json
     model = model_from_json(config_json)
 
     if h5file_name is not None:
