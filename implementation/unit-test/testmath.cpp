@@ -120,3 +120,32 @@ TEST_F(TestMath,TestTanh) {
     
 }
 
+static double sigmoid(double x) {
+    
+    return 1.0 / (1.0 + exp(-x));
+    
+}
+
+TEST_F(TestMath,TestSigmoid) {
+    const float qfixedpoint = (1 << QFIXEDPOINT);
+    for (int i = -500; i < 500; i++) {
+        idx = i;
+        float f = i / 100.0;
+        
+        float yref = sigmoid(f);
+        
+        int32_t x = (int)(f * qfixedpoint);
+        Weight_t y;
+        int8_t out_scale,in_scale = 0;
+        
+        tinytensor_sigmoid(&y, &out_scale, x, in_scale);
+        
+        float result = (float)y;
+        result /= qfixedpoint;
+        ASSERT_NEAR(yref,result,0.1);
+        
+    }
+    
+    idx = INT32_MIN;
+
+}

@@ -99,7 +99,7 @@ void tinytensor_tanh(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale
 void tinytensor_sigmoid(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale) {
     Weight_t tanh;
     int16_t temp16;
-    
+    x >>= 1;
     tinytensor_tanh(&tanh,out_scale,x,in_scale);
     temp16 = tanh;
     
