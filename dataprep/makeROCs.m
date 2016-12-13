@@ -22,7 +22,7 @@ negDirs = {'noiseDataset/16k',...
 %nTh = 15;
 %ths = linspace(0.05, 1.00, nTh);
 %ths = [0.05 0.3 0.5 0.6 0.7 0.8 0.9 0.95 0.99 1.00];
-ths_pct = [0.2 0.5 0.6 0.7 0.8 0.9 0.95 0.98];
+ths_pct = [0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 0.95 0.98];
 if 0
     ths = ths_pct * 4095;
     fileType = 'csv';
