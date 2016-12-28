@@ -16,19 +16,26 @@
 #include "rapidjson/writer.h"
 #include "rapidjson/stringbuffer.h"
 
+#include "hellomath/sha1.h"
+
 #include "model_def.c"
 
-std::string base64_decode(std::string const& encoded_string);
+#define FEATS_SAVE_THRESOLD_OKAY_SENSE (TOFIX(0.20f))
 
+std::string base64_decode(std::string const& encoded_string);
+std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 
 using namespace std;
 using namespace rapidjson;
 
 
 static void do_something_with_the_text(const std::string & str,const std::string desired_keyword) {
+    
+    //string to json
     Document d;
     d.Parse(str.c_str());
     
+    //get data from json
     std::string decoded = base64_decode(d["payload"].GetString());
     std::string id = d["id"].GetString();
     
@@ -43,6 +50,7 @@ static void do_something_with_the_text(const std::string & str,const std::string
         return;
     }
     
+    //setup neural net stuff
     ConstSequentialNetwork_t net = initialize_network();
     SequentialNetworkStates_t state;
     static int count = 0;
@@ -52,12 +60,14 @@ static void do_something_with_the_text(const std::string & str,const std::string
     
     Tensor_t * tensor_in = tinytensor_create_new_tensor(dims);
     
-    
+    //prepare data in 16 bit format
     const int8_t * p = reinterpret_cast<const int8_t *>(decoded.data());
     
     std::vector<int16_t> feats;
     feats.reserve(decoded.size());
     
+    //since the data was uploaded from a circular buffer, the end of the buffer is aligned with the vectors
+    //so the remainder is in the front
     int istart = decoded.size() % NUM_MEL_BINS;
 
     for (int i = istart; i < decoded.size(); i++) {
@@ -67,6 +77,7 @@ static void do_something_with_the_text(const std::string & str,const std::string
     }
     
     const int N = feats.size() / NUM_MEL_BINS;
+    bool is_saved = false;
     
     for (int i = 0; i < N; i++) {
         
@@ -90,6 +101,32 @@ static void do_something_with_the_text(const std::string & str,const std::string
         }
         std::cout << std::endl;
         
+        if (tensor_out->x[1] > FEATS_SAVE_THRESOLD_OKAY_SENSE) {
+            is_saved = true;
+        }
+        
+    }
+    
+    if (is_saved) {
+        //SHA the data so we can get a unique identifier for this set of features
+        SHA1Context c;
+        memset(&c,0,sizeof(c));
+        
+        const uint32_t data_size_bytes = feats.size()*sizeof(feats[0]);
+        
+        uint8_t message_digest[SHA1HashSize];
+        memset(message_digest,0,sizeof(message_digest));
+        
+        SHA1Reset(&c);
+        SHA1Input(&c,reinterpret_cast<uint8_t *>(feats.data()),data_size_bytes);
+        SHA1Result(&c, message_digest);
+     
+        const std::string id = base64_encode(message_digest,sizeof(message_digest)) + ".bin";
+        
+        std::ofstream fout(id.c_str());
+        
+        fout.write(reinterpret_cast<char *>(feats.data()), data_size_bytes);
+        fout.close();
     }
     
     count++;

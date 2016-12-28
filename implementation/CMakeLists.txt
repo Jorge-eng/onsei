@@ -31,7 +31,8 @@ tinytensor_features.c
 #############
 add_library(hellomath STATIC 
 hellomath/fft.c 
-hellomath/hellomath.c)
+hellomath/hellomath.c
+hellomath/sha1.c)
 #############
 add_library(gtest STATIC gtest/gtest-all.cc)
 target_link_libraries(gtest pthread)
