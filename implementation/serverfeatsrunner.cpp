@@ -155,11 +155,8 @@ int main(int argc, char * argv[]) {
     
     
     
-    
-    
-    
     //Value::ConstValueIterator
-    
+    /*
     file.seekg(0,std::ios::end);
     size_t pos = file.tellg();
     file.seekg(0,std::ios::beg);
@@ -174,7 +171,14 @@ int main(int argc, char * argv[]) {
     text.assign(buf,sizeof(buf));
     
     size_t prevpos = 0;
+    */
     
+    std::string str;
+    while (std::getline(file, str)) {
+        do_something_with_the_text(str,argv[2]);
+    }
+    
+    /*
     while(1) {
         pos = text.find("}",prevpos);
 
@@ -188,6 +192,7 @@ int main(int argc, char * argv[]) {
         
         prevpos = pos + 1;
     }
+     */
     
     
     
