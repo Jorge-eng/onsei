@@ -1,6 +1,8 @@
 import os, glob, sndhdr
+import json
+import base64
 import numpy as np
-from scipy.io import wavfile
+from scipy.io import wavfile, savemat
 from features import fbank, mfcc # python_speech_features
 import fnmatch
 import pdb
@@ -41,7 +43,7 @@ def wav2fbank(wavFile, fs=16000, maxLen_s=None):
     if maxLen_s is not None:
         maxSamp = maxLen_s * fs
         wav = wav[:maxSamp]
-  
+
     if True:
         M, E = fbank(wav, fs, winlen=winlen, winstep=winstep, nfilt=nfilt, nfft=nfft, winfunc=winfunc, preemph=preemph)
 
@@ -106,4 +108,42 @@ def bin2fbank_batch(dirName, matcher=None):
         logM.append(load_bin(f))
 
     return logM, files
+
+def bin2mat(dirName, outFile, matcher=None):
+
+    logM, files = bin2fbank_batch(dirName, matcher=matcher)
+    pdb.set_trace()
+    logM = np.array(logM)
+    savemat(outFile, {'logM': logM})
+
+    return
+
+def load_serverfeats(fname):
+
+    f = open(fname, 'r')
+
+    s = f.read()
+    f.close()
+    datas = s.split("}")
+
+    feats = []
+    for data in datas:
+        if len(data) <= 2:
+            continue
+
+        tmp = data + "}"
+        jdata = json.loads(tmp)
+
+        if not '+okay' in jdata['id']:
+            continue
+
+        n = jdata['num_cols']
+        bindata = base64.b64decode(jdata['payload'])
+        x = np.fromstring(bindata,dtype=np.int8)
+        istart = x.shape[0] % n
+        x2 = x[istart::].reshape((x.shape[0]/n,n))
+        feats.append(x2)
+
+    feats = np.array(feats)
+    return feats
 
