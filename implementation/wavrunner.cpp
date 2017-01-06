@@ -136,50 +136,81 @@ int main(int argc, char * argv[]) {
         }
     }
     else {
-    SndfileHandle file = SndfileHandle (inFile) ;
-   /*
-    printf ("Opened file '%s'\n", inFile.c_str()) ;
-    printf ("    Sample rate : %d\n", file.samplerate ()) ;
-    printf ("    Channels    : %d\n", file.channels ()) ;
-    printf ("    Frames      : %d\n", file.frames ()) ;
-    */
-    std::vector<int16_t> mono_samples;
-    mono_samples.reserve(file.frames());
-    int16_t buf[BUF_SIZE];
-    
-    if (file.samplerate () != 16000) {
-        std::cout << "only accepts 16khz inputs" << std::endl;
-        return 0;
-    }
-    
-    while (true) {
-        int count = file.read(buf, BUF_SIZE);
         
-        if (count <= 0) {
-            break;
-        }
-                
-        for (int i = 0; i < BUF_SIZE/file.channels(); i ++) {
-            mono_samples.push_back(buf[file.channels() * i]);
-        }
-    }
-    
-    
-    for (int i = 0; i < mono_samples.size() - NUM_SAMPLES_TO_RUN_FFT; i++) {
-        if (i % NUM_SAMPLES_TO_RUN_FFT == 0) {
+        SndfileHandle file = SndfileHandle (inFile) ;
+        
+        if (file.samplerate() == 0) {
+            //treat as binary file
+            std::ifstream binfile;
+            binfile.open(inFile,std::ios::binary);
             
-            int16_t tempbuf[NUM_SAMPLES_TO_RUN_FFT];
-            memset(tempbuf,0xFF,sizeof(tempbuf));
-            for (int t= 0; t < NUM_SAMPLES_TO_RUN_FFT; t++) {
-                tempbuf[t] = (int) (1.0 * mono_samples[i + t]);
+            if (!binfile.is_open()) {
+                goto CLEANUP;
             }
             
-            tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
+            
+            binfile.seekg (0, ios::end);
+            const size_t length = binfile.tellg();
+            binfile.seekg (0, ios::beg);
+            
+            int16_t feat[NUM_MEL_BINS];
+            size_t pos = 0;
+            while (pos < length) {
+                binfile.read((char *)&feat[0],sizeof(feat));
+                pos += sizeof(feat);
+                binfile.seekg(pos);
+                
+                results_callback(&context,feat);
+            }
+            
         }
-        
+        else {
+            /*
+             printf ("Opened file '%s'\n", inFile.c_str()) ;
+             printf ("    Sample rate : %d\n", file.samplerate ()) ;
+             printf ("    Channels    : %d\n", file.channels ()) ;
+             printf ("    Frames      : %d\n", file.frames ()) ;
+             */
+            std::vector<int16_t> mono_samples;
+            mono_samples.reserve(file.frames());
+            int16_t buf[BUF_SIZE];
+            
+            if (file.samplerate () != 16000) {
+                std::cout << "only accepts 16khz inputs" << std::endl;
+                goto CLEANUP;
+            }
+            
+            while (true) {
+                int count = file.read(buf, BUF_SIZE);
+                
+                if (count <= 0) {
+                    break;
+                }
+                
+                for (int i = 0; i < BUF_SIZE/file.channels(); i ++) {
+                    mono_samples.push_back(buf[file.channels() * i]);
+                }
+            }
+            
+            
+            for (int i = 0; i < mono_samples.size() - NUM_SAMPLES_TO_RUN_FFT; i++) {
+                if (i % NUM_SAMPLES_TO_RUN_FFT == 0) {
+                    
+                    int16_t tempbuf[NUM_SAMPLES_TO_RUN_FFT];
+                    memset(tempbuf,0xFF,sizeof(tempbuf));
+                    for (int t= 0; t < NUM_SAMPLES_TO_RUN_FFT; t++) {
+                        tempbuf[t] = (int) (1.0 * mono_samples[i + t]);
+                    }
+                    
+                    tinytensor_features_add_samples(tempbuf, NUM_SAMPLES_TO_RUN_FFT);
+                }
+                
+            }
+            
+        }
     }
     
-    }
+CLEANUP:
     tinytensor_features_deinitialize();
     tinytensor_free_states(&context.state, &context.net);
     
