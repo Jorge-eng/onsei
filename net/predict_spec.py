@@ -40,6 +40,8 @@ def get_input(inFile, inType, modelType, offset=0., scale=1., winLen=None, winSh
             nFiles = len(files)
         if timeDistributed:
             feaStream = np.reshape(feaStream, (nFiles, feaStream.shape[0], feaStream.shape[1]))
+    elif inType == 'serverfeats':
+        feaStream = audioproc.load_serverfeats(inFile)
     elif inType == 'features':
         feaStream = data.load_batch(inFile, var='features')
 
@@ -211,7 +213,10 @@ if __name__ == '__main__':
 
     feaStream = get_input(inFile, inType, modelType, offset=offset, scale=scale, winLen=winLen)
 
-    prob = model.predict_proba(feaStream, verbose=1)
+    if 'stateful' in modelType:
+        prob = predict_stateful(model, feaStream)
+    else:
+        prob = model.predict_proba(feaStream, verbose=1)
 
     print('Saving '+outFile)
     savemat(outFile, {'prob': prob})

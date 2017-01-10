@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 import glob
 from scipy.io import loadmat, savemat
-from predict_spec import get_arch, get_input
+from predict_spec import get_arch, get_input, predict_stateful
 import numpy as np
 import pdb
 
@@ -34,7 +34,11 @@ prob = []
 for wf in weightFiles:
     print(wf)
     model.load_weights(wf)
-    p = model.predict_proba(feaStream, batch_size=128, verbose=1)
+    if 'stateful' in modelType:
+        p = predict_stateful(model, feaStream)
+    else:
+        p = model.predict_proba(feaStream, batch_size=128, verbose=1)
+
     prob.append(np.float32(p))
 
 print('Saving '+outFile)

@@ -19,6 +19,8 @@ def load_model(defFile, weightFile):
 def load_batch(filePath, var='mfc'):
     data = loadmat(filePath)
     data = data[var]
+    if data.ndim == 2:
+        data =np.reshape(data, data.shape+(1,))
     data = np.rollaxis(data, 2)
 
     return data
