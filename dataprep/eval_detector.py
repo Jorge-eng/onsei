@@ -68,7 +68,7 @@ def params():
                'reverberant_speech/16k',
                'TED']
 
-    ths = np.array([0.2, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98])
+    ths = np.array([0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98])
     counts = np.arange(1, 16, 2)
 
     return posDirs, negDirs, ths, counts
