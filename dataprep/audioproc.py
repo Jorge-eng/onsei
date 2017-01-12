@@ -109,14 +109,25 @@ def bin2fbank_batch(dirName, matcher=None):
 
     return logM, files
 
-def bin2mat(dirName, outFile, matcher=None):
+def bin2mat(inFile, outFile=None):
+
+    if outFile is None:
+        outFile = inFile.replace('.bin','.mat')
+
+    features = load_bin(inFile)
+    savemat(outFile, {'features': features})
+
+def bin2mat_all(dirName):
+
+    files = find_bin_files(dirName)
+    for f in files:
+        bin2mat(f)
+
+def bin2mat_batch(dirName, outFile, matcher=None):
 
     logM, files = bin2fbank_batch(dirName, matcher=matcher)
-    pdb.set_trace()
     logM = np.array(logM)
     savemat(outFile, {'logM': logM})
-
-    return
 
 def load_serverfeats(fname):
 
