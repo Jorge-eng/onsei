@@ -127,7 +127,7 @@ def bin2mat_batch(dirName, outFile, matcher=None):
 
     logM, files = bin2fbank_batch(dirName, matcher=matcher)
     logM = np.array(logM)
-    savemat(outFile, {'logM': logM})
+    savemat(outFile, {'logM':logM, 'files':files})
 
 def load_serverfeats(fname):
 
