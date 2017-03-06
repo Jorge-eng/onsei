@@ -181,7 +181,7 @@ def predict_stateful(model, feaStream, reset_states=True):
 
     if numChunks < batchSize: # Padding to batchSize, if required
         # Should be zero padding instead?
-        numTiles = np.ceil(batchSize / np.float(numChunks))
+        numTiles = np.int(np.ceil(batchSize / np.float(numChunks)))
         feaStream = np.tile(feaStream, (numTiles, 1, 1))
         feaStream = feaStream[:batchSize,:,:]
         numBatches = 1
