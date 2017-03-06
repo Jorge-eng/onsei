@@ -100,12 +100,19 @@ def load_bin(fname, nfilt=40):
 
     return x
 
-def bin2fbank_batch(dirName, matcher=None):
+def bin2fbank_batch(dirName, matcher=None, targetSize=None):
 
     files = find_bin_files(dirName, matcher)
     logM = []
     for f in files:
-        logM.append(load_bin(f))
+        data = load_bin(f)
+        if targetSize is not None:
+            if data.shape[1] < targetSize:
+                data = np.concatenate((data, np.zeros((data.shape[0], targetSize-data.shape[1]))), axis=1)
+            elif data.shape[1] > targetSize:
+                data = data[:,:(targetSize-data.shape[1])]
+                continue
+        logM.append(data)
 
     return logM, files
 
@@ -123,9 +130,9 @@ def bin2mat_all(dirName):
     for f in files:
         bin2mat(f)
 
-def bin2mat_batch(dirName, outFile, matcher=None):
+def bin2mat_batch(dirName, outFile, matcher=None, targetSize=None):
 
-    logM, files = bin2fbank_batch(dirName, matcher=matcher)
+    logM, files = bin2fbank_batch(dirName, matcher=matcher, targetSize=targetSize)
     logM = np.array(logM)
     savemat(outFile, {'logM':logM, 'files':files})
 
