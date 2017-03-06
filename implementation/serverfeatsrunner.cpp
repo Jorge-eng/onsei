@@ -20,13 +20,15 @@
 
 #include "model_def.c"
 
-#define FEATS_SAVE_THRESOLD_OKAY_SENSE (TOFIX(0.20f))
+#define FEATS_SAVE_THRESOLD_OKAY_SENSE (TOFIX(0.50f))
+#define NUM_TIMES_TO_HAVE_EXCEEDED_THRESHOLD (3)
 
 std::string base64_decode(std::string const& encoded_string);
 std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
 
 using namespace std;
 using namespace rapidjson;
+
 
 
 static void do_something_with_the_text(const std::string & str,const std::string desired_keyword) {
@@ -101,8 +103,16 @@ static void do_something_with_the_text(const std::string & str,const std::string
         }
         std::cout << std::endl;
         
+        static int threshold_count = 0;
         if (tensor_out->x[1] > FEATS_SAVE_THRESOLD_OKAY_SENSE) {
-            is_saved = true;
+            threshold_count++;
+            
+            if (threshold_count == NUM_TIMES_TO_HAVE_EXCEEDED_THRESHOLD) {
+                is_saved = true;
+            }
+        }
+        else {
+            threshold_count = 0;
         }
         
     }
