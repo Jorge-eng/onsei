@@ -196,7 +196,6 @@ def predict_stateful(model, feaStream, reset_states=True):
     if padSize > 0:
         prob = prob[:,:-padSize,:]
 
-    pdb.set_trace()
     return prob
 
 
@@ -222,7 +221,6 @@ if __name__ == '__main__':
 
     feaStream = get_input(inFile, inType, modelType, offset=offset, scale=scale, winLen=winLen)
 
-    pdb.set_trace()
     if 'stateful' in modelType:
         prob = predict_stateful(model, feaStream)
     else:
