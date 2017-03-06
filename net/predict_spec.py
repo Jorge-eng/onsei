@@ -165,16 +165,19 @@ def predict_stateful(model, feaStream, reset_states=True):
     if reset_states:
         model.reset_states()
 
+    numSamples, numFrames, numChannels = feaStream.shape
     # Chop up to chunks of size chunkSize
     numChunks = np.int(np.float(feaStream.shape[1]) / chunkSize)
-    if feaStream.shape[1] > numChunks*chunkSize:
+    if numFrames > numChunks*chunkSize:
         numChunks += 1
-        padSize = numChunks*chunkSize - feaStream.shape[1]
-        feaStream = np.concatenate((feaStream, np.zeros((feaStream.shape[0], padSize, feaStream.shape[2]))), axis=1)
+        numFramesPadded = numChunks*chunkSize
+        padSize = numFramesPadded - numFrames
+        feaStream = np.concatenate((feaStream, np.zeros((numSamples, padSize, nBands))), axis=1)
     else:
         padSize = 0
-    feaStream = np.reshape(feaStream[:,:numChunks*chunkSize,:], (numChunks, chunkSize, nBands))
-    numBatches = np.int(np.float(numChunks / batchSize))
+    feaStream = np.reshape(feaStream[:,:numFramesPadded,:], (numChunks*numSamples, chunkSize, nBands))
+    numChunks = feaStream.shape[0]
+    numBatches = np.int(np.ceil(numChunks / np.float(batchSize)))
 
     if numChunks < batchSize: # Padding to batchSize, if required
         # Should be zero padding instead?
@@ -186,15 +189,17 @@ def predict_stateful(model, feaStream, reset_states=True):
     # predict batchSize chunks at a time
     prob = np.zeros((numBatches*batchSize, chunkSize, nClasses))
     for startIdx in range(0, numBatches*batchSize, batchSize):
+        if startIdx+batchSize > feaStream.shape[0]:
+            continue
         idx = range(startIdx, startIdx+batchSize)
         prob[idx,:,:] = model.predict_proba(feaStream[idx,:,:], verbose=0)
 
-    if numChunks < batchSize: # If it had been padded, take only the unpadded part
+    if numChunks < numBatches*batchSize: # If it had been padded, take only the unpadded part
         prob = prob[:numChunks,:,:]
 
-    prob = np.reshape(prob, (1, prob.shape[0]*chunkSize, nClasses))
+    prob = np.reshape(prob, (numSamples, numFramesPadded, nClasses))
     if padSize > 0:
-        prob = prob[:,:-padSize,:]
+        prob = prob[:,:numFrames,:]
 
     return prob
 
