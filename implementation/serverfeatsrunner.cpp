@@ -18,10 +18,11 @@
 
 #include "hellomath/sha1.h"
 
-#include "model_def.c"
+#include "models/net1.c"
+#include "models/net2.c"
 
-#define FEATS_SAVE_THRESOLD_OKAY_SENSE (TOFIX(0.50f))
-#define NUM_TIMES_TO_HAVE_EXCEEDED_THRESHOLD (3)
+#define FEATS_SAVE_THRESOLD_OKAY_SENSE (TOFIX(0.5f))
+#define NUM_TIMES_TO_HAVE_EXCEEDED_THRESHOLD (1)
 
 std::string base64_decode(std::string const& encoded_string);
 std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len);
@@ -53,10 +54,15 @@ static void do_something_with_the_text(const std::string & str,const std::string
     }
     
     //setup neural net stuff
-    ConstSequentialNetwork_t net = initialize_network();
-    SequentialNetworkStates_t state;
+    ConstSequentialNetwork_t net1 = net1::initialize_network();
+    ConstSequentialNetwork_t net2 = net2::initialize_network();
+
+    SequentialNetworkStates_t state1;
+    SequentialNetworkStates_t state2;
+
     static int count = 0;
-    tinytensor_allocate_states(&state, &net);
+    tinytensor_allocate_states(&state1, &net1);
+    tinytensor_allocate_states(&state2, &net2);
 
     const static uint32_t dims[4] = {1,1,1,NUM_MEL_BINS};
     
@@ -94,17 +100,18 @@ static void do_something_with_the_text(const std::string & str,const std::string
         std::cout << std::endl;
         */
         
-        Tensor_t * tensor_out = tinytensor_eval_stateful_net(&net,&state,tensor_in,NET_FLAG_LSTM_DAMPING);
-        
+        Tensor_t * tensor_out1 = tinytensor_eval_stateful_net(&net1,&state1,tensor_in,NET_FLAG_LSTM_DAMPING);
+        Tensor_t * tensor_out2 = tinytensor_eval_stateful_net(&net2,&state2,tensor_in,NET_FLAG_LSTM_DAMPING);
+
         std::cout << count;
         
-        for (int j = 0; j < tensor_out->dims[3]; j++) {
-            std::cout << "," << tensor_out->x[j];
+        for (int j = 0; j < tensor_out1->dims[3]; j++) {
+            std::cout << "," << MULQ(tensor_out1->x[j],tensor_out2->x[j],QFIXEDPOINT);
         }
         std::cout << std::endl;
         
         static int threshold_count = 0;
-        if (tensor_out->x[1] > FEATS_SAVE_THRESOLD_OKAY_SENSE) {
+        if (MULQ(tensor_out1->x[1],tensor_out2->x[1],QFIXEDPOINT) > FEATS_SAVE_THRESOLD_OKAY_SENSE) {
             threshold_count++;
             
             if (threshold_count == NUM_TIMES_TO_HAVE_EXCEEDED_THRESHOLD) {
@@ -141,8 +148,9 @@ static void do_something_with_the_text(const std::string & str,const std::string
     
     count++;
         
-    tinytensor_free_states(&state, &net);
-    
+    tinytensor_free_states(&state1, &net1);
+    tinytensor_free_states(&state2, &net2);
+
 
 
 }

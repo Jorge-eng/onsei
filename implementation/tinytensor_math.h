@@ -21,6 +21,9 @@ extern "C" {
     
 #define MUL16(a,b)\
     ((int16_t)(((int32_t)(a * b)) >> QFIXEDPOINT_INT16))
+    
+#define MULQ(a,b,q)\
+    ((int16_t)(((int32_t)(a * b)) >> q))
 
 /* INPUTS ARE EXPECTED TO BE IN Q7, JUST POTENTIALLY VERY LARGE IN MAGNITUDE */
 void tinytensor_tanh(Weight_t * y, int8_t * out_scale, int32_t x,int8_t in_scale);
