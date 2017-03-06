@@ -34,12 +34,12 @@ modelDef = 'models/'+modelName+modelTag+'.json'
 modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:03d}.h5'
 modelInfo = 'models/'+modelName+modelTag+'.mat'
 
-numEpoch = 252
+numEpoch = 300
 batchSize = 8
 negRatioTrain = 20
 negRatioTest = 10
 permuteBeforeSplit = (True, True)
-testSplit = 0.10
+testSplit = 0.15
 # Load the train and test data
 (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale) = data.load_training(
 	inFile, modelType,
@@ -94,9 +94,10 @@ model = build_model(inputShape, numClasses)
 modelParams = {'modelDef': modelDef, 'modelWeights': modelWeights,
                'modelType': modelType, 'winLen': winLen,
                'offset': offset, 'scale': scale}
-trainParams = {'inFile':inFile, 'batchSize': batchSize,
-                'negRatioTrain': negRatioTrain, 'permuteBeforeSplit': permuteBeforeSplit,
-                'testSplit': testSplit,'normalize': str(normalize), 'classWeight': w}
+trainParams = {'inFile':inFile, 'batchSize': batchSize, 'negRatioTrain': negRatioTrain,
+                'negRatioTest': negRatioTest, 'permuteBeforeSplit': permuteBeforeSplit,
+                'testSplit': testSplit,'normalize': str(normalize), 'classWeight': w,
+                'nTrain':feaTrain.shape[0],'nTest':feaTest.shape[0]}
 
 # Save info required to run intermediate model during training
 print('Saving to '+modelInfo)
