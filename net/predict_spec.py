@@ -167,6 +167,12 @@ def predict_stateful(model, feaStream, reset_states=True):
 
     # Chop up to chunks of size chunkSize
     numChunks = np.int(np.float(feaStream.shape[1]) / chunkSize)
+    if feaStream.shape[1] > numChunks*chunkSize:
+        numChunks += 1
+        padSize = numChunks*chunkSize - feaStream.shape[1]
+        feaStream = np.concatenate((feaStream, np.zeros((feaStream.shape[0], padSize, feaStream.shape[2]))), axis=1)
+    else:
+        padSize = 0
     feaStream = np.reshape(feaStream[:,:numChunks*chunkSize,:], (numChunks, chunkSize, nBands))
     numBatches = np.int(np.float(numChunks / batchSize))
 
@@ -187,7 +193,10 @@ def predict_stateful(model, feaStream, reset_states=True):
         prob = prob[:numChunks,:,:]
 
     prob = np.reshape(prob, (1, prob.shape[0]*chunkSize, nClasses))
+    if padSize > 0:
+        prob = prob[:,:-padSize,:]
 
+    pdb.set_trace()
     return prob
 
 
@@ -213,6 +222,7 @@ if __name__ == '__main__':
 
     feaStream = get_input(inFile, inType, modelType, offset=offset, scale=scale, winLen=winLen)
 
+    pdb.set_trace()
     if 'stateful' in modelType:
         prob = predict_stateful(model, feaStream)
     else:
