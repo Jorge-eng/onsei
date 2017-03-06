@@ -174,6 +174,7 @@ def predict_stateful(model, feaStream, reset_states=True):
         padSize = numFramesPadded - numFrames
         feaStream = np.concatenate((feaStream, np.zeros((numSamples, padSize, nBands))), axis=1)
     else:
+        numFramesPadded = numFrames
         padSize = 0
     feaStream = np.reshape(feaStream[:,:numFramesPadded,:], (numChunks*numSamples, chunkSize, nBands))
     numChunks = feaStream.shape[0]
