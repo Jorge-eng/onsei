@@ -41,9 +41,6 @@ target_link_libraries(gtest pthread)
 add_executable(unit-test 
 unit-test/main.cpp 
 unit-test/testconv.cpp
-unit-test/testfull.cpp
-unit-test/testlstm.cpp
-unit-test/testnet.cpp
 unit-test/testrecurrentnet.cpp
 unit-test/testfeatures.cpp
 unit-test/testmath.cpp
