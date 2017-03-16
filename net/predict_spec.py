@@ -10,11 +10,12 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 import data
-from keras.models import model_from_json
+from keras.models import model_from_json, model_from_config
 from scipy.io import loadmat, savemat
 from scipy.io import wavfile
 import audioproc
 import numpy as np
+import json
 import pdb
 
 def get_input(inFile, inType, modelType, offset=0., scale=1., winLen=None, winShift=10):
@@ -119,7 +120,7 @@ def get_info(modelTag):
 
     return info
 
-def get_arch(info):
+def get_arch(info, doCompile=True):
 
     if isinstance(info, str):
         info = get_info(info)
@@ -130,7 +131,9 @@ def get_arch(info):
     offset = info['offset'][0]
     scale = info['scale'][0]
 
-    model = model_from_json(open(modelDef).read())
+    model = json.load(open(modelDef, 'r'))
+    if doCompile==True:
+        model = model_from_config(model)
 
     return model, modelType, winLen, offset, scale
 
@@ -148,14 +151,28 @@ def get_weights(info, epoch=None):
 
     return modelWeights
 
-def get_model(modelTag, epoch=None):
+def get_model(modelTag, epoch=None, doCompile=True):
 
     info = get_info(modelTag)
     modelWeights = get_weights(info, epoch)
-    model, modelType, winLen, offset, scale = get_arch(info)
+    model, modelType, winLen, offset, scale = get_arch(info, doCompile=doCompile)
     model.load_weights(modelWeights)
 
     return model, modelType, winLen, offset, scale
+
+def get_model_and_input(modelTag, inFile, inType, epoch=None):
+
+    info = get_info(modelTag)
+    modelWeights = get_weights(info, epoch)
+    model, modelType, winLen, offset, scale = get_arch(info, doCompile=False)
+
+    feaStream = get_input(inFile, inType, modelType, offset=offset, scale=scale, winLen=winLen)
+
+    model['layers'][0]['batch_input_shape'] = feaStream.shape
+    model = model_from_config(model)
+    model.load_weights(modelWeights)
+
+    return model, feaStream
 
 def predict_stateful(model, feaStream, reset_states=True):
 
@@ -166,41 +183,28 @@ def predict_stateful(model, feaStream, reset_states=True):
         model.reset_states()
 
     numSamples, numFrames, numChannels = feaStream.shape
-    # Chop up to chunks of size chunkSize
-    numChunks = np.int(np.float(feaStream.shape[1]) / chunkSize)
-    if numFrames > numChunks*chunkSize:
-        numChunks += 1
-        numFramesPadded = numChunks*chunkSize
-        padSize = numFramesPadded - numFrames
+
+    # Chop up to chunks of size chunkSize. Pad if needed
+    numChunks = np.int(np.ceil(np.float(feaStream.shape[1]) / chunkSize))
+    padSize = 0
+    if numFrames < numChunks*chunkSize:
+        padSize = numChunks*chunkSize - numFrames
         feaStream = np.concatenate((feaStream, np.zeros((numSamples, padSize, nBands))), axis=1)
-    else:
-        numFramesPadded = numFrames
-        padSize = 0
-    feaStream = np.reshape(feaStream[:,:numFramesPadded,:], (numChunks*numSamples, chunkSize, nBands))
+
+    feaStream = np.reshape(feaStream, (numChunks*numSamples, chunkSize, nBands))
+
     numChunks = feaStream.shape[0]
+
+    # Pad to even multiple of batchSize
     numBatches = np.int(np.ceil(numChunks / np.float(batchSize)))
+    if numChunks < numBatches*batchSize:
+        feaStream = np.concatenate((feaStream, np.zeros((numBatches*batchSize-numChunks,chunkSize,nBands))),axis=0)
 
-    if numChunks < batchSize: # Padding to batchSize, if required
-        # Should be zero padding instead?
-        numTiles = np.int(np.ceil(batchSize / np.float(numChunks)))
-        feaStream = np.tile(feaStream, (numTiles, 1, 1))
-        feaStream = feaStream[:batchSize,:,:]
-        numBatches = 1
+    prob = model.predict_proba(feaStream, batch_size=batchSize)
+    prob = prob[:numChunks,:,:]
 
-    # predict batchSize chunks at a time
-    prob = np.zeros((numBatches*batchSize, chunkSize, nClasses))
-    for startIdx in range(0, numBatches*batchSize, batchSize):
-        if startIdx+batchSize > feaStream.shape[0]:
-            continue
-        idx = range(startIdx, startIdx+batchSize)
-        prob[idx,:,:] = model.predict_proba(feaStream[idx,:,:], verbose=0)
-
-    if numChunks < numBatches*batchSize: # If it had been padded, take only the unpadded part
-        prob = prob[:numChunks,:,:]
-
-    prob = np.reshape(prob, (numSamples, numFramesPadded, nClasses))
-    if padSize > 0:
-        prob = prob[:,:numFrames,:]
+    prob = np.reshape(prob, (numSamples, numFrames+padSize, nClasses))
+    prob = prob[:,:numFrames,:]
 
     return prob
 
@@ -223,6 +227,8 @@ if __name__ == '__main__':
     if not os.path.isfile(inFile) and not os.path.isdir(inFile):
         raise ValueError('Input '+inFile+' does not exist')
 
+    #model, feaStream = get_model_and_input(modelTag, inFile, inType, epoch=epoch)
+
     model, modelType, winLen, offset, scale = get_model(modelTag, epoch=epoch)
 
     feaStream = get_input(inFile, inType, modelType, offset=offset, scale=scale, winLen=winLen)
@@ -233,5 +239,5 @@ if __name__ == '__main__':
         prob = model.predict_proba(feaStream, verbose=1)
 
     print('Saving '+outFile)
-    savemat(outFile, {'prob': prob})
+    savemat(outFile, {'prob': prob, 'feaStream': feaStream})
 
