@@ -64,7 +64,7 @@ end
 
 %%
 kws = {'OKAY SENSE','STOP','SNOOZE'};
-xLim = [1 10 10];
+xLim = [5 10 10];
 for dset = 1:size(faRate, 4)
     figure
     %set(gcf,'Name',modelName)
