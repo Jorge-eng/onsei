@@ -100,19 +100,25 @@ def load_bin(fname, nfilt=40):
 
     return x
 
+def append_padded(logM, data, targetSize=None):
+
+    if targetSize is not None:
+        if data.shape[1] < targetSize:
+            data = np.concatenate((data, np.zeros((data.shape[0], targetSize-data.shape[1]))), axis=1)
+        elif data.shape[1] > targetSize:
+            data = data[:,:(targetSize-data.shape[1])]
+
+    logM.append(data)
+
+    return logM
+
 def bin2fbank_batch(dirName, matcher=None, targetSize=None):
 
     files = find_bin_files(dirName, matcher)
     logM = []
     for f in files:
         data = load_bin(f)
-        if targetSize is not None:
-            if data.shape[1] < targetSize:
-                data = np.concatenate((data, np.zeros((data.shape[0], targetSize-data.shape[1]))), axis=1)
-            elif data.shape[1] > targetSize:
-                data = data[:,:(targetSize-data.shape[1])]
-                continue
-        logM.append(data)
+        logM = append_padded(logM, data, targetSize=targetSize)
 
     return logM, files
 
@@ -164,4 +170,14 @@ def load_serverfeats(fname):
 
     feats = np.array(feats)
     return feats
+
+def serverfeats2mat(inFile, outFile, targetSize=None):
+
+    feats = load_serverfeats(inFile)
+    logM = []
+    for data in feats:
+        logM = append_padded(logM, data.swapaxes(0, 1), targetSize=targetSize)
+
+    logM = np.array(logM)
+    savemat(outFile, {'logM':logM})
 
