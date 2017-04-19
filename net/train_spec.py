@@ -35,16 +35,20 @@ modelWeights = 'models/'+modelName+modelTag+'_ep{epoch:03d}.h5'
 modelInfo = 'models/'+modelName+modelTag+'.mat'
 
 numEpoch = 300
-batchSize = 8
+batchSize = 1 # Was 8, but need to compensate for the sample concatenation
+posMult = 2
+numCat = 100
 negRatioTrain = 20
 negRatioTest = 10
 permuteBeforeSplit = (True, True)
 testSplit = 0.15
+
 # Load the train and test data
 (feaTrain, labelTrain), (feaTest, labelTest), (offset, scale) = data.load_training(
 	inFile, modelType,
-	negRatioTrain=negRatioTrain, negRatioTest=negRatioTest,
-	permuteBeforeSplit=permuteBeforeSplit, testSplit=testSplit, normalize=normalize)
+        negRatioTrain=negRatioTrain, negRatioTest=negRatioTest,
+        posMult=posMult, numCat=numCat,
+        permuteBeforeSplit=permuteBeforeSplit, testSplit=testSplit, normalize=normalize)
 
 
 # If stateful, must pare training to a multiple of batchSize
@@ -96,6 +100,7 @@ modelParams = {'modelDef': modelDef, 'modelWeights': modelWeights,
                'offset': offset, 'scale': scale}
 trainParams = {'inFile':inFile, 'batchSize': batchSize, 'negRatioTrain': negRatioTrain,
                 'negRatioTest': negRatioTest, 'permuteBeforeSplit': permuteBeforeSplit,
+                'posMult': posMult, 'numCat': numCat,
                 'testSplit': testSplit,'normalize': str(normalize), 'classWeight': w,
                 'nTrain':feaTrain.shape[0],'nTest':feaTest.shape[0]}
 

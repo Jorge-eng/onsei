@@ -98,6 +98,21 @@ def apply_norm(fea, offset, scale):
 
     return fea
 
+def cat_samples(fea, lab, numCat=25):
+
+    catLen = fea.shape[2]*numCat
+    numSamp = np.int(np.float(fea.shape[0])/numCat)
+    totCatSamp = numSamp*numCat
+
+    fea = np.swapaxes(fea[:totCatSamp,:,:], 0, 1)
+    fea = np.reshape(fea, (40, numSamp, catLen))
+    fea = np.swapaxes(fea, 0, 1)
+
+    lab = lab[:totCatSamp,:,:]
+    lab = np.reshape(lab, (numSamp, catLen, lab.shape[2]))
+
+    return fea, lab
+
 def distributed_categorical(labels, numClasses):
 
     numSamps, numSteps = labels.shape
@@ -148,7 +163,7 @@ def cut_to_batch(features, labels, batchSize):
 
     return features, labels
 
-def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, normalize=None, permuteBeforeSplit=(True,True)):
+def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTest=1, posMult=1, numCat=None, normalize=None, permuteBeforeSplit=(True,True)):
 
     # pos
     feaTrainPos = load_batch(inFile, 'features_pos')
@@ -184,11 +199,19 @@ def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTe
     feaTestNeg = feaTestNeg[:numNegTest, ...]
     labelTestNeg = labelTestNeg[:numNegTest]
 
+    # oversample training positives
+    if posMult > 1:
+        feaTrainPos = np.repeat(feaTrainPos, posMult, axis=0)
+        labelTrainPos = np.repeat(labelTrainPos, posMult, axis=0)
+
     # join pos & neg into train & test sets
     feaTrain = np.concatenate((feaTrainPos, feaTrainNeg), axis=0)
     labelTrain = np.concatenate((labelTrainPos, labelTrainNeg), axis=0)
     feaTest = np.concatenate((feaTestPos, feaTestNeg), axis=0)
     labelTest = np.concatenate((labelTestPos, labelTestNeg), axis=0)
+
+    # mix them together for training
+    (feaTrain, labelTrain) = permute_pair(feaTrain, labelTrain)
 
     numClasses = len(np.unique(labelTrain[~np.isnan(labelTrain)]))
 
@@ -222,6 +245,11 @@ def load_training(inFile, modelType, testSplit=0.1, negRatioTrain=10, negRatioTe
             scale = np.float32(np.power(2, 12))
         else:
             scale = np.float32(1)
+
+    if not numCat is None and numCat > 1:
+        # concatenate into long training & test sequences
+        feaTrain, labelTrain = cat_samples(feaTrain, labelTrain, numCat=numCat)
+        feaTest, labelTest = cat_samples(feaTest, labelTest, numCat=numCat)
 
     feaTrain = apply_norm(feaTrain, offset, scale)
     feaTest = apply_norm(feaTest, offset, scale)
