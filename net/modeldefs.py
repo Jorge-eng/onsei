@@ -163,6 +163,44 @@ def model_nov07_lstm_med_adam(inputShape, numClasses, batchSize=None):
 
     return model, optimizer, loss
 
+def model_mar15_lstm_med_adam(inputShape, numClasses, batchSize=None):
+
+    if batchSize is None:
+        ValueError('batchSize must be specified for stateful nets')
+
+    optimizer = 'adam'
+    loss = 'categorical_crossentropy'
+
+    model = Sequential()
+
+    model.add(LSTM(48, return_sequences=True, input_shape=inputShape))
+    #model.add(Dropout(0.2))
+    model.add(LSTM(48, return_sequences=True))
+    #model.add(Dropout(0.2))
+    model.add(TimeDistributed(Dense(numClasses)))
+    model.add(Activation('softmax'))
+
+    return model, optimizer, loss
+
+def model_mar06_lstm_large_adam(inputShape, numClasses, batchSize=None):
+
+    if batchSize is None:
+        ValueError('batchSize must be specified for stateful nets')
+
+    optimizer = 'adam'
+    loss = 'categorical_crossentropy'
+
+    model = Sequential()
+
+    model.add(LSTM(64, return_sequences=True, stateful=True, batch_input_shape=(batchSize,)+inputShape))
+    #model.add(Dropout(0.2))
+    model.add(LSTM(64, return_sequences=True))
+    #model.add(Dropout(0.2))
+    model.add(TimeDistributed(Dense(numClasses)))
+    model.add(Activation('softmax'))
+
+    return model, optimizer, loss
+
 def model_aug30_lstm_large_dist(inputShape, numClasses, batchSize=None):
 
     optimizer = 'rmsprop'
