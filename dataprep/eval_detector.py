@@ -66,7 +66,8 @@ def params():
                 'testingWavs_kwClip_snooze']
     negDirs = ['noiseDataset/16k',
                'reverberant_speech/16k',
-               'TED']
+               'TED',
+               'fa_feb15']
 
     ths = np.array([0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.98])
     counts = np.arange(1, 16, 2)

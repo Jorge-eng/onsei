@@ -80,7 +80,7 @@ def eval_model(epochDir, posDirs=None, negDirs=None):
 
     return faRate, posRate
 
-def eval_epochs(modelTag):
+def eval_epochs(modelTag, tpBar=None, kwWeights=None, setWeights=None):
 
     posDirs, negDirs, ths, counts = eval_detector.params()
     truePosPts = np.arange(0.05, 1.01, 0.01)
@@ -103,18 +103,23 @@ def eval_epochs(modelTag):
     falseAlarm = np.rollaxis(np.array(falseAlarm),0,4)
     truePos = np.rollaxis(np.array(truePos),0,4)
 
-    #tpBar = [0., 0.83, 0.83]
-    #kwWeights = [0., 0.5, 0.5]
-    #tpBar = [0.87, 0., 0.]
-    #kwWeights = [1., 0., 0.]
-    tpBar = [0.85, 0.85, 0.85]
-    kwWeights = [0.8, 0.1, 0.1]
+    if tpBar is None:
+        #tpBar = [0., 0.83, 0.83]
+        tpBar = [0.82, 0., 0.]
+        #tpBar = [0.85, 0.85, 0.85]
+    if kwWeights is None:
+        #kwWeights = [0., 0.5, 0.5]
+        kwWeights = [1., 0., 0.]
+        #kwWeights = [0.8, 0.1, 0.1]
+    if setWeights is None:
+        setWeights = [1./3]*3 + [0]
+        #setWeights = [0]*3 + [1]
 
-    sortIdx, meanFa = rank_epochs(falseAlarm, truePos, truePosPts, tpBar=tpBar, kwWeights=kwWeights)
+    sortIdx, meanFa = rank_epochs(falseAlarm, truePos, truePosPts, tpBar=tpBar, kwWeights=kwWeights, setWeights=setWeights)
 
     topEpochs = []
     print('Top epochs:')
-    for rank in range(0, 5):
+    for rank in range(0, 10):
         outDir = epochDirs[sortIdx[rank]]
         topEpochs.append(outDir)
         faRate, posRate = eval_model(outDir, posDirs, negDirs)
@@ -125,19 +130,21 @@ def eval_epochs(modelTag):
 
     return falseAlarm, truePos, sortIdx, meanFa, topEpochs
 
-def rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.88, kwWeights=[0.6,0.2,0.2]):
+def rank_epochs(falseAlarm, truePos, truePosPts, tpBar=0.88, kwWeights=[0.6,0.2,0.2], setWeights=None):
 
     (nPts, nKw, nSets, nEp) = falseAlarm.shape
     if len(tpBar) < nKw:
         tpBar = [tpBar]*nKw
 
+    if setWeights = None:
+        setWeights = [1./nSets] * nSets
+
     meanFa = np.zeros((nKw, nEp))
     for kw in range(nKw):
         tpIdx = np.where(truePosPts >= tpBar[kw])[0][0]
-        meanFa[kw, :] = falseAlarm[tpIdx,kw,:,:].mean(axis=0) # mean across datasets
+        meanFa[kw, :] = np.dot(setWeights, falseAlarm[tpIdx, kw, :, :])
 
     sortIdx = np.argsort(np.dot(kwWeights, meanFa))
-    #sortIdx = np.argsort(meanFa[0])
     meanFa = meanFa[:,sortIdx]
 
     return sortIdx, meanFa
@@ -186,7 +193,7 @@ def collapse(fa, pos, numNegSets, nKw, truePosPts):
 
     return falseAlarm, truePos
 
-def count_detections(modelTag, epoch, inDir, h, th, nKw=3):
+def count_detections(modelTag, epoch, inDir, h, th, nKw=3, concat=False):
 
     model, modelType, winLen, offset, scale = get_model(modelTag, epoch=epoch)
 
@@ -196,12 +203,26 @@ def count_detections(modelTag, epoch, inDir, h, th, nKw=3):
 
     tot = []
     num = []
-    for fn in files:
-        prob = predict_file(fn, model, modelType, offset, scale, winLen, reset_states=False)[0]
-        tot.append(prob.shape[0])
-        num.append(eval_detector.detector(prob[:,1:1+nKw], h, th))
 
-    return num, tot
+    if concat==True:
+        fea = []
+        for fn in files:
+            fea.append(get_input(fn, 'tinyfeats', modelType, offset=offset, scale=scale, winLen=winLen))
+        fea = np.array(fea)
+        nFiles, __, winLen, nChan = fea.shape
+        fea = np.reshape(fea, (1, nFiles*winLen, nChan))
+        prob = model.predict_proba(fea)
+        prob = np.reshape(prob, (nFiles, winLen, prob.shape[2]))
+        for f in range(nFiles):
+            tot.append(prob[f].shape[0])
+            num.append(eval_detector.detector(prob[f,:,1:1+nKw], h, th))
+    else:
+        for fn in files:
+            prob = predict_file(fn, model, modelType, offset, scale, winLen, reset_states=False)[0]
+            tot.append(prob.shape[0])
+            num.append(eval_detector.detector(prob[:,1:1+nKw], h, th))
+
+    return num, tot, files
 
 if __name__ == '__main__':
 
