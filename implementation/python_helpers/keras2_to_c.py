@@ -167,8 +167,11 @@ class Dense(Layer):
         w0 = self.weights[0]
         print 'dense weights: %d,%d' % w0.shape
 
-        wn,wd = write_fixed_point_tensor(weights_name,w0.reshape(1,1,w0.shape[0],w0.shape[1]),f)
-        bn,bd = write_fixed_point_tensor(bias_name,self.weights[1].reshape(self.weights[1].shape[0],1,1,1),f)
+        w = w0.reshape(1,1,w0.shape[0],w0.shape[1])
+        b = self.weights[1].reshape(self.weights[1].shape[0],1,1,1)
+
+        wn,wd = write_fixed_point_tensor(weights_name,w,f)
+        bn,bd = write_fixed_point_tensor(bias_name,b,f)
 
         output_shape = (1,1,1,w0.shape[1])
 
@@ -193,15 +196,28 @@ class Dense(Layer):
 
 class Lstm(Layer):
     def write(self,input_shape,f):
-        nhidden = self.weights[1].shape[1]
+
+        nhidden = self.weights[1].shape[0]
         T = input_shape[2]
         output_shape = (1,1,T,nhidden)
 
         Nunits = self.layers[0]['config']['units']
         input_name,output_name = write_dims(input_shape,output_shape,self.name,f)
 
+        #from previous version
+        #gates = ['input_gate','cell','forget_gate','output_gate'] 
+
         #order is i,f,c,o
-        gates = ['input_gate','forget_gate','cell','output_gate'] #in order of params seen in layer.get_params()
+        gates = [
+            ('input_gate',0),
+            ('forget_gate',2),
+            ('cell',1),
+            ('output_gate',3)
+            ]
+
+        #testing
+ #       gates = ['forget_gate','cell','output_gate','input_gate'] 
+
 
         w = self.weights
         names = []
@@ -217,11 +233,11 @@ class Lstm(Layer):
         #   
 
         for i in range(len(gates)):
-            gatename = self.name + '_weights_' + gates[i]
-            biasname = self.name + '_biases_' + gates[i]
+            gatename = self.name + '_weights_' + gates[i][0]
+            biasname = self.name + '_biases_' + gates[i][0]
 
-            icolstart = i*Nunits
-            icolend = (i + 1) * Nunits
+            icolstart = gates[i][1]*Nunits
+            icolend = icolstart + Nunits
 
             gi = w[0][:,icolstart:icolend]
             gr = w[1][:,icolstart:icolend]
@@ -232,6 +248,7 @@ class Lstm(Layer):
             
             b = w[2][icolstart:icolend]
             b = b.reshape((1,1,1,b.shape[0]))
+            
 
             write_fixed_point_tensor(gatename,g,f)
             write_fixed_point_tensor(biasname,b,f)
@@ -298,12 +315,10 @@ def write_sequential_network(layerobjs,model,f):
         weights_idx_begin = weights_idx
         weights_idx += obj.get_num_weights()
 
-        print weights_idx_begin,weights_idx,len(model.get_weights())
+        #print weights_idx_begin,weights_idx,len(model.get_weights())
         for idx in range(weights_idx_begin,weights_idx):
             w = copy.deepcopy(model.get_weights()[idx])
             obj.add_weights(w)
-
-        print '-----'
 
     write_header(f)
     first_layer = layerobjs[0].layers[0]['config']
@@ -321,10 +336,10 @@ def write_sequential_network(layerobjs,model,f):
     original_input_shape = input_shape
     for obj in layerobjs:
         print 'name=%s, dropout=%f' %(obj.name,obj.dropout)
-        print input_shape,input_shape[0]*input_shape[1]*input_shape[2]*input_shape[3]
-        input_shape = obj.write(input_shape,f)
 
-        print input_shape,input_shape[0]*input_shape[1]*input_shape[2]*input_shape[3]
+        prev_input_shape = input_shape
+        input_shape = obj.write(input_shape,f)
+        print prev_input_shape,"---->",input_shape
         print '---------'
 
     f.write('\n\n\n')
