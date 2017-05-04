@@ -42,6 +42,7 @@ add_executable(unit-test
 unit-test/main.cpp 
 unit-test/testconv.cpp
 unit-test/testrecurrentnet.cpp
+unit-test/testrecurrentnet2.cpp
 unit-test/testfeatures.cpp
 unit-test/testmath.cpp
 )
