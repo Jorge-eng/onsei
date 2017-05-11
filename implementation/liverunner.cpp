@@ -51,7 +51,7 @@ private:
 
 
 #if HAVE_NET
-#include "model_def.c"
+#include "unit-test/data/cryb1weights.c"
 #endif
 
 #define MIN_PROB_TO_USE_FOR_SUM (40)
