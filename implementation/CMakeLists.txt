@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 2.8) 
 
 PROJECT (TinyTensor)
+set (CMAKE_CXX_STANDARD 14)
+set (CMAKE_C_STANDARD 99)
 
 set(CMAKE_OSX_DEPLOYMENT_TARGET "10.10")
 
@@ -11,11 +13,13 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 find_package(SndFile REQUIRED)
 find_package(PortAudio REQUIRED)
 find_package(RapidJSON REQUIRED)
+find_package(ZMQ REQUIRED)
 
 add_definitions(-DUSE_CPP_DEBUG_LOGGING)
 add_definitions(-DNO_EQUALIZATION)
 
-include_directories (${SNDFILE_INCLUDE_DIRS} ${PORTAUDIO_INCLUDE_DIRS} ${RAPIDJSON_INCLUDE_DIRS} "gtest/include/" "gtest" "./")
+include_directories (${SNDFILE_INCLUDE_DIRS} ${PORTAUDIO_INCLUDE_DIRS} ${RAPIDJSON_INCLUDE_DIRS} "gtest/include/" "gtest" "./" ${ZMQ_INCLUDE_DIR} network
+)
 message(STATUS "${SNDFILE_INCLUDE_DIRS}")
 message(STATUS "${SNDFILE_LIBRARIES}")
 
@@ -71,9 +75,17 @@ target_link_libraries(vadrunner tensor hellomath ${SNDFILE_LIBRARIES})
 
 ###########
 add_executable(liverunner 
-liverunner.cpp)
+liverunner.cpp
+network/pb_common.c
+network/pb_decode.c
+network/pb_encode.c
+network/proto_utils.c
+network/protobuf_matrix_utils.c
+network/radar_messages.pb.c
+network/simple_matrix.pb.c
+network/radarmessageprotobuf.cpp)
 
-target_link_libraries(liverunner tensor hellomath ${PORTAUDIO_LIBRARIES})
+target_link_libraries(liverunner tensor hellomath ${PORTAUDIO_LIBRARIES} zmq)
 
 #########
 add_executable(wavrunner

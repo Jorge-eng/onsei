@@ -11,6 +11,40 @@
 
 #include <iostream>
 #include <sys/time.h>
+
+#include "network/zmq_subscriber.h"
+#include "network/zmq_publisher.h"
+#include "network/radarmessageprotobuf.h"
+#include "network/radar_result_publisher_interface.h"
+#include "network/haltija_types.h"
+
+
+const char * k_topic = "v1/is_crying";
+const char * k_publish_target = "tcp://*:5566";
+
+class RadarMessagePublisher : public RadarResultPublisherInterface {
+public:
+    RadarMessagePublisher(const std::string & publish_host_port) {
+        _publisher.initialize(publish_host_port.c_str());
+    }
+    
+    void publish(const char * prefix, const RadarMessage_t & message) {
+        
+        if (_seen_prefixes.find(prefix) == _seen_prefixes.end()) {
+            std::cout << "PUBLISHING TO TOPIC: " << prefix << std::endl;
+        }
+        
+        _seen_prefixes.insert(prefix);
+        
+        _publisher.publish(prefix, message);
+    }
+    
+private:
+    std::set<std::string> _seen_prefixes;
+    
+    ZmqPublisher<RadarMessageProtobuf,RadarMessage_t> _publisher;
+};
+
 #define HAVE_NET (1)
 #define PRINT_TIMING (0)
 
@@ -27,8 +61,8 @@
 #define FEAT_OFFSET (0)
 #define MIN_FEAT_COUNT (200)
 #define SAMPLE_RATE  (16000)
-#define DETECTION_THRESHOLD (TOFIX(0.5f))
-#define FRAMES_PER_BUFFER (160)
+#define DETECTION_THRESHOLD (TOFIX(0.7f))
+#define FRAMES_PER_BUFFER (240)
 #define NUM_SECONDS     (3600)
 #define NUM_CHANNELS    (1)
 /* #define DITHER_FLAG     (paDitherOff) */
@@ -112,6 +146,9 @@ typedef struct {
     uint32_t bufidx;
     SequentialNetworkStates_t state;
     bool is_speech;
+    RadarMessagePublisher * publisher;
+    int keyword_counter;
+    int notcounter;
 } FeatsCallbackContext;
 
 void vad_callback(void * context, SpeechTransition_t transition) {
@@ -143,7 +180,8 @@ static void feats_callback(void * context, int16_t * feats) {
     //desire to have the dims as 40 x 199
     //data comes in as 40 x 1 vectors, soo
     
-    
+    //zmq_subscriber.add_subscriber(radar_subscribe_prefix.c_str(), new NoveldaRadarSubscriber(novelda_config,new RadarMessagePublisher(publish_host_port),NULL));
+
     
     Tensor_t temp_tensor;
     temp_tensor.dims[0] = 1;
@@ -159,6 +197,34 @@ static void feats_callback(void * context, int16_t * feats) {
     
     Tensor_t * out = tinytensor_eval_stateful_net(&p->net, &p->state, &temp_tensor,NET_FLAG_LSTM_DAMPING);
     bool is_printing = false;
+    int temp = out->x[0];
+    out->x[0] = out->x[1];
+    out->x[1] = temp;
+    
+    if (out->x[1] > TOFIX(0.7)) {
+        p->keyword_counter++;
+        p->notcounter = 0;
+    }
+    else {
+        p->keyword_counter = 0;
+        p->notcounter++;
+    }
+    
+    
+    if (p->keyword_counter == 10) {
+        RadarMessage_t message;
+        message.vec.push_back(1.0);
+        p->publisher->publish(k_topic, message);
+        std::cout << "PUBLISHING       CRYING" << std::endl;
+    }
+    
+    if (p->notcounter >= 66 * 5 && p->notcounter % 66 == 0) {
+        RadarMessage_t message;
+        message.vec.push_back(0.0);
+        p->publisher->publish(k_topic, message);
+        std::cout << "PUBLISHING NOT NOT NOT CRYING" << std::endl;
+    }
+    
     
     for (int i = 1; i < out->dims[3]; i++) {
         if (out->x[i] > DETECTION_THRESHOLD) {
@@ -201,7 +267,7 @@ static void feats_callback(void * context, int16_t * feats) {
 int main(void) {
     FeatsCallbackContext featsContext;
     memset(&featsContext,0,sizeof(featsContext));
-
+    featsContext.publisher = new RadarMessagePublisher(k_publish_target);
     
     gettimeofday(&tp, NULL);
     ms = tp.tv_sec * 1000 + tp.tv_usec / 1000; //get current timestamp in milliseconds
@@ -294,8 +360,8 @@ int main(void) {
     
     average = average / (double)numSamples;
     
-    printf("sample max amplitude = "PRINTF_S_FORMAT"\n", max );
-    printf("sample average = %lf\n", average );
+   // printf("sample max amplitude = "PRINTF_S_FORMAT"\n", max );
+   // printf("sample average = %lf\n", average );
     
 
     
